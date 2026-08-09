@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- **O diretório não é um repositório git.** `git rev-parse` falha. **Não** execute passos de commit e não tente `git init` — ao fim de cada tarefa, rode a suíte no lugar do commit.
+- **O repositório git foi criado em 2026-08-09**, e o trabalho corre na branch `feat/chapter-star-progress`. Cada tarefa termina com `flutter analyze && flutter test` verdes **e um commit** dos arquivos que ela tocou, em português, no formato `feat: <o que passou a existir>` (ou `test:` / `docs:` quando for só isso). Não faça commit com a suíte vermelha.
 - **Proibido texto literal na UI.** Todo texto visível ao jogador vem do `AppLocalizations`, com tradução em `lib/l10n/app_en.arb` **e** `lib/l10n/app_pt.arb`. O template é o **inglês**.
 - **Após mexer em qualquer `.arb`, rode `flutter gen-l10n`.** Os arquivos `lib/l10n/app_localizations*.dart` são gerados; não os edite à mão.
 - **Nenhuma animação em repetição.** Toda animação nova toca uma vez e para. Repetição faz `pumpAndSettle` nunca terminar e derruba a suíte de widget inteira.
