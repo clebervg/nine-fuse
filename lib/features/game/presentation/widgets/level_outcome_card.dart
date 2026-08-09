@@ -2,9 +2,11 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/features/game/domain/star_rating.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/victory_dialog.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
@@ -25,6 +27,8 @@ class LevelOutcomeCard extends StatelessWidget {
     required this.onNext,
     required this.onBack,
     this.onEndless,
+    this.starsInChapter,
+    this.starsGained,
   });
 
   final GameState state;
@@ -34,6 +38,15 @@ class LevelOutcomeCard extends StatelessWidget {
 
   /// Oferecido só ao vencer a última fase, como continuação da campanha.
   final VoidCallback? onEndless;
+
+  /// Estrelas acumuladas no capítulo desta fase, já contando esta partida, e
+  /// quantas entraram agora.
+  ///
+  /// Opcionais porque quem os conhece é a tela, que lê o `CampaignRecords`;
+  /// este cartão é `StatelessWidget` sem provider de propósito, e é isso que
+  /// permite testá-lo sem `ProviderScope`. Nulos, a barra não é desenhada.
+  final int? starsInChapter;
+  final int? starsGained;
 
   bool get _won => state.status == GameStatus.won;
 
@@ -118,6 +131,17 @@ class LevelOutcomeCard extends StatelessWidget {
               detail,
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white38, fontSize: 12),
+            ),
+          ],
+          // Abaixo das estrelas da fase e acima do placar: a ordem vai do
+          // imediato (o que esta partida rendeu) para o acumulado (o que o
+          // capítulo já tem), sem empurrar "PRÓXIMA FASE" para fora da dobra.
+          if (_won && starsInChapter != null && starsGained != null) ...[
+            const SizedBox(height: 14),
+            ChapterStarProgress(
+              chapter: chapterOf(state.level.number),
+              starsInChapter: starsInChapter!,
+              starsGained: starsGained!,
             ),
           ],
           const SizedBox(height: 6),

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_outcome_card.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/victory_dialog.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 import '../../../support/localized.dart';
@@ -21,6 +22,8 @@ void main() {
     int moves = 10,
     int bonusMoves = 0,
     GameLevel target = level,
+    int? starsInChapter,
+    int? starsGained,
   }) async {
     // Tela de celular pequeno: é onde o cartão precisa caber.
     tester.view.physicalSize = const Size(750, 1334);
@@ -48,6 +51,8 @@ void main() {
                 onNext: () {},
                 onBack: () {},
                 onEndless: () {},
+                starsInChapter: starsInChapter,
+                starsGained: starsGained,
               ),
             ),
           ),
@@ -251,6 +256,42 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(advanced, 1);
+    });
+  });
+
+  group('barra de estrelas do capítulo', () {
+    testWidgets('aparece na vitória quando os números chegam', (tester) async {
+      await pumpCard(
+        tester,
+        status: GameStatus.won,
+        starsInChapter: 12,
+        starsGained: 3,
+      );
+
+      expect(find.byKey(chapterStarProgressKey), findsOneWidget);
+      // A fase 4 é do capítulo 1, que tem 6 fases e portanto 18 estrelas.
+      expect(find.text('12/18'), findsOneWidget);
+    });
+
+    // Os números são opcionais porque seis arquivos de teste constroem este
+    // cartão direto; sem eles, o cartão continua sendo o de antes.
+    testWidgets('sem os números, não desenha nada', (tester) async {
+      await pumpCard(tester, status: GameStatus.won);
+
+      expect(find.byKey(chapterStarProgressKey), findsNothing);
+    });
+
+    // Derrota não tem estrela para somar, e a barra ali leria como consolo.
+    testWidgets('não aparece na derrota', (tester) async {
+      await pumpCard(
+        tester,
+        status: GameStatus.lost,
+        lossReason: LossReason.moveLimitReached,
+        starsInChapter: 12,
+        starsGained: 0,
+      );
+
+      expect(find.byKey(chapterStarProgressKey), findsNothing);
     });
   });
 }
