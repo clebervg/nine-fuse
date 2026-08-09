@@ -280,6 +280,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get apexCelebration => 'FUSÃO MÁXIMA ALCANÇADA! 🎉';
 
   @override
+  String chapterStarsSemantics(int stars, int total, String chapter) {
+    return '$stars de $total estrelas em $chapter.';
+  }
+
+  @override
   String bonusMoves(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

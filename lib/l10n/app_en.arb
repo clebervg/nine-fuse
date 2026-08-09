@@ -189,6 +189,15 @@
 
   "apexCelebration": "MAXIMUM FUSION! 🎉",
 
+  "chapterStarsSemantics": "{stars} of {total} stars in {chapter}.",
+  "@chapterStarsSemantics": {
+    "placeholders": {
+      "stars": { "type": "int" },
+      "total": { "type": "int" },
+      "chapter": { "type": "String" }
+    }
+  },
+
   "bonusMoves": "{count, plural, =1{+1 Move!} other{+{count} Moves!}}",
   "@bonusMoves": {
     "placeholders": { "count": { "type": "int" } }

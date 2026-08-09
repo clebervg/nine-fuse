@@ -499,6 +499,12 @@ abstract class AppLocalizations {
   /// **'MAXIMUM FUSION! 🎉'**
   String get apexCelebration;
 
+  /// No description provided for @chapterStarsSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{stars} of {total} stars in {chapter}.'**
+  String chapterStarsSemantics(int stars, int total, String chapter);
+
   /// No description provided for @bonusMoves.
   ///
   /// In en, this message translates to:
