@@ -1,0 +1,11 @@
+# Configuração do gen-l10n (ferramenta do próprio Flutter).
+#
+# O template é o **inglês**, e não o português, porque ele é o idioma de
+# fallback: uma chave que exista só no template ainda tem um valor para exibir
+# em qualquer locale. Se o template fosse `pt`, uma chave nova sem tradução
+# apareceria em português para um jogador de qualquer país.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

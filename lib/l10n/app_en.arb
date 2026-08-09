@@ -1,0 +1,196 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "NineFuse",
+  "@appTitle": {
+    "description": "Nome do app, na barra de tarefas do sistema."
+  },
+
+  "levelTitle": "Level {number}",
+  "@levelTitle": {
+    "placeholders": { "number": { "type": "int" } }
+  },
+
+  "objectiveCreateOne": "Create a {digit}",
+  "@objectiveCreateOne": {
+    "placeholders": { "digit": { "type": "int" } }
+  },
+
+  "objectiveCreateMany": "{count, plural, =1{Create one {digit} tile} other{Create {count} {digit} tiles}}",
+  "@objectiveCreateMany": {
+    "description": "Objetivo de mais de uma peça. O plural fica em ICU porque concatenar 'peças' quebraria em inglês.",
+    "placeholders": {
+      "count": { "type": "int" },
+      "digit": { "type": "int" }
+    }
+  },
+
+  "hudObjective": "GOAL",
+  "hudScore": "POINTS",
+  "hudMoves": "MOVES",
+
+  "hudScoreValue": "{score} pts",
+  "@hudScoreValue": {
+    "placeholders": { "score": { "type": "int" } }
+  },
+
+  "objectiveProgress": "{progress} of {count}",
+  "@objectiveProgress": {
+    "placeholders": {
+      "progress": { "type": "int" },
+      "count": { "type": "int" }
+    }
+  },
+
+  "moveBudget": "{count, plural, =1{1 Move} other{{count} Moves}}",
+  "@moveBudget": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "playButton": "PLAY",
+
+  "tipAlignThree": "Line up three equal tiles: the one you touched evolves.",
+  "tipRepeatFusion": "Fuse again. Swaps that form no trio cost no move.",
+  "tipChainFusion": "Three 4s become a 5. Plan the chain fusion.",
+  "tipBiggerMatches": "Matches of 4 or 5 tiles pay more than two of 3.",
+  "tipLongLevel": "Long level: mind the space on the board.",
+  "tipZeroStopped": "The 0 stopped falling. Bigger tiles arrive from the top.",
+
+  "tipApexExplodes": "The {digit} does not evolve: it explodes and clears the area around it.",
+  "@tipApexExplodes": {
+    "placeholders": { "digit": { "type": "int" } }
+  },
+
+  "outcomeWonTitle": "LEVEL COMPLETED!",
+  "outcomeMovesTitle": "OUT OF MOVES",
+  "outcomeStuckTitle": "BOARD STUCK",
+  "outcomeGenericTitle": "NOT THIS TIME",
+
+  "outcomeCampaignFinished": "You finished the campaign!",
+
+  "outcomeWonMessage": "{moves, plural, =1{Goal reached in 1 move.} other{Goal reached in {moves} moves.}}",
+  "@outcomeWonMessage": {
+    "placeholders": { "moves": { "type": "int" } }
+  },
+
+  "outcomeMovesMessage": "So close to the goal!",
+  "outcomeStuckMessage": "No valid swaps left!",
+  "outcomeGenericMessage": "The level is over.",
+
+  "outcomeMovesDetail": "{count, plural, =1{The level's single move ran out — the board still had plays.} other{The level's {count} moves ran out — the board still had plays.}}",
+  "@outcomeMovesDetail": {
+    "description": "Separa derrota por saldo de derrota por travamento: sem dizer que ainda havia jogadas, 'movimentos esgotados' segue sendo lido como 'o tabuleiro morreu'.",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "outcomeScore": "Points: {score}",
+  "@outcomeScore": {
+    "placeholders": { "score": { "type": "int" } }
+  },
+
+  "nextLevelButton": "NEXT LEVEL",
+  "playEndlessButton": "PLAY HIGH SCORE MODE",
+  "playAgainButton": "PLAY AGAIN",
+  "tryAgainButton": "TRY AGAIN",
+  "backToLevels": "Back to levels",
+
+  "endlessTitle": "High Score Mode",
+  "endlessHighlightTitle": "High Score Mode 🏆",
+
+  "endlessPoints": "Points",
+  "endlessRecord": "Best",
+  "endlessBiggestTile": "Best Tile",
+  "endlessNone": "—",
+
+  "endlessBandTop": "Top band reached",
+  "endlessNextBand": "Next band: create a",
+
+  "endlessRecordTitle": "New record!",
+  "endlessOverTitle": "Run over",
+  "endlessOverMessage": "There were no swaps left to make.",
+  "endlessMoves": "Moves",
+  "endlessHighestDigit": "Highest tile",
+  "endlessExplosions": "Explosions",
+  "endlessRestart": "New run",
+  "endlessBackToMenu": "Back to menu",
+
+  "endlessBestScore": "Your best score: {score} pts",
+  "@endlessBestScore": {
+    "placeholders": { "score": { "type": "int" } }
+  },
+
+  "endlessLockedHint": "Clear level {level} to unlock",
+  "@endlessLockedHint": {
+    "placeholders": { "level": { "type": "int" } }
+  },
+
+  "endlessCta": "Beat Record",
+
+  "starsCaption": "CAMPAIGN",
+  "@starsCaption": {
+    "description": "Legenda do contador de estrelas do mapa. Existe para o número não se ler como progresso do capítulo nomeado ao lado."
+  },
+
+  "starsSemantics": "{earned} of {total} campaign stars",
+  "@starsSemantics": {
+    "placeholders": {
+      "earned": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+
+  "chapterLabel": "Chapter {number}: {name}",
+  "@chapterLabel": {
+    "placeholders": {
+      "number": { "type": "int" },
+      "name": { "type": "String" }
+    }
+  },
+
+  "chapterPrimaryFusions": "Primary Fusions",
+  "chapterTowardNine": "Toward the Nine",
+
+  "chapterComingSoon": "Chapter {number}: Coming Soon!",
+  "@chapterComingSoon": {
+    "description": "Rótulo sobre os nós projetados do mapa: a trilha nunca termina em corte seco.",
+    "placeholders": { "number": { "type": "int" } }
+  },
+
+  "semanticsLevelCleared": "Level {number}, completed with {stars} of {total} stars. {objective}.",
+  "@semanticsLevelCleared": {
+    "placeholders": {
+      "number": { "type": "int" },
+      "stars": { "type": "int" },
+      "total": { "type": "int" },
+      "objective": { "type": "String" }
+    }
+  },
+
+  "semanticsLevelCurrent": "Level {number}, unlocked. {objective}.",
+  "@semanticsLevelCurrent": {
+    "placeholders": {
+      "number": { "type": "int" },
+      "objective": { "type": "String" }
+    }
+  },
+
+  "semanticsLevelLocked": "Level {number}, locked.",
+  "@semanticsLevelLocked": {
+    "placeholders": { "number": { "type": "int" } }
+  },
+
+  "comboSuperFusion": "SUPER FUSION!",
+  "comboTwo": "COMBO x2!",
+
+  "comboMany": "AMAZING x{count}!",
+  "@comboMany": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "apexCelebration": "MAXIMUM FUSION! 🎉",
+
+  "bonusMoves": "{count, plural, =1{+1 Move!} other{+{count} Moves!}}",
+  "@bonusMoves": {
+    "placeholders": { "count": { "type": "int" } }
+  }
+}

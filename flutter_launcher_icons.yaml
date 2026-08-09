@@ -1,0 +1,33 @@
+# Ícones nativos de todas as plataformas, gerados a partir dos mestres.
+#
+#   dart run tool/prepare_icons.dart      # prepara os mestres a partir do logo
+#   dart run flutter_launcher_icons       # recorta todos os tamanhos
+#
+# Os mestres em assets/icon/ são derivados de assets/images/logo.png e não
+# devem ser editados à mão — regere-os com a ferramenta acima.
+flutter_launcher_icons:
+  # Quadrado opaco. O logo original tem cantos transparentes, o que a App Store
+  # rejeita; o arredondamento é aplicado por cada sistema.
+  image_path: "assets/icon/app_icon.png"
+
+  ios: true
+  # Redundante com o mestre já achatado, mas mantido como rede de segurança:
+  # se alguém trocar o `image_path` por um PNG com alfa, o envio continua
+  # válido em vez de ser recusado na revisão.
+  remove_alpha_ios: true
+  background_color_ios: "#080810"
+
+  android: "ic_launcher"
+  min_sdk_android: 21
+
+  # Android 8+ recorta a frente em círculo, quadrado ou outras máscaras
+  # conforme o aparelho. A frente já vem com a arte encolhida para a zona
+  # segura central.
+  adaptive_icon_background: "#080810"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+
+  web:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+    background_color: "#080810"
+    theme_color: "#080810"

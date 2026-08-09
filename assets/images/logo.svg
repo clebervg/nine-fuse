@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Fundo Dark Profundo e Vibrante -->
+    <radialGradient id="bg-grad" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#1A1829"/>
+      <stop offset="100%" stop-color="#0A0910"/>
+    </radialGradient>
+
+    <!-- Gradiente de Energia Limpo (Sem tons marrons/barrentos) -->
+    <linearGradient id="fuse-ring" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF2A85"/>   <!-- Magenta Vibrante -->
+      <stop offset="50%" stop-color="#8E24AA"/>  <!-- Roxo Imperial -->
+      <stop offset="100%" stop-color="#00E5FF"/> <!-- Ciano Elétrico -->
+    </linearGradient>
+
+    <!-- Gradiente do 9 com Alto Contraste -->
+    <linearGradient id="nine-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="60%" stop-color="#F0F4F8"/>
+      <stop offset="100%" stop-color="#90A4AE"/>
+    </linearGradient>
+
+    <!-- Sombra e Brilho Tratados -->
+    <filter id="glow-clean" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feComponentTransfer in="blur" result="glow-bright">
+        <feFuncA type="linear" slope="0.6"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode in="glow-bright" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Brilho das partículas.
+         Precisa de filtro próprio: a região de um filtro é relativa ao
+         tamanho do elemento, e numa partícula de 12px de raio os 160% do
+         glow-clean cortam o desfoque antes de ele desvanecer — a borda dura
+         do corte aparece como um quadrado ao redor do ponto. Região larga e
+         desfoque menor mantêm o brilho inteiro dentro dela. -->
+    <filter id="glow-particle" x="-200%" y="-200%" width="500%" height="500%">
+      <feGaussianBlur stdDeviation="7" result="blur" />
+      <feComponentTransfer in="blur" result="glow-bright">
+        <feFuncA type="linear" slope="0.6"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode in="glow-bright" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="drop-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#000000" flood-opacity="0.75"/>
+    </filter>
+  </defs>
+
+  <!-- Fundo Arredondado (App Icon Base) -->
+  <rect width="512" height="512" rx="112" fill="url(#bg-grad)"/>
+
+  <!-- Anel de Fusão Energizado (Centralizado no Y=256) -->
+  <circle cx="256" cy="256" r="145" fill="none" stroke="url(#fuse-ring)" stroke-width="20" stroke-dasharray="650" stroke-dashoffset="40" stroke-linecap="round" filter="url(#glow-clean)"/>
+
+  <!-- Partículas de Fusão em Impacto -->
+  <circle cx="125" cy="210" r="12" fill="#FF2A85" filter="url(#glow-particle)"/>
+  <circle cx="385" cy="190" r="14" fill="#00E5FF" filter="url(#glow-particle)"/>
+  <circle cx="365" cy="330" r="10" fill="#FFD600" filter="url(#glow-particle)"/>
+  <circle cx="150" cy="340" r="12" fill="#8E24AA" filter="url(#glow-particle)"/>
+
+  <!-- Número 9 em Destaque (Com fill-rule="evenodd" e Centralizado em Y=256) -->
+  <g filter="url(#drop-shadow)">
+    <!-- Cabeça e corpo do 9 com fechamento correto -->
+    <path fill-rule="evenodd" d="M 280 166
+             C 210 166, 180 206, 180 256
+             C 180 306, 210 336, 270 336
+             C 320 336, 335 306, 335 266
+             L 335 166
+             Z
+             M 275 211
+             C 290 211, 295 226, 295 251
+             C 295 276, 290 291, 275 291
+             C 255 291, 220 281, 220 251
+             C 220 226, 255 211, 275 211
+             Z"
+          fill="url(#nine-grad)"/>
+
+    <!-- Perna do 9 com curva de impacto -->
+    <path d="M 335 266
+             C 335 356, 280 386, 220 386
+             C 190 386, 175 376, 175 376
+             L 185 341
+             C 185 341, 200 351, 220 351
+             C 260 351, 290 326, 295 276
+             Z"
+          fill="url(#nine-grad)"/>
+  </g>
+</svg>

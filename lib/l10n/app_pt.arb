@@ -1,0 +1,107 @@
+{
+  "@@locale": "pt",
+
+  "appTitle": "NineFuse",
+
+  "levelTitle": "Fase {number}",
+
+  "objectiveCreateOne": "Crie um {digit}",
+
+  "objectiveCreateMany": "{count, plural, =1{Crie uma peça {digit}} other{Crie {count} peças {digit}}}",
+
+  "hudObjective": "OBJETIVO",
+  "hudScore": "PONTOS",
+  "hudMoves": "JOGADAS",
+
+  "hudScoreValue": "{score} pts",
+
+  "objectiveProgress": "{progress} de {count}",
+
+  "moveBudget": "{count, plural, =1{1 Movimento} other{{count} Movimentos}}",
+
+  "playButton": "JOGAR",
+
+  "tipAlignThree": "Alinhe três peças iguais: a do seu toque evolui.",
+  "tipRepeatFusion": "Repita a fusão. Trocas que não formam trio não gastam movimento.",
+  "tipChainFusion": "Três 4 viram um 5. Planeje a fusão em cadeia.",
+  "tipBiggerMatches": "Combinações de 4 ou 5 peças rendem mais que duas de 3.",
+  "tipLongLevel": "Fase longa: cuide do espaço do tabuleiro.",
+  "tipZeroStopped": "O 0 parou de cair. Peças maiores chegam do topo.",
+
+  "tipApexExplodes": "O {digit} não evolui: ele explode e limpa a área em volta.",
+
+  "outcomeWonTitle": "FASE CONCLUÍDA!",
+  "outcomeMovesTitle": "MOVIMENTOS ESGOTADOS",
+  "outcomeStuckTitle": "TABULEIRO TRAVADO",
+  "outcomeGenericTitle": "NÃO FOI DESSA VEZ",
+
+  "outcomeCampaignFinished": "Você terminou a campanha!",
+
+  "outcomeWonMessage": "{moves, plural, =1{Objetivo cumprido em 1 movimento.} other{Objetivo cumprido em {moves} movimentos.}}",
+
+  "outcomeMovesMessage": "Faltou pouco para alcançar o objetivo!",
+  "outcomeStuckMessage": "Não restam trocas válidas!",
+  "outcomeGenericMessage": "A fase terminou.",
+
+  "outcomeMovesDetail": "{count, plural, =1{O único movimento da fase acabou — o tabuleiro ainda tinha jogadas.} other{Os {count} movimentos da fase acabaram — o tabuleiro ainda tinha jogadas.}}",
+
+  "outcomeScore": "Pontos: {score}",
+
+  "nextLevelButton": "PRÓXIMA FASE",
+  "playEndlessButton": "JOGAR MODO RECORDE",
+  "playAgainButton": "JOGAR DE NOVO",
+  "tryAgainButton": "TENTAR NOVAMENTE",
+  "backToLevels": "Voltar às fases",
+
+  "endlessTitle": "Modo Recorde",
+  "endlessHighlightTitle": "Modo Recorde 🏆",
+
+  "endlessPoints": "Pontos",
+  "endlessRecord": "Recorde",
+  "endlessBiggestTile": "Maior Bloco",
+  "endlessNone": "—",
+
+  "endlessBandTop": "Faixa máxima alcançada",
+  "endlessNextBand": "Próxima faixa: crie um",
+
+  "endlessRecordTitle": "Novo recorde!",
+  "endlessOverTitle": "Fim da corrida",
+  "endlessOverMessage": "Não havia mais nenhuma troca possível.",
+  "endlessMoves": "Movimentos",
+  "endlessHighestDigit": "Maior dígito",
+  "endlessExplosions": "Explosões",
+  "endlessRestart": "Nova corrida",
+  "endlessBackToMenu": "Voltar ao menu",
+
+  "endlessBestScore": "Sua melhor pontuação: {score} pts",
+
+  "endlessLockedHint": "Conclua a fase {level} para liberar",
+
+  "endlessCta": "Superar Recorde",
+
+  "starsCaption": "CAMPANHA",
+
+  "starsSemantics": "{earned} de {total} estrelas da campanha",
+
+  "chapterLabel": "Capítulo {number}: {name}",
+
+  "chapterPrimaryFusions": "Fusões Primárias",
+  "chapterTowardNine": "Rumo ao Nove",
+
+  "chapterComingSoon": "Capítulo {number}: Em Breve!",
+
+  "semanticsLevelCleared": "Fase {number}, concluída com {stars} de {total} estrelas. {objective}.",
+
+  "semanticsLevelCurrent": "Fase {number}, liberada. {objective}.",
+
+  "semanticsLevelLocked": "Fase {number}, bloqueada.",
+
+  "comboSuperFusion": "SUPER FUSÃO!",
+  "comboTwo": "COMBO x2!",
+
+  "comboMany": "INCRÍVEL x{count}!",
+
+  "apexCelebration": "FUSÃO MÁXIMA ALCANÇADA! 🎉",
+
+  "bonusMoves": "{count, plural, =1{+1 Movimento!} other{+{count} Movimentos!}}"
+}

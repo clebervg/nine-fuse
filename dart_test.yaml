@@ -1,0 +1,8 @@
+tags:
+  # Testes de referência visual. Comparam pixel a pixel, então dependem da
+  # versão do Flutter e do renderizador de fontes da máquina — podem falhar em
+  # outro ambiente sem que nada esteja errado no app.
+  #
+  # Para pular:      flutter test --exclude-tags golden
+  # Para regerar:    flutter test --update-goldens
+  golden:
