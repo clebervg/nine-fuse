@@ -104,6 +104,49 @@ void main() {
       expect(records.starsInChapter(kChapters.last), 2);
     });
 
+    group('o retorno diz quantas estrelas entraram', () {
+      test('a primeira vitória devolve as estrelas todas', () {
+        final records = CampaignRecords(storage: InMemoryGameStorage());
+        addTearDown(records.dispose);
+
+        expect(records.record(1, stars: 2, score: 100), 2);
+      });
+
+      test('rejogar melhor devolve só a diferença', () {
+        final records = CampaignRecords(storage: InMemoryGameStorage());
+        addTearDown(records.dispose);
+
+        records.record(1, stars: 1, score: 100);
+
+        expect(records.record(1, stars: 3, score: 900), 2);
+      });
+
+      // O merge guarda o melhor de cada fase, então rejogar pior não tira
+      // estrela — e também não dá nenhuma. A barra do capítulo não pode animar
+      // um ganho que não houve.
+      test('rejogar igual ou pior devolve zero', () {
+        final records = CampaignRecords(storage: InMemoryGameStorage());
+        addTearDown(records.dispose);
+
+        records.record(1, stars: 3, score: 900);
+
+        expect(records.record(1, stars: 3, score: 900), 0);
+        expect(records.record(1, stars: 1, score: 10), 0);
+      });
+
+      // Placar melhor com a mesma nota grava (o melhor placar mudou) mas não
+      // acrescenta estrela nenhuma.
+      test('só o placar melhorou: grava, mas devolve zero', () {
+        final records = CampaignRecords(storage: InMemoryGameStorage());
+        addTearDown(records.dispose);
+
+        records.record(1, stars: 2, score: 100);
+
+        expect(records.record(1, stars: 2, score: 800), 0);
+        expect(records.totalScore, 800);
+      });
+    });
+
     test('grava no armazenamento', () async {
       final storage = InMemoryGameStorage();
       final records = CampaignRecords(storage: storage);

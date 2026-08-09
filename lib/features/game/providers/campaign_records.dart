@@ -52,16 +52,25 @@ class CampaignRecords extends StateNotifier<Map<int, LevelRecord>> {
   }
 
   /// Registra o resultado de uma fase vencida, guardando o melhor.
-  void record(int levelNumber, {required int stars, required int score}) {
+  ///
+  /// Devolve **quantas estrelas entraram** com este resultado. Quem pergunta é
+  /// a barra do capítulo no cartão de vitória: ela precisa saber de onde
+  /// começar a animar, e no instante em que o cartão renderiza o total já
+  /// inclui o ganho. O número também não é dedutível da partida — o merge
+  /// guarda o melhor, então rejogar com nota igual ou pior rende zero mesmo
+  /// tirando três estrelas. Só este método enxerga os dois lados da conta.
+  int record(int levelNumber, {required int stars, required int score}) {
     final fresh = LevelRecord(stars: stars, bestScore: score);
     final existing = state[levelNumber];
     final merged = existing == null ? fresh : existing.mergedWith(fresh);
+    final gained = merged.stars - (existing?.stars ?? 0);
 
     // Nada mudou: não vale um estado novo nem uma gravação em disco.
-    if (existing == merged) return;
+    if (existing == merged) return 0;
 
     state = {...state, levelNumber: merged};
     _persist();
+    return gained;
   }
 
   /// Estrelas de uma fase, ou zero se ela nunca foi vencida.
