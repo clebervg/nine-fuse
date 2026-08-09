@@ -104,6 +104,8 @@ void main() {
       required GameStatus status,
       LossReason? reason,
       int moves = 8,
+      int? starsInChapter,
+      int? starsGained,
     }) => LevelOutcomeCard(
       state: GameState(
         board: Board.empty(),
@@ -115,6 +117,8 @@ void main() {
       onRetry: () {},
       onNext: () {},
       onBack: () {},
+      starsInChapter: starsInChapter,
+      starsGained: starsGained,
     );
 
     testWidgets('vitória', (tester) async {
@@ -151,6 +155,18 @@ void main() {
       expect(find.text('No valid swaps left!'), findsOneWidget);
       expect(find.text('OUT OF MOVES'), findsNothing);
       expect(find.textContaining('the board still had plays'), findsNothing);
+    });
+
+    // As asserções vêm em par: o texto inglês aparece **e** o português não.
+    // Só a primeira metade deixaria passar um widget que mostrasse os dois.
+    testWidgets('barra de capítulo em inglês', (tester) async {
+      await pumpEn(
+        tester,
+        card(status: GameStatus.won, starsInChapter: 12, starsGained: 3),
+      );
+
+      expect(find.text('Chapter 1: Primary Fusions'), findsOneWidget);
+      expect(find.text('Capítulo 1: Fusões Primárias'), findsNothing);
     });
   });
 

@@ -850,11 +850,14 @@ que é a mesma ambiguidade, para quem não enxerga. O `Semantics` usa
 `excludeSemantics: true`, senão o leitor anunciaria a frase **e** depois "23/30"
 e "CAMPANHA" soltos.
 
-**Pista de que a contagem por capítulo nunca foi ligada:**
-`CampaignChapter.starTotal` e `CampaignRecords.starsInChapter` existem no código
-e não são usados por ninguém. Foram escritos para essa leitura e ficaram no
-meio do caminho. Há teste que exige que o denominador continue sendo o da
-campanha, justamente para uma "correção" futura não trocar um pelo outro.
+**A contagem por capítulo passou a ser usada.** `CampaignChapter.starTotal` e
+`CampaignRecords.starsInChapter` ficaram um bom tempo escritos sem nenhum
+consumidor — foram feitos para esta leitura e pararam no meio do caminho.
+Agora alimentam a barra de estrelas do capítulo no cartão de vitória
+(`presentation/widgets/victory_dialog.dart`). O denominador do **cabeçalho do
+mapa** continua sendo o da campanha inteira, e há teste que exige isso: as duas
+leituras convivem de propósito, e uma "correção" futura não pode trocar uma
+pela outra.
 
 O golden `saga_map.png` foi regravado: o cabeçalho ficou ~11px mais alto e a
 trilha desceu junto. O `isolatedDiff` mostrou um deslocamento vertical uniforme

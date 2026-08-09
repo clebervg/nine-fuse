@@ -138,8 +138,10 @@ void main() {
         onRetry: () {},
         onNext: () {},
         onBack: () {},
+        starsInChapter: 12,
+        starsGained: 3,
       ),
-      const Size(420, 560),
+      const Size(420, 620),
     );
 
     await expectLater(
