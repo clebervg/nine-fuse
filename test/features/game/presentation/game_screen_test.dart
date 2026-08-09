@@ -13,6 +13,7 @@ import 'package:nine_fuse/features/game/presentation/widgets/level_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_outcome_card.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/tile_widget.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/victory_dialog.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/features/game/presentation/l10n_labels.dart';
@@ -448,5 +449,31 @@ void main() {
       1,
       reason: 'concluir a fase 1 deveria destravar a fase 2',
     );
+  });
+
+  testWidgets('a vitória mostra a barra de estrelas do capítulo', (
+    tester,
+  ) async {
+    // Objetivo mínimo: cai no primeiro movimento válido, como no teste do
+    // cartão de fase concluída.
+    const trivial = GameLevel(
+      number: 43,
+      objective: Objective(digit: 4),
+      moveLimit: 30,
+    );
+    await pumpGame(tester, level: trivial);
+
+    for (
+      int i = 0;
+      i < 20 && notifier.state.status == GameStatus.playing;
+      i++
+    ) {
+      final pair = findSwap(creatingMatch: true);
+      if (pair == null) break;
+      await playSwap(tester, pair);
+    }
+
+    expect(notifier.state.status, GameStatus.won);
+    expect(find.byKey(chapterStarProgressKey), findsOneWidget);
   });
 }

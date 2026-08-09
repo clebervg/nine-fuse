@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/star_rating.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
@@ -56,6 +57,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   /// um caso.
   bool _ready = false;
 
+  /// Quantas estrelas de capítulo a última vitória acrescentou.
+  ///
+  /// Vem do retorno de `CampaignRecords.record()`, e não de uma conta feita
+  /// aqui: quando o cartão renderiza, o total do capítulo **já inclui** esta
+  /// fase, e rejogar sem melhorar a nota rende zero mesmo tirando três
+  /// estrelas. Só o notifier enxerga os dois lados.
+  int _chapterStarsGained = 0;
+
   @override
   void initState() {
     super.initState();
@@ -71,13 +80,25 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final state = ref.watch(gameProvider);
     final notifier = ref.read(gameProvider.notifier);
 
+    // Observar o mapa é o que faz a barra reagir quando a leitura do disco
+    // chega depois da abertura da tela; o total sai do notifier.
+    ref.watch(campaignRecordsProvider);
+    final chapterStars = ref
+        .read(campaignRecordsProvider.notifier)
+        .starsInChapter(chapterOf(state.level.number));
+
     ref.listen(gameProvider, (previous, next) {
       // Vencer a fase libera a seguinte e registra como foi.
       if (next.status == GameStatus.won && previous?.status != GameStatus.won) {
         ref.read(campaignProgressProvider.notifier).complete(next.level.number);
         // A mesma nota que o cartão de desfecho mostra — vem da mesma função,
         // para o mapa nunca discordar da tela que acabou de premiar o jogador.
-        ref
+        //
+        // Sem `setState`: esta atribuição ocorre durante a notificação do
+        // `gameProvider`, que o `build` já observa com `ref.watch` — o
+        // rebuild vem de qualquer forma, e chamar `setState` aqui arrisca
+        // reentrada.
+        _chapterStarsGained = ref
             .read(campaignRecordsProvider.notifier)
             .record(
               next.level.number,
@@ -208,6 +229,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   onEndless: () => Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (_) => const EndlessScreen()),
                   ),
+                  starsInChapter: chapterStars,
+                  starsGained: _chapterStarsGained,
                 ),
               ),
           ],
