@@ -144,6 +144,7 @@ void main() {
 
         expect(records.record(1, stars: 2, score: 800), 0);
         expect(records.totalScore, 800);
+        expect(records.starsFor(1), 2);
       });
     });
 
