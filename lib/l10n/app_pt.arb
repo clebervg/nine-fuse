@@ -103,7 +103,7 @@
 
   "apexCelebration": "FUSÃO MÁXIMA ALCANÇADA! 🎉",
 
-  "chapterStarsSemantics": "{stars} de {total} estrelas em {chapter}.",
+  "chapterStarsSemantics": "{stars} de {total} estrelas no {chapter}.",
 
   "bonusMoves": "{count, plural, =1{+1 Movimento!} other{+{count} Movimentos!}}"
 }

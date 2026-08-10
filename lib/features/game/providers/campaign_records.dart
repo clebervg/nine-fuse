@@ -85,7 +85,18 @@ class CampaignRecords extends StateNotifier<Map<int, LevelRecord>> {
       state.values.fold(0, (total, record) => total + record.bestScore);
 
   /// Estrelas conquistadas dentro de um capítulo.
-  int starsInChapter(CampaignChapter chapter) => state.entries
+  int starsInChapter(CampaignChapter chapter) =>
+      starsInChapterOf(state, chapter);
+
+  /// Versão estática de [starsInChapter], para quem já tem o mapa observado
+  /// (via `ref.watch(campaignRecordsProvider)`) e quer evitar uma segunda
+  /// leitura do provider através de `ref.read(...notifier)` só para chamar o
+  /// método de instância. A regra de filtragem mora aqui uma única vez; o
+  /// método de instância apenas delega para ela.
+  static int starsInChapterOf(
+    Map<int, LevelRecord> records,
+    CampaignChapter chapter,
+  ) => records.entries
       .where((entry) => chapter.contains(entry.key))
       .fold(0, (total, entry) => total + entry.value.stars);
 

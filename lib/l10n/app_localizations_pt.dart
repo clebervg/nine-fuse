@@ -281,7 +281,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String chapterStarsSemantics(int stars, int total, String chapter) {
-    return '$stars de $total estrelas em $chapter.';
+    return '$stars de $total estrelas no $chapter.';
   }
 
   @override

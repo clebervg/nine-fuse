@@ -7,13 +7,14 @@ import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
+import 'package:nine_fuse/features/game/domain/star_rating.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_outcome_card.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/tile_widget.dart';
-import 'package:nine_fuse/features/game/presentation/widgets/victory_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/chapter_star_progress.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/features/game/presentation/l10n_labels.dart';
@@ -454,10 +455,11 @@ void main() {
   testWidgets('a vitória mostra a barra de estrelas do capítulo', (
     tester,
   ) async {
-    // Objetivo mínimo: cai no primeiro movimento válido, como no teste do
-    // cartão de fase concluída.
+    // Fase 1 de verdade, do capítulo 1 da campanha (6 fases, 18 estrelas).
+    // Objetivo mínimo e limite folgado: cai no primeiro movimento válido,
+    // como no teste do cartão de fase concluída.
     const trivial = GameLevel(
-      number: 43,
+      number: 1,
       objective: Objective(digit: 4),
       moveLimit: 30,
     );
@@ -475,5 +477,44 @@ void main() {
 
     expect(notifier.state.status, GameStatus.won);
     expect(find.byKey(chapterStarProgressKey), findsOneWidget);
+
+    // O denominador é o total do capítulo 1 (6 fases × 3 estrelas). O
+    // numerador depende de quantos movimentos o jogador automático gastou —
+    // por isso é calculado com a mesma fórmula da tela (`starRating`), em vez
+    // de um valor fixo que oscilaria com a semente aleatória.
+    final state = notifier.state;
+    final stars = starRating(
+      movesLeft: state.movesLeft,
+      movesAvailable: state.movesAvailable,
+    );
+    expect(find.text('$stars/18'), findsOneWidget);
   });
+
+  testWidgets(
+    'uma fase fora de qualquer capítulo não quebra a barra de estrelas',
+    (tester) async {
+      // Fase 43 não existe na campanha nem em nenhum capítulo declarado:
+      // `chapterOf` cai no capítulo 2 por fallback. A barra tem de desenhar
+      // sem lançar, mesmo que o número não reflita a fase recém-vencida.
+      const outOfChapter = GameLevel(
+        number: 43,
+        objective: Objective(digit: 4),
+        moveLimit: 30,
+      );
+      await pumpGame(tester, level: outOfChapter);
+
+      for (
+        int i = 0;
+        i < 20 && notifier.state.status == GameStatus.playing;
+        i++
+      ) {
+        final pair = findSwap(creatingMatch: true);
+        if (pair == null) break;
+        await playSwap(tester, pair);
+      }
+
+      expect(notifier.state.status, GameStatus.won);
+      expect(find.byKey(chapterStarProgressKey), findsOneWidget);
+    },
+  );
 }

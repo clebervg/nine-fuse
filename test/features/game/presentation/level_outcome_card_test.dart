@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_outcome_card.dart';
-import 'package:nine_fuse/features/game/presentation/widgets/victory_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/chapter_star_progress.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 import '../../../support/localized.dart';

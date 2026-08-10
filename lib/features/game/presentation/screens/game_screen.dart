@@ -81,11 +81,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final notifier = ref.read(gameProvider.notifier);
 
     // Observar o mapa é o que faz a barra reagir quando a leitura do disco
-    // chega depois da abertura da tela; o total sai do notifier.
-    ref.watch(campaignRecordsProvider);
-    final chapterStars = ref
-        .read(campaignRecordsProvider.notifier)
-        .starsInChapter(chapterOf(state.level.number));
+    // chega depois da abertura da tela. O total sai do próprio valor
+    // observado (via a versão estática de `starsInChapter`), em vez de uma
+    // segunda leitura do provider só para chamar o método de instância.
+    final records = ref.watch(campaignRecordsProvider);
+    final chapterStars = CampaignRecords.starsInChapterOf(
+      records,
+      chapterOf(state.level.number),
+    );
 
     ref.listen(gameProvider, (previous, next) {
       // Vencer a fase libera a seguinte e registra como foi.

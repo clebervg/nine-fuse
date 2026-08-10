@@ -6,7 +6,7 @@ import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/features/game/domain/star_rating.dart';
-import 'package:nine_fuse/features/game/presentation/widgets/victory_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/chapter_star_progress.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
+import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
@@ -213,7 +214,15 @@ void main() {
 
   group('capítulos', () {
     test('cobrem toda a campanha, sem buraco nem sobreposição', () {
-      for (int number = 1; number <= 10; number++) {
+      // Percorre as fases reais de `kCampaign`, e não um literal (1..10):
+      // `chapterOf` deixou de alimentar só o rótulo do mapa e passou a
+      // alimentar o numerador e o denominador da barra de estrelas do
+      // capítulo no cartão de vitória. Estender `kCampaign` sem estender
+      // `kChapters` faria uma fase nova cair fora de qualquer capítulo
+      // declarado, e a barra dessa fase nunca subiria — um literal fixo
+      // passaria por esse teste sem reclamar.
+      for (final level in kCampaign) {
+        final number = level.number;
         final matches = kChapters.where((c) => c.contains(number)).toList();
         expect(
           matches,

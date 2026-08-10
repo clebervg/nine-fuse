@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
-import 'package:nine_fuse/features/game/presentation/widgets/victory_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/chapter_star_progress.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 import '../../../support/localized.dart';
 
@@ -89,7 +89,7 @@ void main() {
 
     expect(
       find.bySemanticsLabel(
-        '12 de 18 estrelas em Capítulo 1: Fusões Primárias.',
+        '12 de 18 estrelas no Capítulo 1: Fusões Primárias.',
       ),
       findsOneWidget,
     );
