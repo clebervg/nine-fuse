@@ -5,7 +5,6 @@ import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/endless_progression.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_metric_card.dart';
-import 'package:nine_fuse/features/game/presentation/widgets/hammer_button.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/tile_widget.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
@@ -33,17 +32,11 @@ class EndlessBanner extends StatelessWidget {
     required this.state,
     required this.highScore,
     required this.progression,
-    this.onHammer,
   });
 
   final EndlessState state;
   final int highScore;
   final EndlessProgression progression;
-
-  /// Liga e desliga o modo de mira do martelo. Nulo significa "esta tela não
-  /// oferece booster" — o padrão, para os testes e goldens que montam o
-  /// cabeçalho sozinhos continuarem medindo o HUD que já existia.
-  final VoidCallback? onHammer;
 
   @override
   Widget build(BuildContext context) {
@@ -123,18 +116,9 @@ class EndlessBanner extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           _StepIndicator(state: state, progression: progression),
-          // O booster vem por último: é ação, não informação. Some com a corrida
-          // travada — ali o placar já foi gravado, e um golpe reabriria uma
-          // partida encerrada.
-          if (onHammer != null && !state.isOver) ...[
-            const SizedBox(height: 12),
-            HammerButton(
-              key: endlessHammerButtonKey,
-              targeting: state.isHammerTargeting,
-              count: state.hammerCount,
-              onPressed: onHammer!,
-            ),
-          ],
+          // O booster **não** mora aqui: é ação, não informação, e dentro da
+          // moldura das métricas lia como um indicador a mais. Ele agora é a
+          // [HammerBar], numa faixa própria abaixo do card, montada pela tela.
         ],
       ),
     );

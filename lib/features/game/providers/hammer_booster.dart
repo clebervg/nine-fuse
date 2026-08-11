@@ -110,10 +110,24 @@ mixin HammerBooster<S> on StateNotifier<S> {
   /// Injetáveis porque são o único ponto daqui que fala com a plataforma: nos
   /// testes viram contadores, e a suíte não depende de canal nativo. São únicos
   /// para os dois modos — o mesmo item não deve soar diferente em cada tela.
-  static void Function() targetingFeedback = HapticFeedback.selectionClick;
+  /// Entrar em mira: batida leve e o clique de sistema.
+  ///
+  /// Os três avisos usam sons **distintos** de propósito. Engajar a mira é um
+  /// clique; errar a mira é o alerta; o golpe é a batida pesada, sem som. Com o
+  /// mesmo som nos três o jogador não distinguiria "entrei em mira" de "errei",
+  /// que é justamente o par que ele precisa separar. Não há motor de áudio no
+  /// projeto — quando houver, é aqui que os SFX próprios entram.
+  static void Function() targetingFeedback = () {
+    HapticFeedback.selectionClick();
+    SystemSound.play(SystemSoundType.click);
+  };
 
   static void Function() rejectionFeedback = () =>
       SystemSound.play(SystemSoundType.alert);
+
+  /// A célula foi ao chão. Batida pesada, o mesmo peso da explosão do dígito 9:
+  /// é a destruição mais violenta que o jogador provoca de propósito.
+  static void Function() strikeFeedback = HapticFeedback.heavyImpact;
 
   // --- o que cada notifier fornece -------------------------------------------
 
@@ -212,6 +226,7 @@ mixin HammerBooster<S> on StateNotifier<S> {
       return;
     }
 
+    strikeFeedback();
     _setHammerCount(hammer.count - 1);
     writeHammer(
       hammer.copyWith(

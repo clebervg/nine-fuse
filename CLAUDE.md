@@ -299,3 +299,84 @@ peças escorriam para fora da própria moldura. Só não aparecia porque em celu
 3. **Pre-Churn Trigger:** Oferecer +5 movimentos via Rewarded Ad quando `movesLeft == 2` e a vitória não estiver garantida.
 4. **Cap de Limite:** Máximo de 3 Martelos por dia via Rewarded Ads para preservar a economia interna.
 5. **Benefícios No-Ads Pass:** Remove intersticiais e ativa o Bônus Diário VIP (+50 Moedas/dia).
+
+### Diretrizes de UI/UX: Booster Martelo de Fusão
+1. **Design de Botão:** Formato circular compacto com badge de quantidade no canto. DEVE ficar fora do card principal de métricas. Posicionado no canto superior direito do grid ou em row dedicada abaixo das métricas.
+2. **Estado Zero:** Se quantidade == 0, botão mostra "+" e abre modal de compra/ad ao invés de ativar mira.
+3. **Modo de Mira:** Ativa `BackdropFilter` (blur 3px + scrim preto 60%) com transição de 150ms. Remove qualquer efeito antigo de opacidade nas células. A célula sob o toque fura o scrim, escala 1.1x, ganha borda pulsante neon e overlay vermelho de preview.
+4. **Cancelamento:** Botão do HUD vira "X" vermelho durante a mira. Toque fora das células cancela.
+5. **Feedback Tátil & Sonoro:** `selectionClick` no engajamento da mira + `heavyImpact` na destruição. SFX distintos para ativação e explosão. Camera shake de 100ms + partículas da cor da peça no momento da quebra.
+6. **Performance:** Todo `BackdropFilter` deve estar contido em um `ClipRect` para evitar gargalos de renderização no grid.
+
+#### Como as seis diretrizes foram implementadas ✅
+
+**O botão saiu do card, e o card perdeu o parâmetro.** `LevelBanner` e
+`EndlessBanner` não recebem mais `onHammer`: a `HammerBar` é montada pelas telas,
+numa faixa entre o card de métricas e o tabuleiro. Deixar o botão dentro da
+moldura o fazia ler como uma quarta métrica — mais uma coisa a *saber*, quando é
+a única coisa ali a *fazer*. O círculo é a forma que o resto do HUD não usa
+(nenhuma métrica, pílula ou barra é redonda), então o olho o acha sem rótulo — e
+sem rótulo é o que permite ser compacto. Há teste travando que o botão **não** é
+descendente do `LevelBanner`: o dia em que alguém o devolver para dentro do card,
+a suíte reclama.
+
+**O `+` do estado zero é visual; o Modo Fantasma continua.** A diretriz pedia que
+estoque zero abrisse o modal *em vez* de mirar, e isso contraria o funil que já
+estava construído e testado: quem escolhe o alvo antes de descobrir que não tem
+martelo assiste ao anúncio sabendo o que vai quebrar. Decisão do dono do produto,
+tomada explicitamente: **fica o Modo Fantasma**. O badge mostra `+` em verde (e
+não `0`, que anunciaria um botão inútil), o toque entra em mira, e o convite abre
+com o alvo guardado.
+
+**A faixa também é onde a dica de mira cabe.** O véu diz "o resto da tela está
+fora"; ele não diz "toque numa célula". Sem a frase, o modo de mira mudava o
+significado do toque no tabuleiro sem nada na tela dizer isso.
+
+**O golpe sai no levantar do dedo.** `tapDown` acende o destaque, arrastar o move,
+`tapUp`/`panEnd` golpeia a célula de baixo do dedo. Cobrar no encostar
+transformaria todo escorregão em martelo perdido — e o item é pago. Dois testes:
+com o dedo na tela nada foi destruído; arrastar para a vizinha mata a vizinha.
+
+**O véu cobre o tabuleiro só depois de haver alvo.** Enquanto o dedo não desceu, o
+recorte é o tabuleiro inteiro: é entre aqueles dígitos que o jogador está
+escolhendo, e desfocar a grade na hora da escolha esconderia justamente a
+informação que a decisão pede. Ao encostar o dedo o recorte encolhe para a célula
+(1,1x, com aro neon pulsante e o fio vermelho de prévia) e o resto — tabuleiro
+incluído — recua para trás do blur. É a leitura da diretriz 3 que não briga com o
+motivo pelo qual o véu era recortado desde o início.
+
+**O destaque é irmão do véu, não filho.** Dentro do `ClipPath` a prévia vermelha
+seria recortada junto com o buraco — ela é desenhada exatamente sobre a célula que
+o véu não cobre. O `ClipRect` externo é o da diretriz 6, e há teste procurando o
+`BackdropFilter` **dentro** do `hammerScrimKey` e um `ClipRect` acima dele.
+
+**Nada de `Opacity` nem `FadeTransition` na entrada do véu.** A transição de 150ms
+anima alfa de cor e sigma do blur por `AnimationController`, pela mesma armadilha
+já registrada nos obstáculos: a suíte usa esses dois tipos como marcadores de
+outros efeitos.
+
+**Toda animação nova é finita.** O aro pulsante dá duas batidas e descansa aceso
+(`kHammerAimPulse`), e o tranco do `StrikeShake` dura 100ms e volta ao lugar. Uma
+animação em repetição faria `pumpAndSettle` nunca terminar e derrubaria a suíte de
+widget inteira — é a mesma razão pela qual o contador de movimentos pulsa uma vez
+por jogada em vez de virar relógio. O teste do tranco confere que o tabuleiro
+**volta** à posição de repouso depois do golpe.
+
+**O tranco é do tabuleiro, não da tela.** `StrikeShake` embrulha o `Stack` do
+tabuleiro *com* o `JuiceOverlay`: sacudir a tela levaria o HUD e o botão junto, e
+quem quebrou foi uma peça. Um estilhaço parado sobre um tabuleiro que anda
+denunciaria as duas camadas. O sinal é `hammerStrikes`, e não a posição — dois
+golpes na mesma célula com o mesmo dígito não se distinguem por nada mais.
+
+**Três avisos, três sons.** `strikeFeedback` (`heavyImpact`) entrou no `_strike`,
+ao lado de `targetingFeedback` (`selectionClick` + clique de sistema) e
+`rejectionFeedback` (alerta). Engajar a mira e errar a mira são o par que o
+jogador mais precisa distinguir, então nenhum dos dois pode soar como o outro. O
+golpe fica sem som próprio: **não há motor de áudio no projeto**, e o único som de
+sistema sobrando é o de alerta, que significaria erro. É o ponto a trocar quando
+houver SFX de verdade. Sendo injetável, o gancho novo teve de ser dublado nos
+quatro arquivos de teste que já dublavam os outros dois — em teste puro, sem
+binding, o canal de plataforma estoura.
+
+**As partículas da cor da peça já existiam** (`ShatterEffect` no `hammerStrike`),
+e continuam sendo o que a diretriz 5 pede.

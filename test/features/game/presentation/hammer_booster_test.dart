@@ -15,6 +15,7 @@ import 'package:nine_fuse/features/game/presentation/widgets/hammer_button.dart'
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_targeting_layer.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/juice_overlay.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/level_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
@@ -64,12 +65,15 @@ void main() {
 
   late void Function() realTargeting;
   late void Function() realRejection;
+  late void Function() realStrike;
 
   setUp(() {
     realTargeting = HammerBooster.targetingFeedback;
     realRejection = HammerBooster.rejectionFeedback;
+    realStrike = HammerBooster.strikeFeedback;
     HammerBooster.targetingFeedback = () {};
     HammerBooster.rejectionFeedback = () {};
+    HammerBooster.strikeFeedback = () {};
     storage = InMemoryGameStorage();
     notifier = GameNotifier(random: Random(42), storage: storage);
   });
@@ -77,6 +81,7 @@ void main() {
   tearDown(() {
     HammerBooster.targetingFeedback = realTargeting;
     HammerBooster.rejectionFeedback = realRejection;
+    HammerBooster.strikeFeedback = realStrike;
   });
 
   /// Monta a tela da fase com [hammers] martelos em estoque.
@@ -120,17 +125,67 @@ void main() {
       await pumpGame(tester, hammers: 2);
 
       expect(find.byKey(hammerButtonKey), findsOneWidget);
-      expect(find.textContaining('2'), findsWidgets);
+      expect(
+        find.descendant(
+          of: find.byKey(hammerBadgeKey),
+          matching: find.text('2'),
+        ),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('vira CANCELAR ao entrar em mira', (tester) async {
+    testWidgets('fica fora do card de métricas', (tester) async {
+      // Dentro da moldura das métricas o botão lia como um quarto indicador —
+      // informação, quando é a única coisa ali que se faz.
+      await pumpGame(tester, hammers: 1);
+
+      expect(
+        find.descendant(
+          of: find.byType(LevelBanner),
+          matching: find.byKey(hammerButtonKey),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('sem estoque o badge convida em vez de mostrar zero', (
+      tester,
+    ) async {
+      // Um `0` anunciaria que o botão não faz nada, e ele faz: mirar, e trocar
+      // a mira por um anúncio.
+      await pumpGame(tester, hammers: 0);
+
+      expect(
+        find.descendant(
+          of: find.byKey(hammerBadgeKey),
+          matching: find.text('+'),
+        ),
+        findsOneWidget,
+      );
+      // O `0` não é procurado na tela toda de propósito: o tabuleiro tem peças
+      // de dígito `0`, e um `findsNothing` global acharia elas.
+      expect(
+        find.descendant(
+          of: find.byKey(hammerBadgeKey),
+          matching: find.text('0'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('vira X vermelho ao entrar em mira', (tester) async {
       await pumpGame(tester);
 
       await tester.tap(find.byKey(hammerButtonKey));
       await tester.pumpAndSettle();
 
       expect(notifier.state.isHammerTargeting, isTrue);
-      expect(find.text('CANCELAR'), findsOneWidget);
+      // O disco compacto não tem rótulo: quem diz "cancelar" é o ícone. E o
+      // badge sai de cena — um estoque pendurado no X diria que o X custa um
+      // martelo.
+      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.gavel_rounded), findsNothing);
+      expect(find.byKey(hammerBadgeKey), findsNothing);
     });
 
     testWidgets('o próprio botão cancela a mira', (tester) async {
@@ -142,7 +197,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(notifier.state.isHammerTargeting, isFalse);
-      expect(find.text('CANCELAR'), findsNothing);
+      expect(find.byIcon(Icons.close_rounded), findsNothing);
+      expect(find.byIcon(Icons.gavel_rounded), findsOneWidget);
     });
 
     testWidgets('não aparece na fase encerrada', (tester) async {
@@ -236,6 +292,114 @@ void main() {
 
       expect(notifier.state.selectedTile?.position, target);
       expect(notifier.state.hammerCount, 1, reason: 'nada foi cobrado');
+    });
+
+    testWidgets('o desfoque do fundo está contido num ClipRect', (
+      tester,
+    ) async {
+      // Sem o recorte o `BackdropFilter` tenta ler o fundo da árvore inteira, e
+      // num grid 8x8 animado isso aparece como engasgo.
+      await pumpGame(tester);
+      await tester.tap(find.byKey(hammerButtonKey));
+      await tester.pumpAndSettle();
+
+      final filter = find.descendant(
+        of: find.byKey(hammerScrimKey),
+        matching: find.byType(BackdropFilter),
+      );
+      expect(filter, findsOneWidget);
+      expect(
+        find.ancestor(of: filter, matching: find.byType(ClipRect)),
+        findsWidgets,
+      );
+    });
+
+    testWidgets('o golpe sai no levantar do dedo, não no encostar', (
+      tester,
+    ) async {
+      // Cobrar no `tapDown` transformaria todo escorregão em martelo perdido.
+      await pumpGame(tester);
+      await tester.tap(find.byKey(hammerButtonKey));
+      await tester.pumpAndSettle();
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byKey(tileKey(target))),
+      );
+      await tester.pump();
+
+      expect(
+        notifier.state.board.getTileAt(target)?.value,
+        7,
+        reason: 'com o dedo na tela nada foi destruído',
+      );
+      expect(notifier.state.hammerCount, 1);
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(notifier.state.board.getTileAt(target)?.value, isNot(7));
+      expect(notifier.state.hammerCount, 0);
+    });
+
+    testWidgets('arrastar antes de soltar corrige a mira', (tester) async {
+      // A célula que morre é a de baixo do dedo quando ele **sobe** — é o que dá
+      // ao jogador a chance de consertar a mira antes de gastar o item.
+      await pumpGame(tester);
+      await tester.tap(find.byKey(hammerButtonKey));
+      await tester.pumpAndSettle();
+
+      const neighbour = Position(row: 1, col: 2);
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byKey(tileKey(target))),
+      );
+      await tester.pump();
+      await gesture.moveTo(tester.getCenter(find.byKey(tileKey(neighbour))));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(
+        notifier.state.board.getAllTiles().where((t) => t.value == 7),
+        isNotEmpty,
+        reason: 'o 7 sobrevive: o dedo saiu de cima dele antes de subir',
+      );
+      expect(notifier.state.hammerStrike?.$1, neighbour);
+    });
+
+    testWidgets('arrastar para fora do tabuleiro e soltar cancela', (
+      tester,
+    ) async {
+      await pumpGame(tester);
+      await tester.tap(find.byKey(hammerButtonKey));
+      await tester.pumpAndSettle();
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byKey(tileKey(target))),
+      );
+      await tester.pump();
+      await gesture.moveTo(const Offset(100, 1300));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(notifier.state.isHammerTargeting, isFalse);
+      expect(notifier.state.hammerCount, 1, reason: 'desistir não cobra');
+    });
+  });
+
+  group('tranco do golpe', () {
+    testWidgets('o tabuleiro sacode e volta ao lugar', (tester) async {
+      await pumpGame(tester);
+      final resting = tester.getTopLeft(find.byType(BoardGridWidget));
+
+      await tester.tap(find.byKey(hammerButtonKey));
+      await tester.pumpAndSettle();
+      await tapTarget(tester);
+
+      // `pumpAndSettle` já passou: o tranco é finito, senão a suíte de widget
+      // inteira travaria aqui — a mesma armadilha do contador de movimentos.
+      expect(tester.getTopLeft(find.byType(BoardGridWidget)), resting);
+      expect(notifier.state.hammerStrikes, 1);
     });
   });
 

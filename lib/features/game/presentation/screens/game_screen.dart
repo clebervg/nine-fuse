@@ -9,12 +9,14 @@ import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart
 import 'package:nine_fuse/features/game/presentation/widgets/apex_celebration.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/combo_banner.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/hammer_button.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_targeting_layer.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/juice_overlay.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_outcome_card.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/strike_shake.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
@@ -158,12 +160,24 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: LevelBanner(
-                            state: state,
-                            onHammer: notifier.toggleHammerTargeting,
-                          ),
+                          child: LevelBanner(state: state),
                         ),
-                        const SizedBox(height: 20),
+                        // A faixa do booster fica **entre** o card de métricas e
+                        // o tabuleiro, e fora dos dois: é ação, e a ação não
+                        // pertence à moldura que informa. Some com a fase
+                        // encerrada — um martelo oferecido sobre o cartão de
+                        // derrota promete o que já não pode cumprir.
+                        if (!state.isOver)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                            child: HammerBar(
+                              buttonKey: hammerButtonKey,
+                              targeting: state.isHammerTargeting,
+                              count: state.hammerCount,
+                              onPressed: notifier.toggleHammerTargeting,
+                            ),
+                          ),
+                        const SizedBox(height: 12),
                         // Margem menor que a do resto da tela, mas não zero:
                         // colado na borda o tabuleiro parece cortado. Os 8pt
                         // de cada lado são os mesmos assumidos no cálculo de
@@ -173,50 +187,58 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                           // Os efeitos ficam sobre o tabuleiro e compartilham
                           // a mesma geometria, para a pontuação nascer na
                           // célula certa.
-                          child: Stack(
-                            key: _boardKey,
-                            children: [
-                              // Enquanto o cartão de início está aberto o
-                              // tabuleiro não aceita toque: um dedo que
-                              // encostasse fora do cartão gastaria movimento
-                              // antes de o jogador ter lido o objetivo.
-                              IgnorePointer(
-                                ignoring: !_ready,
-                                child: BoardGridWidget(
-                                  board: state.board,
-                                  selectedTile: state.selectedTile,
-                                  rejectedSwap: state.rejectedSwap,
-                                  hint: state.hint,
-                                  bigFusionTileIds: state.bigFusionTileIds,
-                                  // A dica só começa a contar depois do
-                                  // "JOGAR": senão o relógio de ociosidade
-                                  // corre enquanto o jogador lê o cartão e a
-                                  // dica acende junto com o tabuleiro.
-                                  // Fase acabada também não sugere jogada.
-                                  // A dica não sugere troca durante a mira: o
-                                  // toque do jogador tem outro destino agora, e
-                                  // um par aceso apontaria para a ação errada.
-                                  hintEnabled:
-                                      _ready &&
-                                      !state.isOver &&
-                                      !state.isHammerTargeting,
-                                  // Durante a mira o toque não chega aqui: a
-                                  // camada de mira o intercepta antes, para
-                                  // poder distinguir "bateu na célula" de
-                                  // "tocou fora e desistiu".
-                                  onTileTap: notifier.selectTile,
-                                  onTileSwipe: notifier.swapTiles,
+                          //
+                          // O tranco do martelo sacode o tabuleiro **com** os
+                          // efeitos, e não a tela: quem quebrou foi uma peça, e
+                          // um estilhaço que ficasse parado enquanto o tabuleiro
+                          // anda denunciaria as duas camadas.
+                          child: StrikeShake(
+                            serial: state.hammerStrikes,
+                            child: Stack(
+                              key: _boardKey,
+                              children: [
+                                // Enquanto o cartão de início está aberto o
+                                // tabuleiro não aceita toque: um dedo que
+                                // encostasse fora do cartão gastaria movimento
+                                // antes de o jogador ter lido o objetivo.
+                                IgnorePointer(
+                                  ignoring: !_ready,
+                                  child: BoardGridWidget(
+                                    board: state.board,
+                                    selectedTile: state.selectedTile,
+                                    rejectedSwap: state.rejectedSwap,
+                                    hint: state.hint,
+                                    bigFusionTileIds: state.bigFusionTileIds,
+                                    // A dica só começa a contar depois do
+                                    // "JOGAR": senão o relógio de ociosidade
+                                    // corre enquanto o jogador lê o cartão e a
+                                    // dica acende junto com o tabuleiro.
+                                    // Fase acabada também não sugere jogada.
+                                    // A dica não sugere troca durante a mira: o
+                                    // toque do jogador tem outro destino agora, e
+                                    // um par aceso apontaria para a ação errada.
+                                    hintEnabled:
+                                        _ready &&
+                                        !state.isOver &&
+                                        !state.isHammerTargeting,
+                                    // Durante a mira o toque não chega aqui: a
+                                    // camada de mira o intercepta antes, para
+                                    // poder distinguir "bateu na célula" de
+                                    // "tocou fora e desistiu".
+                                    onTileTap: notifier.selectTile,
+                                    onTileSwipe: notifier.swapTiles,
+                                  ),
                                 ),
-                              ),
-                              Positioned.fill(
-                                child: JuiceOverlay(
-                                  step: state.activeStep,
-                                  comboCount: state.comboCount,
-                                  hammerStrike: state.hammerStrike,
-                                  strikeSerial: state.hammerStrikes,
+                                Positioned.fill(
+                                  child: JuiceOverlay(
+                                    step: state.activeStep,
+                                    comboCount: state.comboCount,
+                                    hammerStrike: state.hammerStrike,
+                                    strikeSerial: state.hammerStrikes,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                         // O placar subiu para o HUD: no rodapé ficava abaixo do

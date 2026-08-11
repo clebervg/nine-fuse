@@ -296,17 +296,21 @@ void main() {
   group('Martelo de Fusão', () {
     late void Function() realTargeting;
     late void Function() realRejection;
+    late void Function() realStrike;
 
     setUp(() {
       realTargeting = HammerBooster.targetingFeedback;
       realRejection = HammerBooster.rejectionFeedback;
+      realStrike = HammerBooster.strikeFeedback;
       HammerBooster.targetingFeedback = () {};
       HammerBooster.rejectionFeedback = () {};
+      HammerBooster.strikeFeedback = () {};
     });
 
     tearDown(() {
       HammerBooster.targetingFeedback = realTargeting;
       HammerBooster.rejectionFeedback = realRejection;
+      HammerBooster.strikeFeedback = realStrike;
     });
 
     /// Tabuleiro estável com um `7` solitário na mira. O 7 está fora da janela

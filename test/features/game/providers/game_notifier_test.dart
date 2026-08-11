@@ -486,17 +486,21 @@ void main() {
     // verificam trocam por um contador.
     late void Function() realTargeting;
     late void Function() realRejection;
+    late void Function() realStrike;
 
     setUp(() {
       realTargeting = HammerBooster.targetingFeedback;
       realRejection = HammerBooster.rejectionFeedback;
+      realStrike = HammerBooster.strikeFeedback;
       HammerBooster.targetingFeedback = () {};
       HammerBooster.rejectionFeedback = () {};
+      HammerBooster.strikeFeedback = () {};
     });
 
     tearDown(() {
       HammerBooster.targetingFeedback = realTargeting;
       HammerBooster.rejectionFeedback = realRejection;
+      HammerBooster.strikeFeedback = realStrike;
     });
 
     /// Tabuleiro estável (faixas diagonais de período 3 nunca alinham três) com

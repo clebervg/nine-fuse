@@ -25,6 +25,7 @@ void main() {
   late InMemoryGameStorage storage;
   late void Function() realTargeting;
   late void Function() realRejection;
+  late void Function() realStrike;
 
   // Linha alta: nesta janela de teste o hit-test só alcança a metade de cima do
   // tabuleiro.
@@ -33,8 +34,10 @@ void main() {
   setUp(() {
     realTargeting = HammerBooster.targetingFeedback;
     realRejection = HammerBooster.rejectionFeedback;
+    realStrike = HammerBooster.strikeFeedback;
     HammerBooster.targetingFeedback = () {};
     HammerBooster.rejectionFeedback = () {};
+    HammerBooster.strikeFeedback = () {};
     storage = InMemoryGameStorage();
     notifier = EndlessNotifier(random: Random(7), storage: storage);
   });
@@ -42,6 +45,7 @@ void main() {
   tearDown(() {
     HammerBooster.targetingFeedback = realTargeting;
     HammerBooster.rejectionFeedback = realRejection;
+    HammerBooster.strikeFeedback = realStrike;
   });
 
   /// Tabuleiro estável com um `7` solitário na mira.
@@ -130,13 +134,23 @@ void main() {
     expect(notifier.state.moves, 0);
   });
 
-  testWidgets('o botão vira CANCELAR durante a mira', (tester) async {
+  testWidgets('o botão vira X durante a mira', (tester) async {
     await pumpEndless(tester);
 
     await tester.tap(find.byKey(endlessHammerButtonKey));
     await tester.pump();
 
-    expect(find.text('CANCELAR'), findsOneWidget);
+    // O botão é redondo e compacto: o papel de cancelar é dito pelo ícone e
+    // pela cor, não por um rótulo que não caberia no disco.
+    final button = tester.widget<HammerButton>(find.byType(HammerButton));
+    expect(button.targeting, isTrue);
+    expect(
+      find.descendant(
+        of: find.byKey(endlessHammerButtonKey),
+        matching: find.byIcon(Icons.close_rounded),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('tocar fora do tabuleiro cancela a mira', (tester) async {

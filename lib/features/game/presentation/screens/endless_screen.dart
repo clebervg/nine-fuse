@@ -7,8 +7,10 @@ import 'package:nine_fuse/features/game/presentation/widgets/combo_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/juice_overlay.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_outcome_card.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/hammer_button.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_targeting_layer.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/strike_shake.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
@@ -68,10 +70,23 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                             state: state,
                             highScore: notifier.highScore,
                             progression: notifier.progression,
-                            onHammer: notifier.toggleHammerTargeting,
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        // A faixa do booster fica entre o card de métricas e o
+                        // tabuleiro, e fora dos dois. Some com a corrida travada
+                        // — ali o placar já foi gravado, e um golpe reabriria
+                        // uma partida encerrada.
+                        if (!state.isOver)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                            child: HammerBar(
+                              buttonKey: endlessHammerButtonKey,
+                              targeting: state.isHammerTargeting,
+                              count: state.hammerCount,
+                              onPressed: notifier.toggleHammerTargeting,
+                            ),
+                          ),
+                        const SizedBox(height: 12),
                         if (state.status == EndlessStatus.idle)
                           const SizedBox(
                             height: 200,
@@ -84,33 +99,41 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                           // tamanho de célula.
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Stack(
-                              key: _boardKey,
-                              children: [
-                                BoardGridWidget(
-                                  board: state.board,
-                                  selectedTile: state.selectedTile,
-                                  rejectedSwap: state.rejectedSwap,
-                                  hint: state.hint,
-                                  bigFusionTileIds: state.bigFusionTileIds,
-                                  // A dica não sugere troca durante a mira: o
-                                  // toque tem outro destino agora.
-                                  hintEnabled:
-                                      !state.isOver && !state.isHammerTargeting,
-                                  // Durante a mira o toque não chega aqui: a
-                                  // camada de mira o intercepta antes.
-                                  onTileTap: notifier.selectTile,
-                                  onTileSwipe: notifier.swapTiles,
-                                ),
-                                Positioned.fill(
-                                  child: JuiceOverlay(
-                                    step: state.activeStep,
-                                    comboCount: state.comboCount,
-                                    hammerStrike: state.hammerStrike,
-                                    strikeSerial: state.hammerStrikes,
+                            // O tranco do martelo sacode o tabuleiro **com** os
+                            // efeitos, e não a tela: quem quebrou foi uma peça,
+                            // e um estilhaço parado sobre um tabuleiro que anda
+                            // denunciaria as duas camadas.
+                            child: StrikeShake(
+                              serial: state.hammerStrikes,
+                              child: Stack(
+                                key: _boardKey,
+                                children: [
+                                  BoardGridWidget(
+                                    board: state.board,
+                                    selectedTile: state.selectedTile,
+                                    rejectedSwap: state.rejectedSwap,
+                                    hint: state.hint,
+                                    bigFusionTileIds: state.bigFusionTileIds,
+                                    // A dica não sugere troca durante a mira: o
+                                    // toque tem outro destino agora.
+                                    hintEnabled:
+                                        !state.isOver &&
+                                        !state.isHammerTargeting,
+                                    // Durante a mira o toque não chega aqui: a
+                                    // camada de mira o intercepta antes.
+                                    onTileTap: notifier.selectTile,
+                                    onTileSwipe: notifier.swapTiles,
                                   ),
-                                ),
-                              ],
+                                  Positioned.fill(
+                                    child: JuiceOverlay(
+                                      step: state.activeStep,
+                                      comboCount: state.comboCount,
+                                      hammerStrike: state.hammerStrike,
+                                      strikeSerial: state.hammerStrikes,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                       ],
