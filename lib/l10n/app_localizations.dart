@@ -546,6 +546,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{+1 Move!} other{+{count} Moves!}}'**
   String bonusMoves(int count);
+
+  /// Booster button in the HUD, with the remaining stock.
+  ///
+  /// In en, this message translates to:
+  /// **'HAMMER ({count})'**
+  String hammerButton(int count);
+
+  /// No description provided for @hammerCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'CANCEL'**
+  String get hammerCancel;
+
+  /// No description provided for @hammerAimHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a cell to smash it'**
+  String get hammerAimHint;
+
+  /// No description provided for @hammerOfferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of hammers'**
+  String get hammerOfferTitle;
+
+  /// No description provided for @hammerOfferBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch a short ad and smash the cell you picked.'**
+  String get hammerOfferBody;
+
+  /// No description provided for @hammerOfferWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'WATCH AD'**
+  String get hammerOfferWatch;
+
+  /// No description provided for @hammerOfferDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT NOW'**
+  String get hammerOfferDecline;
+
+  /// No description provided for @hammerOfferFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'No ad available right now.'**
+  String get hammerOfferFailed;
+
+  /// No description provided for @hammerSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Fusion Hammer, {count} in stock. Smashes one cell without spending a move.'**
+  String hammerSemantics(int count);
 }
 
 class _AppLocalizationsDelegate

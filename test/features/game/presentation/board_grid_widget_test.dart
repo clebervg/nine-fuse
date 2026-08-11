@@ -997,4 +997,44 @@ void main() {
       expect(scaleOf(tester, 'recem_criada'), 1.0);
     });
   });
+
+  group('tela larga', () {
+    /// O mesmo tabuleiro num espaço maior que [kMaxBoardSide].
+    Widget wideHost(Board board) => MaterialApp(
+      locale: kTestLocale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: kMaxBoardSide + 400,
+            height: kMaxBoardSide + 400,
+            child: BoardGridWidget(board: board),
+          ),
+        ),
+      ),
+    );
+
+    testWidgets('as peças ficam dentro da moldura do tabuleiro', (
+      tester,
+    ) async {
+      // O tabuleiro para de crescer em `kMaxBoardSide` e é centralizado. As
+      // peças eram posicionadas somando o deslocamento da centralização *dentro*
+      // da moldura já centralizada, então em tablet elas escorriam para a
+      // direita, saindo da própria moldura.
+      await tester.pumpWidget(wideHost(boardOf(plainGrid())));
+      await tester.pumpAndSettle();
+
+      final frame = tester.getRect(find.byType(BoardGridWidget));
+      final corner = tester.getRect(find.byKey(tileVisualKey('r0c0')));
+      final far = tester.getRect(find.byKey(tileVisualKey('r7c7')));
+
+      // Centralizado: a sobra é igual dos dois lados.
+      expect(
+        corner.left - (frame.left + (frame.width - kMaxBoardSide) / 2),
+        closeTo(BoardGeometry.padding, 1),
+      );
+      expect(far.right, lessThanOrEqualTo(frame.right));
+    });
+  });
 }

@@ -301,8 +301,13 @@ class _BoardGridWidgetState extends State<BoardGridWidget>
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final geometry = BoardGeometry(availableWidth: constraints.maxWidth);
-        final side = geometry.side;
+        // A geometria é montada sobre o **lado da moldura**, e não sobre o
+        // espaço disponível: quem centraliza o tabuleiro num espaço maior é o
+        // `Center` abaixo. Somar aqui o deslocamento de centralização que o
+        // `Center` já aplica empurrava as peças para fora da própria moldura em
+        // qualquer tela mais larga que `kMaxBoardSide`.
+        final side = BoardGeometry(availableWidth: constraints.maxWidth).side;
+        final geometry = BoardGeometry(availableWidth: side);
         final tileSize = geometry.tileSize;
         final peak = _peakValue();
 

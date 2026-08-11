@@ -9,6 +9,8 @@ import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart
 import 'package:nine_fuse/features/game/presentation/widgets/apex_celebration.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/combo_banner.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/hammer_targeting_layer.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/juice_overlay.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_outcome_card.dart';
@@ -64,6 +66,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   /// fase, e rejogar sem melhorar a nota rende zero mesmo tirando três
   /// estrelas. Só o notifier enxerga os dois lados.
   int _chapterStarsGained = 0;
+
+  /// Onde o tabuleiro está na tela. A camada de mira do martelo precisa saber:
+  /// é o que separa "bateu numa célula" de "tocou fora e desistiu".
+  final GlobalKey _boardKey = GlobalKey();
 
   @override
   void initState() {
@@ -152,7 +158,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: LevelBanner(state: state),
+                          child: LevelBanner(
+                            state: state,
+                            onHammer: notifier.toggleHammerTargeting,
+                          ),
                         ),
                         const SizedBox(height: 20),
                         // Margem menor que a do resto da tela, mas não zero:
@@ -165,6 +174,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                           // a mesma geometria, para a pontuação nascer na
                           // célula certa.
                           child: Stack(
+                            key: _boardKey,
                             children: [
                               // Enquanto o cartão de início está aberto o
                               // tabuleiro não aceita toque: um dedo que
@@ -183,7 +193,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                   // corre enquanto o jogador lê o cartão e a
                                   // dica acende junto com o tabuleiro.
                                   // Fase acabada também não sugere jogada.
-                                  hintEnabled: _ready && !state.isOver,
+                                  // A dica não sugere troca durante a mira: o
+                                  // toque do jogador tem outro destino agora, e
+                                  // um par aceso apontaria para a ação errada.
+                                  hintEnabled:
+                                      _ready &&
+                                      !state.isOver &&
+                                      !state.isHammerTargeting,
+                                  // Durante a mira o toque não chega aqui: a
+                                  // camada de mira o intercepta antes, para
+                                  // poder distinguir "bateu na célula" de
+                                  // "tocou fora e desistiu".
                                   onTileTap: notifier.selectTile,
                                   onTileSwipe: notifier.swapTiles,
                                 ),
@@ -192,6 +212,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                 child: JuiceOverlay(
                                   step: state.activeStep,
                                   comboCount: state.comboCount,
+                                  hammerStrike: state.hammerStrike,
+                                  strikeSerial: state.hammerStrikes,
                                 ),
                               ),
                             ],
@@ -205,6 +227,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 ),
               ),
             ),
+            // Acima do conteúdo, e é isso que a faz funcionar: a área vazia da
+            // tela pertence à rolagem, que consome o toque sem repassá-lo — uma
+            // camada por baixo nunca veria o toque de cancelamento.
+            if (state.isHammerTargeting)
+              HammerTargetingLayer(
+                boardKey: _boardKey,
+                onCell: notifier.useHammer,
+                onCancel: notifier.cancelHammerTargeting,
+              ),
             ComboBanner(step: state.activeStep, comboCount: state.comboCount),
             // A chave amarrada à partida faz a comemoração renascer a cada
             // fase iniciada: o `runId` é o único sinal de "uma partida
@@ -220,6 +251,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 child: LevelStartDialog(
                   level: state.level,
                   onPlay: () => setState(() => _ready = true),
+                ),
+              ),
+            // O convite de aquisição vem antes do cartão de desfecho na ordem
+            // de leitura, mas nunca convivem: mirar exige fase em andamento.
+            if (state.pendingHammerTarget != null && !state.isOver)
+              _OutcomeOverlay(
+                child: HammerOfferDialog(
+                  onGranted: notifier.grantHammer,
+                  onDecline: notifier.cancelHammerTargeting,
                 ),
               ),
             if (state.isOver)

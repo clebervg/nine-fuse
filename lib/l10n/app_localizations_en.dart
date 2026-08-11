@@ -339,4 +339,36 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String hammerButton(int count) {
+    return 'HAMMER ($count)';
+  }
+
+  @override
+  String get hammerCancel => 'CANCEL';
+
+  @override
+  String get hammerAimHint => 'Tap a cell to smash it';
+
+  @override
+  String get hammerOfferTitle => 'Out of hammers';
+
+  @override
+  String get hammerOfferBody =>
+      'Watch a short ad and smash the cell you picked.';
+
+  @override
+  String get hammerOfferWatch => 'WATCH AD';
+
+  @override
+  String get hammerOfferDecline => 'NOT NOW';
+
+  @override
+  String get hammerOfferFailed => 'No ad available right now.';
+
+  @override
+  String hammerSemantics(int count) {
+    return 'Fusion Hammer, $count in stock. Smashes one cell without spending a move.';
+  }
 }

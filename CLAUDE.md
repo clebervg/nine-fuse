@@ -210,8 +210,63 @@ meta mesmo com 40, o que era de esperar de um bot que só as quebra de raspão.
 A campanha atual segue intacta e calibrada (fases 8-10 em 83-88%).
 
 
-### Booster: Martelo de Fusão (`HammerBooster`)
-1. **Regra Mecânica:** Oblitera a célula inteira (Peça + Obstáculo) na posição informada. Não reduz `movesLeft` e não gera evolução de número.
+### Booster: Martelo de Fusão (`HammerBooster`) ✅ Concluído
+1. **Regra Mecânica:** `MatchEngine.smash` oblitera a célula inteira (Peça + Obstáculo) na posição informada. Não reduz `movesLeft` e não gera evolução de número.
 2. **Game Feel:** A destruição dispara o `ShatterEffect` na cor do dígito e aciona a gravidade/cascatas imediatamente.
-3. **UX de Cancelamento:** O botão no HUD altera de estado para "CANCELAR (X)" durante o modo de mira (`isHammerTargeting == true`).
+3. **UX de Cancelamento:** O botão no HUD altera de estado para "CANCELAR (X)" durante o modo de mira (`isHammerTargeting == true`), e um toque fora do tabuleiro também desiste.
 4. **Funil de Conversão:** Seleção prévia com `hammerCount == 0` permite o "Modo Fantasma", abrindo o modal de Rewarded Ad com o alvo já destacado.
+
+**O golpe não funde nada, mas a queda funde.** O dígito atingido não evolui nem
+pontua — não é uma fusão, é uma remoção. Já as combinações que a **queda** forma
+por acidente resolvem normalmente, pontuam e contam para o objetivo: deixá-las
+alinhadas e inertes seria o único estado do jogo em que uma combinação formada
+não resolve, e o jogador leria isso como defeito, não como regra.
+
+**O golpe entra como passo 0 da resolução.** Um `ResolutionStep` de `cascade: 0`,
+sem fusões, cujo `boardAfterFusion` é o tabuleiro com o buraco e o
+`boardAfterSettle` é o assentamento. Com isso o martelo herda os dois quadros da
+encenação sem um caminho de animação paralelo ao das fusões — e, sendo cascata
+zero, não anuncia combo. As cascatas que ele causar seguem numeradas de 1.
+
+**A cobertura destruída viaja como `ObstacleHit`.** Não basta ela sair do
+tabuleiro: `boardObstacleGoal` é fixado em `startLevel`, então um gelo removido
+pelo martelo sem contar como progresso tornaria a fase **impossível de vencer**.
+Há teste para o objetivo somando o golpe.
+
+**Recusar não cobra.** Posição fora do tabuleiro ou casa vazia devolve `null` do
+motor, e o notifier avisa por som/tato mantendo a mira ligada — cobrar um martelo
+por um erro de dedo é o pior lugar possível para o jogo cobrar. Mira e golpe
+também são recusados com a fase encerrada ou durante a encenação, pela mesma
+régua de `swapTiles`.
+
+**O inventário mora no `GameState`, não num notifier próprio.** A UI lê o saldo
+do mesmo lugar de onde a regra o consome; duas fontes de verdade divergiriam no
+primeiro anúncio assistido. Atravessa `startLevel` sem zerar (é inventário do
+jogador, não da fase) e é persistido em `GameStorage`. Falha de leitura vale como
+estoque vazio — perder o martelo é ruim, travar o jogo é pior.
+
+**`hammerStrikes` existe só para ser chave.** Dois golpes na mesma célula com o
+mesmo dígito são indistinguíveis por `hammerStrike`, e o segundo não reacenderia
+a animação do estilhaço.
+
+**A mira é uma camada, e não um modo do tabuleiro** (`HammerTargetingLayer`).
+Tratar o golpe no `onTileTap` resolveria metade: o toque **fora** do tabuleiro
+nunca chegaria a ninguém, porque a área vazia da tela pertence à rolagem, que
+consome o gesto sem repassá-lo — e cancelar tocando fora é justamente a saída que
+a mira precisa ter. A camada converte toque em célula com o `BoardGeometry.cellAt`,
+a mesma conta que posiciona as peças: duas fórmulas divergiriam um dia, e o
+jogador bateria numa célula vendo a vizinha explodir. O véu recorta o tabuleiro
+em vez de cobri-lo, senão apagaria justamente os dígitos entre os quais ele está
+escolhendo.
+
+**Sem economia de moedas, de propósito.** O jogo não tem moedas; um botão
+desabilitado na tela comunica menos do que sua ausência. O anúncio é uma costura
+injetável (`hammerAdProvider`) porque **não há SDK de anúncio no projeto** — o
+padrão paga o jogador, já que um funil que nunca conclui é pior do que a casa
+pagar. **É o ponto a trocar antes de monetizar de verdade.**
+
+**Bug de tela larga achado no caminho.** `BoardGridWidget` montava a geometria
+sobre o espaço disponível e depois centralizava a moldura, somando duas vezes o
+deslocamento de centralização: em qualquer tela mais larga que `kMaxBoardSide` as
+peças escorriam para fora da própria moldura. Só não aparecia porque em celular
+`_originX` é zero. Corrigido, com teste de regressão em tela larga.

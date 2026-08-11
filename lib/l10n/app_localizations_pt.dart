@@ -341,4 +341,36 @@ class AppLocalizationsPt extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String hammerButton(int count) {
+    return 'MARTELO ($count)';
+  }
+
+  @override
+  String get hammerCancel => 'CANCELAR';
+
+  @override
+  String get hammerAimHint => 'Toque na célula para quebrar';
+
+  @override
+  String get hammerOfferTitle => 'Sem martelos';
+
+  @override
+  String get hammerOfferBody =>
+      'Assista a um anúncio curto e quebre a célula que você escolheu.';
+
+  @override
+  String get hammerOfferWatch => 'ASSISTIR AD';
+
+  @override
+  String get hammerOfferDecline => 'AGORA NÃO';
+
+  @override
+  String get hammerOfferFailed => 'Nenhum anúncio disponível agora.';
+
+  @override
+  String hammerSemantics(int count) {
+    return 'Martelo de Fusão, $count em estoque. Quebra uma célula sem gastar movimento.';
+  }
 }

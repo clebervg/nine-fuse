@@ -49,4 +49,23 @@ class BoardGeometry {
     left(position.col) + tileSize / 2,
     top(position.row) + tileSize / 2,
   );
+
+  /// Que célula está sob [local], em coordenadas do tabuleiro. Nulo fora dele.
+  ///
+  /// É o caminho inverso de [centerOf], e existe para a camada de mira do
+  /// martelo: durante a mira quem recebe o toque é a camada, e não a peça, para
+  /// que um toque **fora** do tabuleiro possa cancelar. Sem esta conta a camada
+  /// teria a sua própria, e um dia elas discordariam — o jogador bateria numa
+  /// célula e veria a vizinha explodir.
+  ///
+  /// O vão entre as células pertence à peça anterior: recusar o toque ali faria
+  /// o dedo escorregar entre as peças.
+  Position? cellAt(Offset local) {
+    final stride = tileSize + gap;
+    final col = ((local.dx - _originX - padding) / stride).floor();
+    final row = ((local.dy - padding) / stride).floor();
+
+    final cell = Position(row: row, col: col);
+    return Board.contains(cell) ? cell : null;
+  }
 }

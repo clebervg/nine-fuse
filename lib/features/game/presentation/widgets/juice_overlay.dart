@@ -7,6 +7,7 @@ import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
+import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_geometry.dart';
 
 const Key floatingScoreKey = Key('floating_score');
@@ -23,7 +24,13 @@ const Key bonusMovesKey = Key('bonus_moves');
 /// Não intercepta toque: [IgnorePointer] envolve tudo, senão a pontuação
 /// flutuante engoliria a próxima jogada do jogador.
 class JuiceOverlay extends StatelessWidget {
-  const JuiceOverlay({super.key, required this.step, required this.comboCount});
+  const JuiceOverlay({
+    super.key,
+    required this.step,
+    required this.comboCount,
+    this.hammerStrike,
+    this.strikeSerial = 0,
+  });
 
   /// Passo da cascata sendo encenado. Nulo fora de uma jogada.
   final ResolutionStep? step;
@@ -31,10 +38,22 @@ class JuiceOverlay extends StatelessWidget {
   /// 1 no movimento do jogador, 2+ nas cascatas encadeadas.
   final int comboCount;
 
+  /// Onde o último golpe de martelo caiu, e qual dígito morreu.
+  ///
+  /// Chega separado de [step] porque o estilhaço precisa sobreviver ao fim da
+  /// encenação: o passo do golpe é descartado quando a jogada assenta, e o
+  /// efeito ainda está no ar.
+  final (Position, int)? hammerStrike;
+
+  /// Número do golpe. Só serve de chave: dois golpes na mesma célula, com o
+  /// mesmo dígito, não reacenderiam a animação sem ele.
+  final int strikeSerial;
+
   @override
   Widget build(BuildContext context) {
     final current = step;
-    if (current == null) return const SizedBox.shrink();
+    final strike = hammerStrike;
+    if (current == null && strike == null) return const SizedBox.shrink();
 
     return IgnorePointer(
       child: LayoutBuilder(
@@ -47,6 +66,7 @@ class JuiceOverlay extends StatelessWidget {
           return Stack(
             clipBehavior: Clip.none,
             children: [
+              if (current != null) ...[
               for (final fusion in current.fusions)
                 Positioned(
                   left: geometry.centerOf(fusion.at).dx - 44,
@@ -128,6 +148,22 @@ class JuiceOverlay extends StatelessWidget {
                     key: ValueKey('bonus_${current.cascade}'),
                     moves:
                         current.explosionCentres.length * kExplosionBonusMoves,
+                  ),
+                ),
+              ],
+
+              // O estilhaço do martelo vive fora do bloco do passo: quando a
+              // jogada assenta, o passo é descartado e o efeito ainda está no
+              // ar.
+              if (strike != null)
+                Positioned(
+                  left: geometry.centerOf(strike.$1).dx - tileSize * 0.9,
+                  top: geometry.centerOf(strike.$1).dy - tileSize * 0.9,
+                  width: tileSize * 1.8,
+                  height: tileSize * 1.8,
+                  child: ShatterEffect(
+                    key: ValueKey('hammer_$strikeSerial'),
+                    color: AppColors.getColorByDigit(strike.$2),
                   ),
                 ),
             ],
@@ -416,6 +452,73 @@ class _ObstacleShatterState extends State<ObstacleShatter>
     animation: _c,
     builder: (context, _) => CustomPaint(
       painter: _ParticlePainter(sparks: _shards, t: _c.value, tint: _color),
+      size: Size.infinite,
+    ),
+  );
+}
+
+/// Estilhaços de uma célula obliterada pelo Martelo de Fusão.
+///
+/// Tem widget próprio, em vez de reusar [ObstacleShatter], porque o material é
+/// outro: aqui o que se quebra é a **peça**, e a cor tem de ser a do dígito que
+/// morreu. Sem essa ligação o jogador não ata o efeito à célula que ele mesmo
+/// escolheu — e o martelo é a única ação do jogo em que ele aponta o dedo e
+/// nomeia a vítima.
+///
+/// Público pelo mesmo motivo que [ObstacleShatter]: é o marcador que a suíte usa
+/// para afirmar que o golpe reagiu no lugar e na cor certos.
+class ShatterEffect extends StatefulWidget {
+  const ShatterEffect({super.key, required this.color});
+
+  /// A cor do dígito destruído.
+  final Color color;
+
+  @override
+  State<ShatterEffect> createState() => _ShatterEffectState();
+}
+
+class _ShatterEffectState extends State<ShatterEffect>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _c;
+  late final List<_Spark> _shards;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Semente fixa, como no resto dos efeitos de partícula: sem ela o estilhaço
+    // dança a cada quadro reconstruído e nenhum golden se sustenta.
+    final random = Random(53);
+    // Mais cacos que uma quebra de cobertura: o martelo tira a célula inteira,
+    // e o efeito precisa pesar mais que o de um impacto de fusão.
+    const count = 18;
+    _shards = [
+      for (int i = 0; i < count; i++)
+        _Spark(
+          angle: (i / count) * 2 * pi + (random.nextDouble() - 0.5) * 0.6,
+          distance: 0.55 + random.nextDouble() * 0.4,
+          size: 1.6 + random.nextDouble() * 2.2,
+          silver: random.nextBool(),
+        ),
+    ];
+
+    _c = AnimationController(
+      vsync: this,
+      duration: JuiceTimings.explosionParticles,
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _c,
+    builder: (context, _) => CustomPaint(
+      painter: _ParticlePainter(sparks: _shards, t: _c.value, tint: widget.color),
       size: Size.infinite,
     ),
   );

@@ -3,6 +3,7 @@ import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/features/game/domain/star_rating.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/obstacle_overlay.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_metric_card.dart';
 import 'package:nine_fuse/features/game/presentation/l10n_labels.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
@@ -19,6 +20,9 @@ const Key hudScoreKey = Key('hud_score');
 
 /// Chave da pílula do objetivo.
 const Key hudObjectiveKey = Key('hud_objective');
+
+/// Chave do botão do Martelo de Fusão.
+const Key hammerButtonKey = Key('hammer_button');
 
 /// Saldo a partir do qual o contador de movimentos alarma.
 const int kUrgentMovesLeft = 3;
@@ -37,9 +41,16 @@ const Duration kMovesPulseDuration = kMetricPulseDuration;
 /// a moldura individual é o que faz o olho ler três informações com função em
 /// vez de uma linha de legenda.
 class LevelBanner extends StatelessWidget {
-  const LevelBanner({super.key, required this.state});
+  const LevelBanner({super.key, required this.state, this.onHammer});
 
   final GameState state;
+
+  /// Liga e desliga o modo de mira do martelo.
+  ///
+  /// Nulo significa "esta tela não oferece booster" — e é o padrão, para que as
+  /// telas e os goldens que montam o cabeçalho sozinhos continuem medindo o HUD
+  /// que já existia.
+  final VoidCallback? onHammer;
 
   @override
   Widget build(BuildContext context) {
@@ -197,6 +208,17 @@ class LevelBanner extends StatelessWidget {
               movesAvailable: state.movesAvailable,
             ),
           ),
+          // O booster fica **depois** das métricas e da nota: é ação, e não
+          // informação. Some com a fase encerrada — um martelo oferecido sobre
+          // o cartão de derrota promete o que já não pode cumprir.
+          if (onHammer != null && !state.isOver) ...[
+            const SizedBox(height: 12),
+            _HammerButton(
+              targeting: state.isHammerTargeting,
+              count: state.hammerCount,
+              onPressed: onHammer!,
+            ),
+          ],
           // `AnimatedSize` em volta do vazio: a dica não pode sumir de um
           // quadro para o outro, senão o tabuleiro salta para cima junto.
           AnimatedSize(
@@ -218,6 +240,44 @@ class LevelBanner extends StatelessWidget {
                 : const SizedBox(width: double.infinity),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Botão do Martelo de Fusão, que troca de papel durante a mira.
+///
+/// O mesmo botão vira a saída: em mira ele lê "CANCELAR" em vermelho, com o
+/// ícone de X. Um botão de cancelar em outro canto da tela obrigaria o jogador a
+/// procurar como desistir de uma ação que ele começou aqui — e, num tabuleiro em
+/// modo de mira, o próximo toque erra caro.
+class _HammerButton extends StatelessWidget {
+  const _HammerButton({
+    required this.targeting,
+    required this.count,
+    required this.onPressed,
+  });
+
+  final bool targeting;
+  final int count;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Semantics(
+      button: true,
+      label: l10n.hammerSemantics(count),
+      child: GameButton(
+        key: hammerButtonKey,
+        // O rótulo carrega o estoque: um "0" visível é o que torna o convite de
+        // aquisição uma consequência, e não uma surpresa.
+        label: targeting ? l10n.hammerCancel : l10n.hammerButton(count),
+        color: targeting ? AppColors.digit0 : AppColors.digit5,
+        icon: targeting ? Icons.close_rounded : Icons.gavel_rounded,
+        fontSize: 15,
+        onPressed: onPressed,
       ),
     );
   }

@@ -117,5 +117,18 @@
 
   "chapterStarsSemantics": "{stars} de {total} estrelas no {chapter}.",
 
-  "bonusMoves": "{count, plural, =1{+1 Movimento!} other{+{count} Movimentos!}}"
+  "bonusMoves": "{count, plural, =1{+1 Movimento!} other{+{count} Movimentos!}}",
+
+  "hammerButton": "MARTELO ({count})",
+
+  "hammerCancel": "CANCELAR",
+  "hammerAimHint": "Toque na célula para quebrar",
+
+  "hammerOfferTitle": "Sem martelos",
+  "hammerOfferBody": "Assista a um anúncio curto e quebre a célula que você escolheu.",
+  "hammerOfferWatch": "ASSISTIR AD",
+  "hammerOfferDecline": "AGORA NÃO",
+  "hammerOfferFailed": "Nenhum anúncio disponível agora.",
+
+  "hammerSemantics": "Martelo de Fusão, {count} em estoque. Quebra uma célula sem gastar movimento."
 }
