@@ -11,6 +11,7 @@ import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
+import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
 
 void main() {
@@ -24,7 +25,7 @@ void main() {
   );
 
   setUp(() {
-    notifier = GameNotifier(random: Random(42));
+    notifier = GameNotifier(random: Random(42), storage: InMemoryGameStorage());
   });
 
   Future<void> pumpGame(WidgetTester tester, {GameLevel target = level}) async {

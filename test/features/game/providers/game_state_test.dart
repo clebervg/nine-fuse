@@ -8,6 +8,7 @@ import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
+import 'package:nine_fuse/features/game/providers/game_storage.dart';
 
 /// Base sem nenhuma combinação: faixas diagonais de período 3 nunca produzem
 /// três valores iguais seguidos em linha ou coluna.
@@ -57,7 +58,7 @@ const _swapTo = Position(row: 3, col: 2);
 void main() {
   late GameNotifier notifier;
 
-  setUp(() => notifier = GameNotifier(random: Random(42)));
+  setUp(() => notifier = GameNotifier(random: Random(42), storage: InMemoryGameStorage()));
 
   /// Prepara a fase [level] com o tabuleiro montado à mão e faz a única jogada.
   void playTheMove(GameLevel level, Map<Position, ObstacleType> covers) {

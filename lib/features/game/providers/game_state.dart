@@ -54,6 +54,11 @@ class GameState {
     this.runId = 0,
     this.apexCelebrated = false,
     this.boardObstacleGoal,
+    this.hammerCount = 0,
+    this.isHammerTargeting = false,
+    this.hammerStrike,
+    this.hammerStrikes = 0,
+    this.pendingHammerTarget,
   });
 
   final Board board;
@@ -139,6 +144,39 @@ class GameState {
   /// vê o tabuleiro antes e depois.
   final bool apexCelebrated;
 
+  /// Martelos de Fusão em estoque.
+  ///
+  /// Vive aqui, e não num notifier separado, para não haver duas fontes de
+  /// verdade: a UI lê o saldo do mesmo lugar de onde a regra o consome. É
+  /// inventário do jogador — atravessa `startLevel` sem zerar.
+  final int hammerCount;
+
+  /// O jogador está escolhendo em que célula bater.
+  ///
+  /// Ligado inclusive com estoque zero — o **Modo Fantasma**: deixar o jogador
+  /// escolher o alvo antes de descobrir que não tem martelo é o que dá sentido
+  /// ao convite de aquisição. Ele já sabe o que quer quebrar.
+  final bool isHammerTargeting;
+
+  /// Onde o último golpe caiu, e **qual dígito morreu**.
+  ///
+  /// O dígito viaja no estado porque, quando a UI desenha o estilhaço, a peça
+  /// já saiu do tabuleiro e não há de onde tirar a cor.
+  final (Position, int)? hammerStrike;
+
+  /// Quantos golpes de martelo esta partida levou.
+  ///
+  /// Serve de chave para o estilhaço na UI: dois golpes na mesma célula, com o
+  /// mesmo dígito, seriam indistinguíveis por [hammerStrike] e o segundo não
+  /// reacenderia a animação.
+  final int hammerStrikes;
+
+  /// Alvo escolhido no Modo Fantasma, à espera do martelo.
+  ///
+  /// Guardá-lo é o que evita cobrar duas vezes pelo mesmo golpe: quem assistiu
+  /// ao anúncio não deve ter que mirar de novo.
+  final Position? pendingHammerTarget;
+
   /// Tudo o que a fase ofereceu de movimento: o limite mais os bônus.
   int get movesAvailable => level.moveLimit + bonusMoves;
 
@@ -198,6 +236,13 @@ class GameState {
     bool? apexCelebrated,
     int? boardObstacleGoal,
     bool clearBoardObstacleGoal = false,
+    int? hammerCount,
+    bool? isHammerTargeting,
+    (Position, int)? hammerStrike,
+    bool clearHammerStrike = false,
+    int? hammerStrikes,
+    Position? pendingHammerTarget,
+    bool clearPendingHammerTarget = false,
   }) => GameState(
     board: board ?? this.board,
     level: level ?? this.level,
@@ -223,6 +268,15 @@ class GameState {
     boardObstacleGoal: clearBoardObstacleGoal
         ? null
         : (boardObstacleGoal ?? this.boardObstacleGoal),
+    hammerCount: hammerCount ?? this.hammerCount,
+    isHammerTargeting: isHammerTargeting ?? this.isHammerTargeting,
+    hammerStrike: clearHammerStrike
+        ? null
+        : (hammerStrike ?? this.hammerStrike),
+    hammerStrikes: hammerStrikes ?? this.hammerStrikes,
+    pendingHammerTarget: clearPendingHammerTarget
+        ? null
+        : (pendingHammerTarget ?? this.pendingHammerTarget),
   );
 
   /// Estado antes de qualquer fase começar.
@@ -253,10 +307,17 @@ class GameState {
           bonusMoves == other.bonusMoves &&
           runId == other.runId &&
           apexCelebrated == other.apexCelebrated &&
-          boardObstacleGoal == other.boardObstacleGoal;
+          boardObstacleGoal == other.boardObstacleGoal &&
+          hammerCount == other.hammerCount &&
+          isHammerTargeting == other.isHammerTargeting &&
+          hammerStrike == other.hammerStrike &&
+          hammerStrikes == other.hammerStrikes &&
+          pendingHammerTarget == other.pendingHammerTarget;
 
+  // `hashAll` em vez de `hash`: com os campos do martelo o estado passou de 20
+  // componentes, que é o teto posicional de `Object.hash`.
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     board,
     level,
     score,
@@ -274,7 +335,12 @@ class GameState {
     runId,
     apexCelebrated,
     boardObstacleGoal,
-  );
+    hammerCount,
+    isHammerTargeting,
+    hammerStrike,
+    hammerStrikes,
+    pendingHammerTarget,
+  ]);
 
   @override
   String toString() =>

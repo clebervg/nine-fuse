@@ -6,6 +6,7 @@ import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
+import 'package:nine_fuse/features/game/providers/game_storage.dart';
 
 /// A encenação quadro a quadro da jogada.
 ///
@@ -26,7 +27,7 @@ void main() {
 
   setUp(() {
     JuiceTimings.instantResolution = false;
-    notifier = GameNotifier(random: Random(42), delay: instant);
+    notifier = GameNotifier(random: Random(42), delay: instant, storage: InMemoryGameStorage());
     notifier.startLevel(roomy);
   });
 

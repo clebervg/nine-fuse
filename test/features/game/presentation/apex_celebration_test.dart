@@ -54,7 +54,7 @@ void _playTrio(void Function(Position, Position) swap) =>
 void main() {
   group('sinal de fusão máxima na campanha', () {
     GameNotifier notifierAt(Board board, {int objective = 9}) {
-      final notifier = GameNotifier(random: Random(7));
+      final notifier = GameNotifier(random: Random(7), storage: InMemoryGameStorage());
       notifier.startLevel(
         GameLevel(
           number: 95,

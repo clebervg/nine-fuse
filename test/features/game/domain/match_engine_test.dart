@@ -1410,4 +1410,96 @@ void main() {
       );
     });
   });
+
+  group('smash (Martelo de Fusão)', () {
+    Board cover(Board board, Position at, ObstacleType type) =>
+        board.updateTile(at, board.getTileAt(at)!.withObstacle(type));
+
+    test('devolve nulo fora do tabuleiro', () {
+      final board = boardFromValues(baseGrid());
+
+      expect(engine.smash(board, const Position(row: -1, col: 0)), isNull);
+      expect(engine.smash(board, const Position(row: 0, col: 8)), isNull);
+    });
+
+    test('devolve nulo na casa vazia', () {
+      // Nada a obliterar: o notifier usa este nulo para recusar sem cobrar.
+      final board = boardFromValues(
+        baseGrid(),
+      ).updateTile(const Position(row: 4, col: 4), null);
+
+      expect(engine.smash(board, const Position(row: 4, col: 4)), isNull);
+    });
+
+    test('oblitera a peça e devolve o tabuleiro cheio', () {
+      final board = boardFromValues(baseGrid());
+      final victim = board.getTileAt(const Position(row: 4, col: 4))!;
+
+      final resolution = engine.smash(board, const Position(row: 4, col: 4))!;
+
+      expect(
+        resolution.board.getAllTiles().where((t) => t.id == victim.id),
+        isEmpty,
+        reason: 'a peça atingida tem de sair do tabuleiro',
+      );
+      // A gravidade e a reposição rodam no mesmo golpe: um buraco parado seria
+      // um estado que o motor não permite em nenhum outro caminho.
+      expect(resolution.board.isFull, isTrue);
+    });
+
+    test('oblitera a cobertura junto com a peça', () {
+      // É a razão de ser do booster: a pedra pede três impactos, e o martelo
+      // não negocia — leva a célula inteira.
+      final board = cover(
+        boardFromValues(baseGrid()),
+        const Position(row: 4, col: 4),
+        ObstacleType.stone,
+      );
+
+      final resolution = engine.smash(board, const Position(row: 4, col: 4))!;
+
+      expect(resolution.board.countObstacles(ObstacleType.stone), 0);
+    });
+
+    test('conta a cobertura destruída como limpa', () {
+      // Sem isso um objetivo "limpe todo o gelo" não veria o golpe.
+      final board = cover(
+        boardFromValues(baseGrid()),
+        const Position(row: 4, col: 4),
+        ObstacleType.ice,
+      );
+
+      final resolution = engine.smash(board, const Position(row: 4, col: 4))!;
+
+      expect(resolution.countCleared(ObstacleType.ice), 1);
+    });
+
+    test('não evolui o dígito destruído', () {
+      // O martelo não é uma fusão: o 7 atingido não vira 8, nem pontua.
+      final values = baseGrid();
+      values[4][4] = 7;
+      final board = boardFromValues(values);
+
+      final resolution = engine.smash(board, const Position(row: 4, col: 4))!;
+
+      expect(resolution.producedDigits, isNot(contains(8)));
+      expect(resolution.countProduced(7), 0);
+    });
+
+    test('a queda que forma combinação resolve normalmente', () {
+      // Três `5` na linha 5 depois de a peça de cima cair no buraco. Deixá-los
+      // alinhados e inertes seria o único estado do jogo em que uma combinação
+      // formada não resolve — o jogador leria isso como defeito.
+      final values = baseGrid();
+      values[5][1] = 5;
+      values[5][2] = 5;
+      values[4][3] = 5;
+      final board = boardFromValues(values);
+
+      final resolution = engine.smash(board, const Position(row: 5, col: 3))!;
+
+      expect(resolution.steps, isNotEmpty);
+      expect(resolution.producedDigits, contains(6));
+    });
+  });
 }

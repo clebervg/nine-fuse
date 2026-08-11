@@ -507,6 +507,56 @@ class MatchEngine {
   }
 
   // ---------------------------------------------------------------------------
+  // Booster: Martelo de Fusão
+  // ---------------------------------------------------------------------------
+
+  /// Oblitera a célula inteira — peça **e** cobertura — e reassenta o tabuleiro.
+  ///
+  /// Nulo quando não há o que obliterar (posição fora do tabuleiro ou casa
+  /// vazia). É por esse nulo que o notifier recusa o golpe **sem cobrar** o
+  /// martelo: quem chama não precisa repetir as guardas de limite.
+  ///
+  /// O golpe não é uma fusão: o dígito atingido não evolui nem pontua. Mas a
+  /// queda que ele provoca pode formar combinações por acidente, e essas
+  /// resolvem normalmente. Deixá-las alinhadas e inertes seria o único estado
+  /// do jogo em que uma combinação formada não resolve — o jogador leria isso
+  /// como defeito, não como regra.
+  Resolution? smash(Board board, Position at) {
+    final victim = board.getTileAt(at);
+    if (victim == null) return null;
+
+    final struck = board.updateTile(at, null);
+    final settled = refill(applyGravity(struck));
+
+    // O golpe entra como **passo 0**: não é cascata, e por isso não anuncia
+    // combo. Existir como passo é o que lhe dá os dois quadros da encenação —
+    // o buraco antes da queda e o assentamento — sem um caminho de animação
+    // paralelo ao das fusões.
+    final strike = ResolutionStep(
+      cascade: 0,
+      fusions: const [],
+      explosionCentres: const [],
+      clearedByExplosion: const {},
+      boardAfterFusion: struck,
+      boardAfterSettle: settled,
+      score: 0,
+      // A cobertura destruída tem de aparecer aqui, e não só desaparecer do
+      // tabuleiro: um objetivo "limpe todo o gelo" fixa o alvo no início da
+      // fase, então um gelo que sai sem contar tornaria a fase impossível.
+      obstacleHits: victim.isBlocked
+          ? [ObstacleHit(position: at, type: victim.obstacle, remainingHp: 0)]
+          : const [],
+    );
+
+    final cascades = resolve(settled);
+
+    return Resolution(
+      board: cascades.board,
+      steps: [strike, ...cascades.steps],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Resolução (combinação → fusão → queda → reposição → repete)
   // ---------------------------------------------------------------------------
 

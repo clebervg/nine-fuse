@@ -19,6 +19,7 @@ import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/features/game/presentation/l10n_labels.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
+import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
 
 void main() {
@@ -32,7 +33,7 @@ void main() {
   );
 
   setUp(() {
-    notifier = GameNotifier(random: Random(42));
+    notifier = GameNotifier(random: Random(42), storage: InMemoryGameStorage());
   });
 
   /// Fecha o cartão de início de fase, se estiver aberto.

@@ -13,6 +13,7 @@ import 'package:nine_fuse/features/game/presentation/widgets/juice_overlay.dart'
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
+import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
 
 /// Monta um tabuleiro 8x8 a partir de uma matriz de valores.
@@ -73,7 +74,7 @@ void main() {
     });
 
     test('cada explosão devolve movimentos ao jogador', () async {
-      final notifier = GameNotifier(random: Random(7));
+      final notifier = GameNotifier(random: Random(7), storage: InMemoryGameStorage());
       notifier.startLevel(
         const GameLevel(
           number: 90,
@@ -106,7 +107,7 @@ void main() {
     // O bônus só serve se chegar a tempo: um 9 criado na jogada que zeraria o
     // contador tem de salvar a fase, não chegar tarde demais.
     test('o bônus da última jogada evita a derrota por saldo', () {
-      final notifier = GameNotifier(random: Random(7));
+      final notifier = GameNotifier(random: Random(7), storage: InMemoryGameStorage());
       notifier.startLevel(
         const GameLevel(
           number: 91,
@@ -131,7 +132,7 @@ void main() {
     });
 
     test('uma jogada sem explosão não muda o saldo', () {
-      final notifier = GameNotifier(random: Random(7));
+      final notifier = GameNotifier(random: Random(7), storage: InMemoryGameStorage());
       notifier.startLevel(
         const GameLevel(
           number: 92,
@@ -169,6 +170,7 @@ void main() {
         random: Random(7),
         // Espera de mentira: a encenação avança sem gastar tempo real.
         delay: (_) async {},
+        storage: InMemoryGameStorage(),
       );
       notifier.startLevel(
         const GameLevel(

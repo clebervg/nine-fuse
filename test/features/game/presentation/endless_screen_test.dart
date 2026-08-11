@@ -38,6 +38,11 @@ class _BrokenStorage implements GameStorage {
   @override
   Future<void> writeLevelRecords(Map<int, LevelRecord> records) async =>
       throw StateError('disco indisponível');
+  @override
+  Future<int> readHammerCount() async => throw StateError('sem disco');
+  @override
+  Future<void> writeHammerCount(int count) async =>
+      throw StateError('sem disco');
 }
 
 void main() {

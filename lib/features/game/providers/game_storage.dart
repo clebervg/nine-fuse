@@ -21,6 +21,14 @@ abstract interface class GameStorage {
   /// Estrelas e melhor placar de cada fase já vencida, por número de fase.
   Future<Map<int, LevelRecord>> readLevelRecords();
   Future<void> writeLevelRecords(Map<int, LevelRecord> records);
+
+  /// Martelos de Fusão em estoque.
+  ///
+  /// É inventário do **jogador**, não da fase: sobrevive a começar, perder e
+  /// recomeçar. Um martelo comprado que desaparecesse ao avançar de fase seria
+  /// dinheiro tirado de quem pagou.
+  Future<int> readHammerCount();
+  Future<void> writeHammerCount(int count);
 }
 
 /// Persistência real, no armazenamento do dispositivo.
@@ -30,6 +38,7 @@ class PrefsGameStorage implements GameStorage {
   static const String _campaignKey = 'campaign_progress';
   static const String _highScoreKey = 'endless_high_score';
   static const String _recordsKey = 'campaign_level_records';
+  static const String _hammerKey = 'booster_hammer_count';
 
   @override
   Future<int> readCampaignProgress() async =>
@@ -46,6 +55,14 @@ class PrefsGameStorage implements GameStorage {
   @override
   Future<void> writeHighScore(int score) async =>
       (await SharedPreferences.getInstance()).setInt(_highScoreKey, score);
+
+  @override
+  Future<int> readHammerCount() async =>
+      (await SharedPreferences.getInstance()).getInt(_hammerKey) ?? 0;
+
+  @override
+  Future<void> writeHammerCount(int count) async =>
+      (await SharedPreferences.getInstance()).setInt(_hammerKey, count);
 
   /// Os registros vão num único JSON, e não numa chave por fase.
   ///
@@ -93,11 +110,13 @@ class InMemoryGameStorage implements GameStorage {
   InMemoryGameStorage({
     this.campaignProgress = 0,
     this.highScore = 0,
+    this.hammerCount = 0,
     Map<int, LevelRecord>? levelRecords,
   }) : levelRecords = levelRecords ?? {};
 
   int campaignProgress;
   int highScore;
+  int hammerCount;
   Map<int, LevelRecord> levelRecords;
 
   @override
@@ -112,6 +131,12 @@ class InMemoryGameStorage implements GameStorage {
 
   @override
   Future<void> writeHighScore(int score) async => highScore = score;
+
+  @override
+  Future<int> readHammerCount() async => hammerCount;
+
+  @override
+  Future<void> writeHammerCount(int count) async => hammerCount = count;
 
   @override
   Future<Map<int, LevelRecord>> readLevelRecords() async =>

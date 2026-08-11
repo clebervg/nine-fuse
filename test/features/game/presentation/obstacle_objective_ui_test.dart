@@ -10,6 +10,7 @@ import 'package:nine_fuse/features/game/presentation/widgets/level_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/obstacle_overlay.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
+import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
 
 void main() {
@@ -28,7 +29,7 @@ void main() {
     obstacles: ObstacleLayout(stone: 3),
   );
 
-  setUp(() => notifier = GameNotifier(random: Random(42)));
+  setUp(() => notifier = GameNotifier(random: Random(42), storage: InMemoryGameStorage()));
 
   Future<void> pumpGame(WidgetTester tester, GameLevel level) async {
     tester.view.physicalSize = const Size(1200, 2600);

@@ -1,11 +1,21 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
+import 'package:nine_fuse/features/game/domain/tile.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
+import 'package:nine_fuse/features/game/providers/game_storage.dart';
+
+/// Armazenamento que só sabe falhar na leitura do inventário. Perder o martelo
+/// comprado é ruim; abrir o jogo sem tabuleiro é pior.
+class _BrokenHammerStorage extends InMemoryGameStorage {
+  @override
+  Future<int> readHammerCount() async => throw StateError('sem disco');
+}
 
 void main() {
   late GameNotifier notifier;
@@ -18,7 +28,7 @@ void main() {
   );
 
   setUp(() {
-    notifier = GameNotifier(random: Random(42));
+    notifier = GameNotifier(random: Random(42), storage: InMemoryGameStorage());
     notifier.startLevel(roomy);
   });
 
@@ -442,7 +452,10 @@ void main() {
 
   group('antes de qualquer fase', () {
     test('o estado inicial está idle e vazio', () {
-      final fresh = GameNotifier(random: Random(1));
+      final fresh = GameNotifier(
+        random: Random(1),
+        storage: InMemoryGameStorage(),
+      );
 
       expect(fresh.state.status, GameStatus.idle);
       expect(fresh.state.board.isEmpty, isTrue);
@@ -450,13 +463,403 @@ void main() {
     });
 
     test('não aceita jogada nem seleção enquanto está idle', () {
-      final fresh = GameNotifier(random: Random(1));
+      final fresh = GameNotifier(
+        random: Random(1),
+        storage: InMemoryGameStorage(),
+      );
 
       fresh.selectTile(Position(row: 0, col: 0));
       fresh.swapTiles(Position(row: 0, col: 0), Position(row: 0, col: 1));
 
       expect(fresh.state.moves, 0);
       expect(fresh.state.selectedTile, isNull);
+    });
+  });
+
+  group('Martelo de Fusão', () {
+    // O tato e o som falam com canal nativo, que não existe num teste de
+    // unidade. Ficam desligados por padrão aqui; os dois testes que os
+    // verificam trocam por um contador.
+    late void Function() realTargeting;
+    late void Function() realRejection;
+
+    setUp(() {
+      realTargeting = GameNotifier.targetingFeedback;
+      realRejection = GameNotifier.rejectionFeedback;
+      GameNotifier.targetingFeedback = () {};
+      GameNotifier.rejectionFeedback = () {};
+    });
+
+    tearDown(() {
+      GameNotifier.targetingFeedback = realTargeting;
+      GameNotifier.rejectionFeedback = realRejection;
+    });
+
+    /// Tabuleiro estável (faixas diagonais de período 3 nunca alinham três) com
+    /// um `7` solitário na mira. O 7 está fora da janela de sorteio, então
+    /// nenhuma reposição pode fabricá-lo — é o que torna a asserção de "não
+    /// evoluiu" imune ao acaso do refill.
+    Board stableBoardWithVictim(Position at, {ObstacleType? cover}) {
+      var board = Board.empty();
+      for (int row = 0; row < Board.boardSize; row++) {
+        for (int col = 0; col < Board.boardSize; col++) {
+          final position = Position(row: row, col: col);
+          board = board.updateTile(
+            position,
+            Tile(
+              id: 'r${row}c$col',
+              value: position == at ? 7 : (row + col) % 3,
+              position: position,
+            ),
+          );
+        }
+      }
+      if (cover != null) {
+        board = board.updateTile(at, board.getTileAt(at)!.withObstacle(cover));
+      }
+      return board;
+    }
+
+    /// Notifier com inventário já carregado do armazenamento.
+    Future<GameNotifier> withHammers(
+      int count, {
+      GameLevel level = roomy,
+      GameStorage? storage,
+    }) async {
+      final notifier = GameNotifier(
+        random: Random(42),
+        storage: storage ?? InMemoryGameStorage(hammerCount: count),
+      );
+      // A leitura do inventário é assíncrona, como a do progresso da campanha.
+      await Future<void>.delayed(Duration.zero);
+      notifier.startLevel(level);
+      return notifier;
+    }
+
+    test('o inventário é lido do armazenamento na criação', () async {
+      final hammered = await withHammers(2);
+
+      expect(hammered.state.hammerCount, 2);
+    });
+
+    test('o inventário sobrevive ao início de uma fase nova', () async {
+      // É inventário do jogador, não da fase: zerá-lo em `startLevel` faria o
+      // martelo comprado desaparecer ao avançar.
+      final hammered = await withHammers(2);
+      hammered.startLevel(roomy);
+
+      expect(hammered.state.hammerCount, 2);
+    });
+
+    test('falha de leitura vale como inventário vazio', () async {
+      final hammered = GameNotifier(
+        random: Random(42),
+        storage: _BrokenHammerStorage(),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(hammered.state.hammerCount, 0);
+      expect(hammered.state.status, GameStatus.idle);
+    });
+
+    group('mira', () {
+      test('alternar liga e desliga o modo de mira', () async {
+        final hammered = await withHammers(1);
+
+        hammered.toggleHammerTargeting();
+        expect(hammered.state.isHammerTargeting, isTrue);
+
+        hammered.toggleHammerTargeting();
+        expect(hammered.state.isHammerTargeting, isFalse);
+      });
+
+      test('cancelar desliga a mira e descarta o alvo pendente', () async {
+        final hammered = await withHammers(0);
+        hammered.toggleHammerTargeting();
+        hammered.useHammer(const Position(row: 4, col: 4));
+
+        hammered.cancelHammerTargeting();
+
+        expect(hammered.state.isHammerTargeting, isFalse);
+        expect(hammered.state.pendingHammerTarget, isNull);
+      });
+
+      test('a mira dá uma batida tátil ao ligar, e não ao desligar', () async {
+        var beats = 0;
+        final original = GameNotifier.targetingFeedback;
+        GameNotifier.targetingFeedback = () => beats++;
+        addTearDown(() => GameNotifier.targetingFeedback = original);
+
+        final hammered = await withHammers(1);
+        hammered.toggleHammerTargeting();
+        expect(beats, 1);
+
+        hammered.toggleHammerTargeting();
+        expect(beats, 1);
+      });
+
+      test('a fase encerrada não entra em mira', () async {
+        const tight = GameLevel(
+          number: 88,
+          objective: Objective(digit: kMaxDigitForTest, count: 9),
+          moveLimit: 1,
+        );
+        final hammered = await withHammers(1, level: tight);
+
+        final engine = hammered.engine!;
+        final pair = engine
+            .candidateSwaps(hammered.state.board)
+            .firstWhere((s) => engine.swapCreatesMatch(
+                  hammered.state.board,
+                  s.$1,
+                  s.$2,
+                ));
+        hammered.swapTiles(pair.$1, pair.$2);
+        expect(hammered.state.isOver, isTrue);
+
+        hammered.toggleHammerTargeting();
+
+        expect(hammered.state.isHammerTargeting, isFalse);
+      });
+    });
+
+    group('golpe', () {
+      test('coordenada fora do tabuleiro não consome martelo', () async {
+        final hammered = await withHammers(1);
+        hammered.toggleHammerTargeting();
+
+        hammered.useHammer(const Position(row: -1, col: 0));
+
+        expect(hammered.state.hammerCount, 1);
+        expect(
+          hammered.state.isHammerTargeting,
+          isTrue,
+          reason: 'errar a mira não pode custar a mira',
+        );
+      });
+
+      test('casa vazia não consome martelo', () async {
+        final hammered = await withHammers(1);
+        hammered.debugSetBoard(
+          hammered.state.board.updateTile(const Position(row: 4, col: 4), null),
+        );
+        hammered.toggleHammerTargeting();
+
+        hammered.useHammer(const Position(row: 4, col: 4));
+
+        expect(hammered.state.hammerCount, 1);
+      });
+
+      test('a recusa avisa por tato, sem cobrar', () async {
+        var beats = 0;
+        final original = GameNotifier.rejectionFeedback;
+        GameNotifier.rejectionFeedback = () => beats++;
+        addTearDown(() => GameNotifier.rejectionFeedback = original);
+
+        final hammered = await withHammers(1);
+        hammered.toggleHammerTargeting();
+        hammered.useHammer(const Position(row: 9, col: 9));
+
+        expect(beats, 1);
+        expect(hammered.state.hammerCount, 1);
+      });
+
+      test('oblitera a peça, consome o martelo e desliga a mira', () async {
+        const target = Position(row: 4, col: 4);
+        final hammered = await withHammers(1);
+        hammered.debugSetBoard(stableBoardWithVictim(target));
+        hammered.toggleHammerTargeting();
+
+        hammered.useHammer(target);
+
+        expect(hammered.state.hammerCount, 0);
+        expect(hammered.state.isHammerTargeting, isFalse);
+        expect(
+          hammered.state.board.getAllTiles().where((t) => t.value == 7),
+          isEmpty,
+        );
+        // A gravidade e a reposição rodam no mesmo golpe.
+        expect(hammered.state.board.isFull, isTrue);
+      });
+
+      test('oblitera a cobertura junto, sem esperar três impactos', () async {
+        const target = Position(row: 4, col: 4);
+        final hammered = await withHammers(1);
+        hammered.debugSetBoard(
+          stableBoardWithVictim(target, cover: ObstacleType.stone),
+        );
+
+        hammered.useHammer(target);
+
+        expect(hammered.state.board.countObstacles(ObstacleType.stone), 0);
+      });
+
+      test('não gasta movimento', () async {
+        // É o que o jogador está comprando.
+        const target = Position(row: 4, col: 4);
+        final hammered = await withHammers(1);
+        hammered.debugSetBoard(stableBoardWithVictim(target));
+        final before = hammered.state.movesLeft;
+
+        hammered.useHammer(target);
+
+        expect(hammered.state.movesLeft, before);
+        expect(hammered.state.moves, 0);
+      });
+
+      test('não evolui o dígito destruído', () async {
+        // O 7 atingido não vira 8: o martelo não é uma fusão.
+        const target = Position(row: 4, col: 4);
+        final hammered = await withHammers(
+          1,
+          level: const GameLevel(
+            number: 87,
+            objective: Objective(digit: 8, count: 9),
+            moveLimit: 500,
+          ),
+        );
+        hammered.debugSetBoard(stableBoardWithVictim(target));
+
+        hammered.useHammer(target);
+
+        expect(hammered.state.objectiveProgress, 0);
+      });
+
+      test('a cobertura destruída conta para o objetivo', () async {
+        // `boardObstacleGoal` é fixado no início da fase. Uma cobertura que sai
+        // do tabuleiro sem contar tornaria a fase impossível de vencer.
+        const target = Position(row: 4, col: 4);
+        final hammered = await withHammers(
+          1,
+          level: const GameLevel(
+            number: 86,
+            objective: Objective.clearObstacles(
+              obstacle: ObstacleType.ice,
+              count: 2,
+            ),
+            moveLimit: 500,
+          ),
+        );
+        hammered.debugSetBoard(
+          stableBoardWithVictim(target, cover: ObstacleType.ice),
+        );
+
+        hammered.useHammer(target);
+
+        expect(hammered.state.objectiveProgress, 1);
+      });
+
+      test('nada de limite artificial: golpes seguidos funcionam', () async {
+        final hammered = await withHammers(3);
+
+        for (int i = 0; i < 3; i++) {
+          final target = Position(row: 4, col: i);
+          hammered.debugSetBoard(stableBoardWithVictim(target));
+          hammered.useHammer(target);
+          expect(
+            hammered.state.hammerCount,
+            2 - i,
+            reason: 'o golpe ${i + 1} não foi cobrado como devia',
+          );
+        }
+
+        // Sem saldo, o quarto golpe já é funil de conversão, não recusa.
+        hammered.useHammer(const Position(row: 4, col: 5));
+        expect(hammered.state.hammerCount, 0);
+      });
+
+      test('a fase encerrada não aceita golpe', () async {
+        const tight = GameLevel(
+          number: 85,
+          objective: Objective(digit: kMaxDigitForTest, count: 9),
+          moveLimit: 1,
+        );
+        final hammered = await withHammers(1, level: tight);
+        final engine = hammered.engine!;
+        final pair = engine
+            .candidateSwaps(hammered.state.board)
+            .firstWhere((s) => engine.swapCreatesMatch(
+                  hammered.state.board,
+                  s.$1,
+                  s.$2,
+                ));
+        hammered.swapTiles(pair.$1, pair.$2);
+        expect(hammered.state.isOver, isTrue);
+
+        hammered.useHammer(const Position(row: 4, col: 4));
+
+        expect(hammered.state.hammerCount, 1);
+      });
+
+      test('o golpe registra onde caiu e qual dígito morreu', () async {
+        // A UI precisa do dígito para tingir o estilhaço: quando ela desenha, a
+        // peça já não está no tabuleiro para ser consultada.
+        const target = Position(row: 4, col: 4);
+        final hammered = await withHammers(1);
+        hammered.debugSetBoard(stableBoardWithVictim(target));
+
+        hammered.useHammer(target);
+
+        expect(hammered.state.hammerStrike, (target, 7));
+      });
+
+      test('o saldo é gravado a cada golpe', () async {
+        const target = Position(row: 4, col: 4);
+        final storage = InMemoryGameStorage(hammerCount: 2);
+        final hammered = await withHammers(2, storage: storage);
+        hammered.debugSetBoard(stableBoardWithVictim(target));
+
+        hammered.useHammer(target);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(storage.hammerCount, 1);
+      });
+    });
+
+    group('funil de conversão', () {
+      test('sem saldo, mirar guarda o alvo em vez de destruir', () async {
+        const target = Position(row: 4, col: 4);
+        final hammered = await withHammers(0);
+        hammered.debugSetBoard(stableBoardWithVictim(target));
+        hammered.toggleHammerTargeting();
+
+        hammered.useHammer(target);
+
+        expect(hammered.state.pendingHammerTarget, target);
+        expect(
+          hammered.state.board.getTileAt(target)?.value,
+          7,
+          reason: 'nada pode ser destruído antes de o martelo existir',
+        );
+      });
+
+      test('creditar o martelo aplica no alvo já destacado', () async {
+        // O jogador escolheu a peça antes do anúncio; obrigá-lo a mirar de novo
+        // depois de assistir seria cobrar duas vezes pelo mesmo golpe.
+        const target = Position(row: 4, col: 4);
+        final hammered = await withHammers(0);
+        hammered.debugSetBoard(stableBoardWithVictim(target));
+        hammered.toggleHammerTargeting();
+        hammered.useHammer(target);
+
+        hammered.grantHammer();
+
+        expect(
+          hammered.state.board.getAllTiles().where((t) => t.value == 7),
+          isEmpty,
+        );
+        expect(hammered.state.hammerCount, 0, reason: 'o crédito foi gasto');
+        expect(hammered.state.pendingHammerTarget, isNull);
+        expect(hammered.state.isHammerTargeting, isFalse);
+      });
+
+      test('creditar sem alvo pendente só engorda o inventário', () async {
+        final hammered = await withHammers(0);
+
+        hammered.grantHammer();
+
+        expect(hammered.state.hammerCount, 1);
+      });
     });
   });
 
