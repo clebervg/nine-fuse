@@ -36,15 +36,13 @@ class EndlessProgression {
   ///
   /// A pedra fica para o último degrau porque a saída dela é a onda de choque
   /// do dígito máximo, e só ali ele é alcançável de fato.
-  ObstacleLayout obstaclesFor(int step) => switch (step.clamp(
-    firstStep,
-    lastStep,
-  )) {
-    1 => const ObstacleLayout(ice: 2),
-    2 => const ObstacleLayout(ice: 2, glass: 1),
-    3 => const ObstacleLayout(ice: 1, glass: 2, stone: 1),
-    _ => ObstacleLayout.none,
-  };
+  ObstacleLayout obstaclesFor(int step) =>
+      switch (step.clamp(firstStep, lastStep)) {
+        1 => const ObstacleLayout(ice: 2),
+        2 => const ObstacleLayout(ice: 2, glass: 1),
+        3 => const ObstacleLayout(ice: 1, glass: 2, stone: 1),
+        _ => ObstacleLayout.none,
+      };
 
   /// O dígito que promove o jogador do degrau [step] para o seguinte.
   int promotionDigitFor(int step) => spawnMaxFor(step) + 2;

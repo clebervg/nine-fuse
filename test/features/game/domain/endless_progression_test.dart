@@ -100,8 +100,10 @@ void main() {
     test('o primeiro degrau começa limpo', () {
       // O jogador entra no Endless para bater recorde, não para decifrar uma
       // fase: a pressão do modo já vem da janela que sobe.
-      expect(progression.obstaclesFor(EndlessProgression.firstStep),
-          ObstacleLayout.none);
+      expect(
+        progression.obstaclesFor(EndlessProgression.firstStep),
+        ObstacleLayout.none,
+      );
     });
 
     test('cada degrau acima do primeiro pede cobertura', () {
@@ -130,17 +132,20 @@ void main() {
       expect(totals.last, greaterThan(totals.first));
     });
 
-    test('a pedra só entra no último degrau, onde o dígito máximo é possível', () {
-      // Três impactos precisa da onda de choque como saída, e ela só é
-      // realista com a janela no topo.
-      for (int s = 0; s < EndlessProgression.lastStep; s++) {
-        expect(progression.obstaclesFor(s).stone, 0, reason: 'degrau $s');
-      }
-      expect(
-        progression.obstaclesFor(EndlessProgression.lastStep).stone,
-        greaterThan(0),
-      );
-    });
+    test(
+      'a pedra só entra no último degrau, onde o dígito máximo é possível',
+      () {
+        // Três impactos precisa da onda de choque como saída, e ela só é
+        // realista com a janela no topo.
+        for (int s = 0; s < EndlessProgression.lastStep; s++) {
+          expect(progression.obstaclesFor(s).stone, 0, reason: 'degrau $s');
+        }
+        expect(
+          progression.obstaclesFor(EndlessProgression.lastStep).stone,
+          greaterThan(0),
+        );
+      },
+    );
 
     test('nenhum degrau cobre tabuleiro demais', () {
       for (int s = 0; s <= EndlessProgression.lastStep; s++) {

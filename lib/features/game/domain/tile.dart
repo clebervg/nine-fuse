@@ -99,14 +99,8 @@ class Tile {
           obstacleHp == other.obstacleHp;
 
   @override
-  int get hashCode => Object.hash(
-    id,
-    value,
-    position,
-    isSelected,
-    obstacle,
-    obstacleHp,
-  );
+  int get hashCode =>
+      Object.hash(id, value, position, isSelected, obstacle, obstacleHp);
 
   @override
   String toString() =>

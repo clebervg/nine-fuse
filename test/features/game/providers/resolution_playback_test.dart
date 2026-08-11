@@ -27,7 +27,11 @@ void main() {
 
   setUp(() {
     JuiceTimings.instantResolution = false;
-    notifier = GameNotifier(random: Random(42), delay: instant, storage: InMemoryGameStorage());
+    notifier = GameNotifier(
+      random: Random(42),
+      delay: instant,
+      storage: InMemoryGameStorage(),
+    );
     notifier.startLevel(roomy);
   });
 

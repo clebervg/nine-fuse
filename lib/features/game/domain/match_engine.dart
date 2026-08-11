@@ -398,9 +398,9 @@ class MatchEngine {
       for (final spot in spots) {
         final tile = result.getTileAt(spot);
         if (tile == null || tile.isBlocked) continue;
-        if (_orthogonalNeighbours(spot).any(
-          (neighbour) => result.getTileAt(neighbour)?.isBlocked ?? false,
-        )) {
+        if (_orthogonalNeighbours(
+          spot,
+        ).any((neighbour) => result.getTileAt(neighbour)?.isBlocked ?? false)) {
           continue;
         }
 

@@ -265,8 +265,37 @@ injetável (`hammerAdProvider`) porque **não há SDK de anúncio no projeto** �
 padrão paga o jogador, já que um funil que nunca conclui é pior do que a casa
 pagar. **É o ponto a trocar antes de monetizar de verdade.**
 
+**O booster vale nos dois modos, e o estoque é um só.** A regra vive num mixin
+(`HammerBooster`) que campanha e Endless compartilham, sobre um `HammerState`
+único que os dois estados carregam. Campanha e Endless são notifiers **irmãos**,
+não pai e filho — cada um tem o seu desfecho —, mas duas cópias da regra
+divergiriam no primeiro ajuste de balanceamento e o jogador veria o mesmo item se
+comportar de dois jeitos. Cada notifier fornece cinco coisas: tabuleiro, motor,
+leitura/escrita do `HammerState`, se aceita interação agora, e o que fazer com a
+`Resolution`.
+
+**No Endless o martelo compra outra coisa.** Não há limite de movimentos, então o
+que ele compra é o fim da corrida não ser agora — destravar. O golpe segue **não
+contando como movimento**, porque `moves` é o que o cartão de fim de corrida
+relata. E o **recorde conta normalmente**: decisão de produto, o martelo é parte
+do jogo como o bônus do dígito 9.
+
+**Os dois notifiers podem estar vivos ao mesmo tempo** (a tela do Endless abre por
+cima da campanha), então o estoque é relido do disco ao começar cada fase ou
+corrida — `refreshHammers`, o mesmo remédio que `EndlessHighScore.refresh` já usa
+para o recorde. Uma leitura que chega depois de o saldo ter mudado em memória é
+descartada: o disco está velho, e adotá-lo apagaria um martelo recém-creditado.
+
 **Bug de tela larga achado no caminho.** `BoardGridWidget` montava a geometria
 sobre o espaço disponível e depois centralizava a moldura, somando duas vezes o
 deslocamento de centralização: em qualquer tela mais larga que `kMaxBoardSide` as
 peças escorriam para fora da própria moldura. Só não aparecia porque em celular
 `_originX` é zero. Corrigido, com teste de regressão em tela larga.
+
+
+### Regras de Monetização & Exibição de Anúncios (AdMob)
+1. **Preload Obrigatorio:** Anúncios Recompensados e Intersticiais devem ser carregados no início do nível (`LevelStart`).
+2. **Anti-Churn de Derrota:** Intersticiais são proibidos em telas de Game Over/Derrota. Permitidos apenas pós-vitória ou na saída para o Mapa (respeitando intervalo mínimo de 45s de jogo).
+3. **Pre-Churn Trigger:** Oferecer +5 movimentos via Rewarded Ad quando `movesLeft == 2` e a vitória não estiver garantida.
+4. **Cap de Limite:** Máximo de 3 Martelos por dia via Rewarded Ads para preservar a economia interna.
+5. **Benefícios No-Ads Pass:** Remove intersticiais e ativa o Bônus Diário VIP (+50 Moedas/dia).

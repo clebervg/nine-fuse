@@ -11,13 +11,14 @@ import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/hammer_button.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_targeting_layer.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/juice_overlay.dart';
-import 'package:nine_fuse/features/game/presentation/widgets/level_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
+import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
 import '../../../support/localized.dart';
 
 void main() {
@@ -65,17 +66,17 @@ void main() {
   late void Function() realRejection;
 
   setUp(() {
-    realTargeting = GameNotifier.targetingFeedback;
-    realRejection = GameNotifier.rejectionFeedback;
-    GameNotifier.targetingFeedback = () {};
-    GameNotifier.rejectionFeedback = () {};
+    realTargeting = HammerBooster.targetingFeedback;
+    realRejection = HammerBooster.rejectionFeedback;
+    HammerBooster.targetingFeedback = () {};
+    HammerBooster.rejectionFeedback = () {};
     storage = InMemoryGameStorage();
     notifier = GameNotifier(random: Random(42), storage: storage);
   });
 
   tearDown(() {
-    GameNotifier.targetingFeedback = realTargeting;
-    GameNotifier.rejectionFeedback = realRejection;
+    HammerBooster.targetingFeedback = realTargeting;
+    HammerBooster.rejectionFeedback = realRejection;
   });
 
   /// Monta a tela da fase com [hammers] martelos em estoque.
@@ -149,7 +150,11 @@ void main() {
       // cumpre: a fase já acabou.
       await pumpGame(tester);
       notifier.startLevel(
-        const GameLevel(number: 41, objective: Objective(digit: 9), moveLimit: 1),
+        const GameLevel(
+          number: 41,
+          objective: Objective(digit: 9),
+          moveLimit: 1,
+        ),
       );
       await tester.pumpAndSettle();
       if (find.byKey(startLevelKey).evaluate().isNotEmpty) {
@@ -159,8 +164,9 @@ void main() {
       final engine = notifier.engine!;
       final pair = engine
           .candidateSwaps(notifier.state.board)
-          .firstWhere((s) =>
-              engine.swapCreatesMatch(notifier.state.board, s.$1, s.$2));
+          .firstWhere(
+            (s) => engine.swapCreatesMatch(notifier.state.board, s.$1, s.$2),
+          );
       notifier.swapTiles(pair.$1, pair.$2);
       await tester.pumpAndSettle();
 

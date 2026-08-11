@@ -128,16 +128,19 @@ void main() {
       }
     });
 
-    test('sementes diferentes espalham as coberturas em lugares diferentes', () {
-      Set<Position> spots(int seed) => MatchEngine(random: Random(seed))
-          .generateBoard(obstacles: const ObstacleLayout(ice: 3))
-          .getAllTiles()
-          .where((t) => t.isBlocked)
-          .map((t) => t.position)
-          .toSet();
+    test(
+      'sementes diferentes espalham as coberturas em lugares diferentes',
+      () {
+        Set<Position> spots(int seed) => MatchEngine(random: Random(seed))
+            .generateBoard(obstacles: const ObstacleLayout(ice: 3))
+            .getAllTiles()
+            .where((t) => t.isBlocked)
+            .map((t) => t.position)
+            .toSet();
 
-      expect(spots(1), isNot(spots(2)));
-    });
+        expect(spots(1), isNot(spots(2)));
+      },
+    );
   });
 
   group('placeObstacles no tabuleiro em jogo', () {
@@ -148,10 +151,7 @@ void main() {
       );
       final before = blockedTiles(start).single;
 
-      final after = engine.placeObstacles(
-        start,
-        const ObstacleLayout(ice: 2),
-      );
+      final after = engine.placeObstacles(start, const ObstacleLayout(ice: 2));
 
       expect(after.getTileAt(before.position), before);
       expect(blockedTiles(after), hasLength(3));

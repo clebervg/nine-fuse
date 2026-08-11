@@ -134,9 +134,9 @@ class _ObstaclePainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5
-        ..color = Colors.white.withValues(alpha: type == ObstacleType.stone
-            ? 0.10
-            : 0.45),
+        ..color = Colors.white.withValues(
+          alpha: type == ObstacleType.stone ? 0.10 : 0.45,
+        ),
     );
   }
 
@@ -203,8 +203,7 @@ class _ObstaclePainter extends CustomPainter {
       final reach = rect.shortestSide * (0.42 + random.nextDouble() * 0.16);
       final elbow = centre + Offset(cos(angle), sin(angle)) * (reach * 0.5);
       final tip =
-          elbow +
-          Offset(cos(angle + 0.4), sin(angle + 0.4)) * (reach * 0.5);
+          elbow + Offset(cos(angle + 0.4), sin(angle + 0.4)) * (reach * 0.5);
 
       canvas.drawPath(
         Path()

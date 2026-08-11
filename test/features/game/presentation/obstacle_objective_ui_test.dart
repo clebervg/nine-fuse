@@ -19,17 +19,19 @@ void main() {
   /// Fase de limpeza: quebre 3 pedras.
   const stoneLevel = GameLevel(
     number: 11,
-    objective: Objective.clearObstacles(
-      obstacle: ObstacleType.stone,
-      count: 3,
-    ),
+    objective: Objective.clearObstacles(obstacle: ObstacleType.stone, count: 3),
     moveLimit: 30,
     spawnMin: 1,
     spawnMax: 4,
     obstacles: ObstacleLayout(stone: 3),
   );
 
-  setUp(() => notifier = GameNotifier(random: Random(42), storage: InMemoryGameStorage()));
+  setUp(
+    () => notifier = GameNotifier(
+      random: Random(42),
+      storage: InMemoryGameStorage(),
+    ),
+  );
 
   Future<void> pumpGame(WidgetTester tester, GameLevel level) async {
     tester.view.physicalSize = const Size(1200, 2600);
@@ -64,7 +66,9 @@ void main() {
       );
     });
 
-    testWidgets('o rótulo diz quantas coberturas e de que tipo', (tester) async {
+    testWidgets('o rótulo diz quantas coberturas e de que tipo', (
+      tester,
+    ) async {
       await pumpGame(tester, stoneLevel);
 
       expect(find.text('Quebre 3 pedras'), findsWidgets);

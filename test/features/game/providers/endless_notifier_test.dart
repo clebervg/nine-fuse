@@ -1,11 +1,15 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/endless_progression.dart';
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
+import 'package:nine_fuse/features/game/domain/tile.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
+import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
 
 void main() {
   late InMemoryGameStorage storage;
@@ -288,4 +292,213 @@ void main() {
       expect(notifier.state.selectedTile, isNull);
     });
   });
+
+  group('Martelo de Fusão', () {
+    late void Function() realTargeting;
+    late void Function() realRejection;
+
+    setUp(() {
+      realTargeting = HammerBooster.targetingFeedback;
+      realRejection = HammerBooster.rejectionFeedback;
+      HammerBooster.targetingFeedback = () {};
+      HammerBooster.rejectionFeedback = () {};
+    });
+
+    tearDown(() {
+      HammerBooster.targetingFeedback = realTargeting;
+      HammerBooster.rejectionFeedback = realRejection;
+    });
+
+    /// Tabuleiro estável com um `7` solitário na mira. O 7 está fora da janela
+    /// do primeiro degrau, então nenhuma reposição pode fabricar outro.
+    Board stableBoardWithVictim(Position at, {ObstacleType? cover}) {
+      var board = Board.empty();
+      for (int row = 0; row < Board.boardSize; row++) {
+        for (int col = 0; col < Board.boardSize; col++) {
+          final position = Position(row: row, col: col);
+          board = board.updateTile(
+            position,
+            Tile(
+              id: 'r${row}c$col',
+              value: position == at ? 7 : (row + col) % 3,
+              position: position,
+            ),
+          );
+        }
+      }
+      if (cover != null) {
+        board = board.updateTile(at, board.getTileAt(at)!.withObstacle(cover));
+      }
+      return board;
+    }
+
+    const target = Position(row: 4, col: 4);
+
+    /// Corrida começada, com [count] martelos no mesmo estoque da campanha.
+    Future<EndlessNotifier> withHammers(int count) async {
+      storage.hammerCount = count;
+      final started = EndlessNotifier(random: Random(7), storage: storage);
+      await started.start();
+      return started;
+    }
+
+    test('o estoque vem do mesmo armazenamento da campanha', () async {
+      // Um martelo comprado na campanha tem de aparecer aqui: o inventário é do
+      // jogador, não do modo.
+      final hammered = await withHammers(2);
+
+      expect(hammered.state.hammerCount, 2);
+    });
+
+    test('oblitera a peça, cobra o martelo e desliga a mira', () async {
+      final hammered = await withHammers(1);
+      hammered.debugSetBoard(stableBoardWithVictim(target));
+      hammered.toggleHammerTargeting();
+
+      hammered.useHammer(target);
+
+      expect(hammered.state.hammerCount, 0);
+      expect(hammered.state.isHammerTargeting, isFalse);
+      expect(
+        hammered.state.board.getAllTiles().where((t) => t.value == 7),
+        isEmpty,
+      );
+      expect(hammered.state.board.isFull, isTrue);
+    });
+
+    test('oblitera a cobertura junto com a peça', () async {
+      final hammered = await withHammers(1);
+      hammered.debugSetBoard(
+        stableBoardWithVictim(target, cover: ObstacleType.stone),
+      );
+
+      hammered.useHammer(target);
+
+      expect(hammered.state.board.countObstacles(ObstacleType.stone), 0);
+    });
+
+    test('o golpe não conta como movimento da corrida', () async {
+      // No Endless não há limite de movimentos, mas `moves` é o que o cartão de
+      // fim de corrida relata: um golpe comprado não é uma jogada do jogador.
+      final hammered = await withHammers(1);
+      hammered.debugSetBoard(stableBoardWithVictim(target));
+
+      hammered.useHammer(target);
+
+      expect(hammered.state.moves, 0);
+    });
+
+    test('casa vazia não cobra o martelo', () async {
+      final hammered = await withHammers(1);
+      hammered.debugSetBoard(
+        stableBoardWithVictim(target).updateTile(target, null),
+      );
+
+      hammered.useHammer(target);
+
+      expect(hammered.state.hammerCount, 1);
+    });
+
+    test('o golpe destrava a corrida travada', () async {
+      // É o que o martelo passa a valer aqui: sem limite de movimentos, o que
+      // ele compra é o fim da corrida não ser agora.
+      final hammered = await withHammers(1);
+      hammered.debugSetBoard(stableBoardWithVictim(target));
+
+      hammered.useHammer(target);
+
+      expect(hammered.state.status, EndlessStatus.playing);
+    });
+
+    test('golpes seguidos não têm limite artificial', () async {
+      final hammered = await withHammers(3);
+
+      for (int i = 0; i < 3; i++) {
+        final spot = Position(row: 4, col: i);
+        hammered.debugSetBoard(stableBoardWithVictim(spot));
+        hammered.useHammer(spot);
+        expect(hammered.state.hammerCount, 2 - i);
+      }
+    });
+
+    test('a corrida travada não aceita golpe', () async {
+      // Depois de travar, o cartão de fim já está na tela e o placar já foi
+      // gravado: um golpe ali reabriria uma partida encerrada.
+      final hammered = await withHammers(1);
+      playUntilStuckOn(hammered);
+      if (hammered.state.status != EndlessStatus.stuck) return;
+
+      hammered.useHammer(target);
+
+      expect(hammered.state.hammerCount, 1);
+    });
+
+    test('sem estoque, mirar guarda o alvo sem destruir', () async {
+      final hammered = await withHammers(0);
+      hammered.debugSetBoard(stableBoardWithVictim(target));
+      hammered.toggleHammerTargeting();
+
+      hammered.useHammer(target);
+
+      expect(hammered.state.pendingHammerTarget, target);
+      expect(hammered.state.board.getTileAt(target)?.value, 7);
+    });
+
+    test('creditar o martelo aplica no alvo já destacado', () async {
+      final hammered = await withHammers(0);
+      hammered.debugSetBoard(stableBoardWithVictim(target));
+      hammered.toggleHammerTargeting();
+      hammered.useHammer(target);
+
+      hammered.grantHammer();
+
+      expect(
+        hammered.state.board.getAllTiles().where((t) => t.value == 7),
+        isEmpty,
+      );
+      expect(hammered.state.hammerCount, 0);
+    });
+
+    test('o saldo gasto vai para o mesmo disco da campanha', () async {
+      final hammered = await withHammers(2);
+      hammered.debugSetBoard(stableBoardWithVictim(target));
+
+      hammered.useHammer(target);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(storage.hammerCount, 1);
+    });
+
+    test('o recorde conta normalmente numa corrida com martelo', () async {
+      // Decisão de produto: o martelo é parte do jogo, como o bônus de
+      // movimentos do dígito 9. O recorde mede a melhor partida.
+      final hammered = await withHammers(1);
+      hammered.debugSetBoard(stableBoardWithVictim(target));
+      hammered.useHammer(target);
+      playUntilStuckOn(hammered);
+
+      if (hammered.state.status != EndlessStatus.stuck) return;
+      expect(hammered.state.score, greaterThan(0));
+      expect(storage.highScore, hammered.state.score);
+    });
+  });
+}
+
+/// Joga [notifier] até travar ou até [cap] movimentos.
+void playUntilStuckOn(EndlessNotifier notifier, {int cap = 600}) {
+  var played = 0;
+  while (played < cap && notifier.state.status == EndlessStatus.playing) {
+    final engine = notifier.engine!;
+    final board = notifier.state.board;
+    (Position, Position)? pair;
+    for (final (a, b) in engine.candidateSwaps(board)) {
+      if (engine.swapCreatesMatch(board, a, b)) {
+        pair = (a, b);
+        break;
+      }
+    }
+    if (pair == null) break;
+    notifier.swapTiles(pair.$1, pair.$2);
+    played++;
+  }
 }

@@ -9,6 +9,7 @@ import 'package:nine_fuse/features/game/domain/tile.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
+import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
 
 /// Armazenamento que só sabe falhar na leitura do inventário. Perder o martelo
 /// comprado é ruim; abrir o jogo sem tabuleiro é pior.
@@ -72,7 +73,10 @@ void main() {
           .toList();
 
       expect(blocked, hasLength(3));
-      expect(blocked.where((t) => t.obstacle == ObstacleType.stone), hasLength(1));
+      expect(
+        blocked.where((t) => t.obstacle == ObstacleType.stone),
+        hasLength(1),
+      );
     });
 
     test('a fase sem obstáculo nasce com o tabuleiro todo livre', () {
@@ -484,15 +488,15 @@ void main() {
     late void Function() realRejection;
 
     setUp(() {
-      realTargeting = GameNotifier.targetingFeedback;
-      realRejection = GameNotifier.rejectionFeedback;
-      GameNotifier.targetingFeedback = () {};
-      GameNotifier.rejectionFeedback = () {};
+      realTargeting = HammerBooster.targetingFeedback;
+      realRejection = HammerBooster.rejectionFeedback;
+      HammerBooster.targetingFeedback = () {};
+      HammerBooster.rejectionFeedback = () {};
     });
 
     tearDown(() {
-      GameNotifier.targetingFeedback = realTargeting;
-      GameNotifier.rejectionFeedback = realRejection;
+      HammerBooster.targetingFeedback = realTargeting;
+      HammerBooster.rejectionFeedback = realRejection;
     });
 
     /// Tabuleiro estável (faixas diagonais de período 3 nunca alinham três) com
@@ -586,9 +590,9 @@ void main() {
 
       test('a mira dá uma batida tátil ao ligar, e não ao desligar', () async {
         var beats = 0;
-        final original = GameNotifier.targetingFeedback;
-        GameNotifier.targetingFeedback = () => beats++;
-        addTearDown(() => GameNotifier.targetingFeedback = original);
+        final original = HammerBooster.targetingFeedback;
+        HammerBooster.targetingFeedback = () => beats++;
+        addTearDown(() => HammerBooster.targetingFeedback = original);
 
         final hammered = await withHammers(1);
         hammered.toggleHammerTargeting();
@@ -609,11 +613,9 @@ void main() {
         final engine = hammered.engine!;
         final pair = engine
             .candidateSwaps(hammered.state.board)
-            .firstWhere((s) => engine.swapCreatesMatch(
-                  hammered.state.board,
-                  s.$1,
-                  s.$2,
-                ));
+            .firstWhere(
+              (s) => engine.swapCreatesMatch(hammered.state.board, s.$1, s.$2),
+            );
         hammered.swapTiles(pair.$1, pair.$2);
         expect(hammered.state.isOver, isTrue);
 
@@ -652,9 +654,9 @@ void main() {
 
       test('a recusa avisa por tato, sem cobrar', () async {
         var beats = 0;
-        final original = GameNotifier.rejectionFeedback;
-        GameNotifier.rejectionFeedback = () => beats++;
-        addTearDown(() => GameNotifier.rejectionFeedback = original);
+        final original = HammerBooster.rejectionFeedback;
+        HammerBooster.rejectionFeedback = () => beats++;
+        addTearDown(() => HammerBooster.rejectionFeedback = original);
 
         final hammered = await withHammers(1);
         hammered.toggleHammerTargeting();
@@ -778,11 +780,9 @@ void main() {
         final engine = hammered.engine!;
         final pair = engine
             .candidateSwaps(hammered.state.board)
-            .firstWhere((s) => engine.swapCreatesMatch(
-                  hammered.state.board,
-                  s.$1,
-                  s.$2,
-                ));
+            .firstWhere(
+              (s) => engine.swapCreatesMatch(hammered.state.board, s.$1, s.$2),
+            );
         hammered.swapTiles(pair.$1, pair.$2);
         expect(hammered.state.isOver, isTrue);
 

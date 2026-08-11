@@ -25,9 +25,10 @@ extension DomainLabels on AppLocalizations {
   /// de início) deixa em branco e o rótulo cai no pedido da fase.
   String objectiveLabel(Objective objective, {int? target}) =>
       switch (objective.type) {
-        ObjectiveType.reachDigit => objective.count == 1
-            ? objectiveCreateOne(objective.digit!)
-            : objectiveCreateMany(objective.count, objective.digit!),
+        ObjectiveType.reachDigit =>
+          objective.count == 1
+              ? objectiveCreateOne(objective.digit!)
+              : objectiveCreateMany(objective.count, objective.digit!),
         ObjectiveType.clearObstacles => objectiveClearObstacles(
           objective.count,
           obstacleName(objective.obstacle, objective.count),

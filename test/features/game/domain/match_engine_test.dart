@@ -1275,7 +1275,9 @@ void main() {
       expect(hit.cleared, isTrue);
       // A liberação já vale no quadro que a UI anima.
       expect(
-        step.boardAfterFusion.getTileAt(const Position(row: 4, col: 3))!.isBlocked,
+        step.boardAfterFusion
+            .getTileAt(const Position(row: 4, col: 3))!
+            .isBlocked,
         isFalse,
       );
     });
@@ -1327,7 +1329,9 @@ void main() {
 
       expect(hitAt(step, const Position(row: 0, col: 7)), isNull);
       expect(
-        step.boardAfterFusion.getTileAt(const Position(row: 0, col: 7))!.isBlocked,
+        step.boardAfterFusion
+            .getTileAt(const Position(row: 0, col: 7))!
+            .isBlocked,
         isTrue,
       );
     });
@@ -1404,8 +1408,11 @@ void main() {
       final swaps = MatchEngine(random: Random(1)).candidateSwaps(board);
 
       expect(
-        swaps.any((s) => s.$1 == const Position(row: 4, col: 1) ||
-            s.$2 == const Position(row: 4, col: 1)),
+        swaps.any(
+          (s) =>
+              s.$1 == const Position(row: 4, col: 1) ||
+              s.$2 == const Position(row: 4, col: 1),
+        ),
         isFalse,
       );
     });

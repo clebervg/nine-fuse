@@ -44,7 +44,10 @@ class Objective {
   const Objective.clearObstacles({required this.obstacle, this.count = 1})
     : type = ObjectiveType.clearObstacles,
       digit = null,
-      assert(obstacle != ObstacleType.none, 'sem cobertura não há o que quebrar'),
+      assert(
+        obstacle != ObstacleType.none,
+        'sem cobertura não há o que quebrar',
+      ),
       assert(count >= 1);
 
   /// Limpar do tabuleiro toda cobertura de [obstacle].
@@ -55,7 +58,10 @@ class Objective {
     : type = ObjectiveType.clearAllObstacles,
       digit = null,
       count = 1,
-      assert(obstacle != ObstacleType.none, 'sem cobertura não há o que quebrar');
+      assert(
+        obstacle != ObstacleType.none,
+        'sem cobertura não há o que quebrar',
+      );
 
   final ObjectiveType type;
 

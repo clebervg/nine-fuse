@@ -319,8 +319,11 @@ void main() {
             step: stepWith(
               obstacleHits: [
                 hit(const Position(row: 1, col: 1)),
-                hit(const Position(row: 4, col: 2), type: ObstacleType.stone,
-                    remaining: 2),
+                hit(
+                  const Position(row: 4, col: 2),
+                  type: ObstacleType.stone,
+                  remaining: 2,
+                ),
               ],
             ),
             comboCount: 1,
@@ -338,8 +341,11 @@ void main() {
           JuiceOverlay(
             step: stepWith(
               obstacleHits: [
-                hit(const Position(row: 3, col: 3), type: ObstacleType.glass,
-                    remaining: 1),
+                hit(
+                  const Position(row: 3, col: 3),
+                  type: ObstacleType.glass,
+                  remaining: 1,
+                ),
               ],
             ),
             comboCount: 1,

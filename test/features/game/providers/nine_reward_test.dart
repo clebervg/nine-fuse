@@ -74,7 +74,10 @@ void main() {
     });
 
     test('cada explosão devolve movimentos ao jogador', () async {
-      final notifier = GameNotifier(random: Random(7), storage: InMemoryGameStorage());
+      final notifier = GameNotifier(
+        random: Random(7),
+        storage: InMemoryGameStorage(),
+      );
       notifier.startLevel(
         const GameLevel(
           number: 90,
@@ -107,7 +110,10 @@ void main() {
     // O bônus só serve se chegar a tempo: um 9 criado na jogada que zeraria o
     // contador tem de salvar a fase, não chegar tarde demais.
     test('o bônus da última jogada evita a derrota por saldo', () {
-      final notifier = GameNotifier(random: Random(7), storage: InMemoryGameStorage());
+      final notifier = GameNotifier(
+        random: Random(7),
+        storage: InMemoryGameStorage(),
+      );
       notifier.startLevel(
         const GameLevel(
           number: 91,
@@ -132,7 +138,10 @@ void main() {
     });
 
     test('uma jogada sem explosão não muda o saldo', () {
-      final notifier = GameNotifier(random: Random(7), storage: InMemoryGameStorage());
+      final notifier = GameNotifier(
+        random: Random(7),
+        storage: InMemoryGameStorage(),
+      );
       notifier.startLevel(
         const GameLevel(
           number: 92,

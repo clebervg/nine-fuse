@@ -58,7 +58,12 @@ const _swapTo = Position(row: 3, col: 2);
 void main() {
   late GameNotifier notifier;
 
-  setUp(() => notifier = GameNotifier(random: Random(42), storage: InMemoryGameStorage()));
+  setUp(
+    () => notifier = GameNotifier(
+      random: Random(42),
+      storage: InMemoryGameStorage(),
+    ),
+  );
 
   /// Prepara a fase [level] com o tabuleiro montado à mão e faz a única jogada.
   void playTheMove(GameLevel level, Map<Position, ObstacleType> covers) {
@@ -89,13 +94,16 @@ void main() {
       expect(objective.digit, isNull);
     });
 
-    test('clearAllObstacles não declara quantidade: quem sabe é o tabuleiro', () {
-      const objective = Objective.clearAllObstacles(ObstacleType.ice);
+    test(
+      'clearAllObstacles não declara quantidade: quem sabe é o tabuleiro',
+      () {
+        const objective = Objective.clearAllObstacles(ObstacleType.ice);
 
-      expect(objective.type, ObjectiveType.clearAllObstacles);
-      expect(objective.obstacle, ObstacleType.ice);
-      expect(objective.digit, isNull);
-    });
+        expect(objective.type, ObjectiveType.clearAllObstacles);
+        expect(objective.obstacle, ObstacleType.ice);
+        expect(objective.digit, isNull);
+      },
+    );
   });
 
   group('objectiveTarget', () {

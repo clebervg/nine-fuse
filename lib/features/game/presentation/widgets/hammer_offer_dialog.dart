@@ -23,7 +23,8 @@ const Key hammerOfferDeclineKey = Key('hammer_offer_decline');
 /// um funil que nunca conclui — um botão que promete um martelo e não entrega é
 /// pior do que a casa pagar por ele.
 final hammerAdProvider = Provider<Future<bool> Function()>(
-  (ref) => () async => true,
+  (ref) =>
+      () async => true,
 );
 
 /// Convite de aquisição, aberto quando o jogador mira sem ter martelo.

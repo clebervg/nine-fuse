@@ -3,6 +3,7 @@ import 'package:nine_fuse/features/game/domain/endless_progression.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
+import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
 
 /// Situação de uma partida Endless.
 enum EndlessStatus {
@@ -34,6 +35,7 @@ class EndlessState {
     this.comboCount = 0,
     this.isResolving = false,
     this.apexCelebrated = false,
+    this.hammer = const HammerState(),
   });
 
   final Board board;
@@ -78,6 +80,20 @@ class EndlessState {
   /// repetir a cada 9 transformaria a conquista em ruído.
   final bool apexCelebrated;
 
+  /// O Martelo de Fusão: estoque, mira e último golpe. É o **mesmo** estoque da
+  /// campanha — ver [HammerState] e [HammerBooster].
+  ///
+  /// Aqui o booster vale outra coisa: sem limite de movimentos, o que ele compra
+  /// não é uma jogada extra, é o fim da corrida não ser agora.
+  final HammerState hammer;
+
+  /// Atalhos de leitura para a UI e para os testes.
+  int get hammerCount => hammer.count;
+  bool get isHammerTargeting => hammer.isTargeting;
+  (Position, int)? get hammerStrike => hammer.strike;
+  int get hammerStrikes => hammer.strikes;
+  Position? get pendingHammerTarget => hammer.pendingTarget;
+
   bool get isOver => status == EndlessStatus.stuck;
 
   EndlessState copyWith({
@@ -101,6 +117,7 @@ class EndlessState {
     int? comboCount,
     bool? isResolving,
     bool? apexCelebrated,
+    HammerState? hammer,
   }) => EndlessState(
     board: board ?? this.board,
     score: score ?? this.score,
@@ -122,6 +139,7 @@ class EndlessState {
     comboCount: comboCount ?? this.comboCount,
     isResolving: isResolving ?? this.isResolving,
     apexCelebrated: apexCelebrated ?? this.apexCelebrated,
+    hammer: hammer ?? this.hammer,
   );
 
   factory EndlessState.initial() => EndlessState(board: Board.empty());
@@ -145,10 +163,11 @@ class EndlessState {
           identical(activeStep, other.activeStep) &&
           comboCount == other.comboCount &&
           isResolving == other.isResolving &&
-          apexCelebrated == other.apexCelebrated;
+          apexCelebrated == other.apexCelebrated &&
+          hammer == other.hammer;
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     board,
     score,
     status,
@@ -164,7 +183,8 @@ class EndlessState {
     comboCount,
     isResolving,
     apexCelebrated,
-  );
+    hammer,
+  ]);
 
   @override
   String toString() =>

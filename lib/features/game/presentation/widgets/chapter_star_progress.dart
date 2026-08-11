@@ -59,7 +59,11 @@ class ChapterStarProgress extends StatelessWidget {
       // Sem isto o leitor anuncia a frase e **depois** "12/18" e o título
       // soltos, que é a mesma ambiguidade que a frase existe para resolver.
       excludeSemantics: true,
-      label: l10n.chapterStarsSemantics(starsInChapter, chapter.starTotal, title),
+      label: l10n.chapterStarsSemantics(
+        starsInChapter,
+        chapter.starTotal,
+        title,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

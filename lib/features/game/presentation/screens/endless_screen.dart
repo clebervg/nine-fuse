@@ -7,6 +7,8 @@ import 'package:nine_fuse/features/game/presentation/widgets/combo_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/juice_overlay.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_outcome_card.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/hammer_targeting_layer.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
@@ -20,6 +22,10 @@ class EndlessScreen extends ConsumerStatefulWidget {
 }
 
 class _EndlessScreenState extends ConsumerState<EndlessScreen> {
+  /// Onde o tabuleiro está na tela. A camada de mira do martelo precisa saber:
+  /// é o que separa "bateu numa célula" de "tocou fora e desistiu".
+  final GlobalKey _boardKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +68,7 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                             state: state,
                             highScore: notifier.highScore,
                             progression: notifier.progression,
+                            onHammer: notifier.toggleHammerTargeting,
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -78,6 +85,7 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                             child: Stack(
+                              key: _boardKey,
                               children: [
                                 BoardGridWidget(
                                   board: state.board,
@@ -85,7 +93,12 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                                   rejectedSwap: state.rejectedSwap,
                                   hint: state.hint,
                                   bigFusionTileIds: state.bigFusionTileIds,
-                                  hintEnabled: !state.isOver,
+                                  // A dica não sugere troca durante a mira: o
+                                  // toque tem outro destino agora.
+                                  hintEnabled:
+                                      !state.isOver && !state.isHammerTargeting,
+                                  // Durante a mira o toque não chega aqui: a
+                                  // camada de mira o intercepta antes.
                                   onTileTap: notifier.selectTile,
                                   onTileSwipe: notifier.swapTiles,
                                 ),
@@ -93,6 +106,8 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                                   child: JuiceOverlay(
                                     step: state.activeStep,
                                     comboCount: state.comboCount,
+                                    hammerStrike: state.hammerStrike,
+                                    strikeSerial: state.hammerStrikes,
                                   ),
                                 ),
                               ],
@@ -104,6 +119,32 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                 ),
               ),
             ),
+            // Acima do conteúdo: a área vazia da tela pertence à rolagem, que
+            // consome o toque sem repassá-lo, então uma camada por baixo nunca
+            // veria o toque de cancelamento.
+            if (state.isHammerTargeting)
+              HammerTargetingLayer(
+                boardKey: _boardKey,
+                onCell: notifier.useHammer,
+                onCancel: notifier.cancelHammerTargeting,
+              ),
+            if (state.pendingHammerTarget != null && !state.isOver)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black.withValues(alpha: 0.75),
+                  child: SafeArea(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Center(
+                        child: HammerOfferDialog(
+                          onGranted: notifier.grantHammer,
+                          onDecline: notifier.cancelHammerTargeting,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ComboBanner(step: state.activeStep, comboCount: state.comboCount),
             // Aparece uma vez por corrida. A chave é **fixa** de propósito: o
             // sinal `apexCelebrated` não desliga durante a partida, então quem

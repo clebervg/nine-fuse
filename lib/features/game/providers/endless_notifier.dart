@@ -10,6 +10,7 @@ import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
+import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
 
 /// Modo Endless: sem objetivo e sem limite de movimentos. A corrida dura até o
 /// tabuleiro não ter mais nenhuma troca que forme combinação.
@@ -19,7 +20,8 @@ import 'package:nine_fuse/features/game/providers/game_storage.dart';
 /// morre em ~274 movimentos sem nunca chegar ao dígito máximo. Deslizar a
 /// janela dobra a duração e leva ao 9. Ver [EndlessProgression], e
 /// `tool/simulate_economy.dart --mode=endless` para os números.
-class EndlessNotifier extends StateNotifier<EndlessState> {
+class EndlessNotifier extends StateNotifier<EndlessState>
+    with HammerBooster<EndlessState> {
   EndlessNotifier({
     Random? random,
     GameStorage? storage,
@@ -41,6 +43,49 @@ class EndlessNotifier extends StateNotifier<EndlessState> {
 
   @visibleForTesting
   MatchEngine? get engine => _engine;
+
+  @override
+  GameStorage get hammerStorage => _storage;
+
+  @override
+  MatchEngine? get hammerEngine => _engine;
+
+  @override
+  Board get hammerBoard => state.board;
+
+  @override
+  HammerState get hammer => state.hammer;
+
+  @override
+  void writeHammer(HammerState value) => state = state.copyWith(hammer: value);
+
+  /// A corrida travada não aceita golpe: o cartão de fim já está na tela e o
+  /// placar já foi gravado, então um golpe ali reabriria uma partida encerrada.
+  @override
+  bool get acceptsHammer =>
+      state.status == EndlessStatus.playing && !state.isResolving;
+
+  @override
+  void onHammerTargetingStarted() {
+    state = state.copyWith(clearSelectedTile: true, clearRejectedSwap: true);
+  }
+
+  /// O golpe **não conta como movimento**, mesmo aqui, onde não há limite deles:
+  /// `moves` é o que o cartão de fim de corrida relata, e um golpe comprado não
+  /// é uma jogada do jogador.
+  @override
+  void playHammerResolution(MatchEngine engine, Resolution resolution) {
+    if (JuiceTimings.instantResolution) {
+      _finishMove(
+        engine,
+        resolution,
+        extraScore: resolution.score,
+        countsAsMove: false,
+      );
+    } else {
+      _playResolution(engine, resolution, countsAsMove: false);
+    }
+  }
 
   int _highScore = 0;
 
@@ -71,7 +116,14 @@ class EndlessNotifier extends StateNotifier<EndlessState> {
       board: board,
       status: EndlessStatus.playing,
       hint: engine.findHint(board),
+      // O estoque atravessa a corrida nova; a mira e o estilhaço ficam com a
+      // que acabou.
+      hammer: state.hammer.inventoryOnly,
     );
+
+    // A campanha pode ter gastado um martelo enquanto esta tela estava viva: o
+    // estoque é o mesmo, e quem chegou por último ao disco manda.
+    await refreshHammers();
   }
 
   void _applyWindow(MatchEngine engine, int step) {
@@ -155,8 +207,9 @@ class EndlessNotifier extends StateNotifier<EndlessState> {
   /// mecânica é a mesma, muda só o que se faz no fim.
   Future<void> _playResolution(
     MatchEngine engine,
-    Resolution resolution,
-  ) async {
+    Resolution resolution, {
+    bool countsAsMove = true,
+  }) async {
     state = state.copyWith(
       isResolving: true,
       clearSelectedTile: true,
@@ -197,7 +250,7 @@ class EndlessNotifier extends StateNotifier<EndlessState> {
     }
 
     if (!mounted) return;
-    _finishMove(engine, resolution, extraScore: 0);
+    _finishMove(engine, resolution, extraScore: 0, countsAsMove: countsAsMove);
   }
 
   /// Batida forte da explosão do dígito máximo.
@@ -211,6 +264,7 @@ class EndlessNotifier extends StateNotifier<EndlessState> {
     MatchEngine engine,
     Resolution resolution, {
     required int extraScore,
+    bool countsAsMove = true,
   }) {
     // A janela sobe no máximo um degrau por movimento, mesmo que uma cascata
     // produza vários dígitos altos de uma vez.
@@ -237,7 +291,7 @@ class EndlessNotifier extends StateNotifier<EndlessState> {
     state = state.copyWith(
       board: board,
       score: score,
-      moves: state.moves + 1,
+      moves: state.moves + (countsAsMove ? 1 : 0),
       step: step,
       highestDigit: max(state.highestDigit, resolution.highestProduced),
       explosions: state.explosions + resolution.explosions,

@@ -103,7 +103,10 @@ class _HammerTargetingLayerState extends State<HammerTargetingLayer> {
       key: hammerScrimKey,
       behavior: HitTestBehavior.opaque,
       onTapUp: (details) => _handleTap(details.globalPosition),
-      child: CustomPaint(key: _selfKey, painter: _ScrimPainter(hole: _hole)),
+      child: CustomPaint(
+        key: _selfKey,
+        painter: _ScrimPainter(hole: _hole),
+      ),
     ),
   );
 }
@@ -135,9 +138,7 @@ class _ScrimPainter extends CustomPainter {
         PathOperation.difference,
         Path()..addRect(full),
         Path()
-          ..addRRect(
-            RRect.fromRectAndRadius(cut, const Radius.circular(16)),
-          ),
+          ..addRRect(RRect.fromRectAndRadius(cut, const Radius.circular(16))),
       ),
       veil,
     );

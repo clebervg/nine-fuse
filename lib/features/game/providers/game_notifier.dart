@@ -10,10 +10,12 @@ import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
+import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
 
 /// Orquestra o estado da fase. Toda a regra de Match-3 e fusão vive no
 /// [MatchEngine]; aqui só decidimos o que fazer com o resultado.
-class GameNotifier extends StateNotifier<GameState> {
+class GameNotifier extends StateNotifier<GameState>
+    with HammerBooster<GameState> {
   GameNotifier({
     Random? random,
     Future<void> Function(Duration)? delay,
@@ -22,7 +24,7 @@ class GameNotifier extends StateNotifier<GameState> {
        _delay = delay ?? _realDelay,
        _storage = storage ?? const PrefsGameStorage(),
        super(GameState.initial()) {
-    _loadHammers();
+    refreshHammers();
   }
 
   static Future<void> _realDelay(Duration d) => Future<void>.delayed(d);
@@ -31,6 +33,49 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Onde o inventário de boosters mora entre aberturas do app.
   final GameStorage _storage;
+
+  @override
+  GameStorage get hammerStorage => _storage;
+
+  @override
+  MatchEngine? get hammerEngine => _engine;
+
+  @override
+  Board get hammerBoard => state.board;
+
+  @override
+  HammerState get hammer => state.hammer;
+
+  @override
+  void writeHammer(HammerState value) => state = state.copyWith(hammer: value);
+
+  /// Mira e golpe pedem a fase em andamento e nenhuma encenação no ar — a mesma
+  /// régua de [swapTiles], pelo mesmo motivo: jogar por cima da animação
+  /// embaralharia o que o jogador está vendo com o que já aconteceu.
+  @override
+  bool get acceptsHammer =>
+      state.status == GameStatus.playing && !state.isResolving;
+
+  /// Mira e seleção de troca não convivem: uma peça acesa para trocar, enquanto
+  /// o dedo vai martelar, diz duas coisas ao mesmo tempo.
+  @override
+  void onHammerTargetingStarted() {
+    state = state.copyWith(clearSelectedTile: true, clearRejectedSwap: true);
+  }
+
+  @override
+  void playHammerResolution(MatchEngine engine, Resolution resolution) {
+    if (JuiceTimings.instantResolution) {
+      _finishMove(
+        engine,
+        resolution,
+        extraScore: resolution.score,
+        countsAsMove: false,
+      );
+    } else {
+      _playResolution(engine, resolution, countsAsMove: false);
+    }
+  }
 
   /// Espera entre os quadros da encenação. Injetável para os testes rodarem
   /// sem gastar tempo real — e para não dependerem de `pumpAndSettle` em
@@ -66,11 +111,15 @@ class GameNotifier extends StateNotifier<GameState> {
       // como saber que precisa reabrir o cartão de início.
       runId: state.runId + 1,
       boardObstacleGoal: _obstacleGoalFor(level, board),
-      // O inventário atravessa a fase nova: é do jogador, não da partida. Um
-      // martelo comprado que sumisse ao avançar seria dinheiro tirado de quem
-      // pagou por ele.
-      hammerCount: state.hammerCount,
+      // O inventário atravessa a fase nova (é do jogador, não da partida), mas
+      // a mira e o estilhaço ficam para trás com a partida que acabou.
+      hammer: state.hammer.inventoryOnly,
     );
+
+    // O Endless pode ter gastado um martelo enquanto esta tela estava viva: os
+    // dois notifiers compartilham o estoque, e quem chegou por último ao disco
+    // manda.
+    refreshHammers();
   }
 
   /// O alvo de um objetivo "limpe todas as coberturas", medido **no tabuleiro
@@ -181,165 +230,6 @@ class GameNotifier extends StateNotifier<GameState> {
         } else {
           _playResolution(engine, resolution);
         }
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Booster: Martelo de Fusão
-  // ---------------------------------------------------------------------------
-
-  /// Batida leve ao entrar no modo de mira, e aviso de mira errada.
-  ///
-  /// Injetáveis pelo mesmo motivo que [explosionFeedback]: são o único ponto
-  /// daqui que fala com a plataforma, e a suíte não deve depender de canal
-  /// nativo.
-  @visibleForTesting
-  static void Function() targetingFeedback = HapticFeedback.selectionClick;
-
-  @visibleForTesting
-  static void Function() rejectionFeedback = () =>
-      SystemSound.play(SystemSoundType.alert);
-
-  /// Liga ou desliga o modo de mira do martelo.
-  ///
-  /// Liga **mesmo com estoque zero** — é o Modo Fantasma. Deixar o jogador
-  /// escolher o alvo antes de descobrir que não tem martelo é o que dá sentido
-  /// ao convite de aquisição: ele já sabe o que quer quebrar.
-  void toggleHammerTargeting() {
-    if (state.status != GameStatus.playing || state.isResolving) return;
-
-    if (state.isHammerTargeting) {
-      cancelHammerTargeting();
-      return;
-    }
-
-    targetingFeedback();
-    state = state.copyWith(
-      isHammerTargeting: true,
-      // Mira e seleção de troca não convivem: uma peça acesa para trocar,
-      // enquanto o dedo vai martelar, diz duas coisas ao mesmo tempo.
-      clearSelectedTile: true,
-      clearRejectedSwap: true,
-    );
-  }
-
-  /// Sai do modo de mira, descartando o alvo pendente.
-  void cancelHammerTargeting() {
-    state = state.copyWith(
-      isHammerTargeting: false,
-      clearPendingHammerTarget: true,
-    );
-  }
-
-  /// Bate na célula [pos]: oblitera peça e cobertura, sem gastar movimento.
-  ///
-  /// Mira errada (fora do tabuleiro, casa vazia) avisa e **não cobra** o
-  /// martelo — a mira até continua ligada, para o jogador tentar de novo.
-  ///
-  /// Com estoque zero o alvo é apenas guardado, e quem abre o convite de
-  /// aquisição é a tela. O golpe sai depois, em [grantHammer].
-  void useHammer(Position pos) {
-    final engine = _engine;
-    if (engine == null || state.status != GameStatus.playing) return;
-    if (state.isResolving) return;
-
-    // Antes de cobrar: sem isto, um toque no vazio custaria um martelo, que é o
-    // pior lugar possível para o jogo cobrar por um erro de dedo.
-    if (state.board.getTileAt(pos) == null) {
-      rejectionFeedback();
-      return;
-    }
-
-    if (state.hammerCount <= 0) {
-      state = state.copyWith(pendingHammerTarget: pos);
-      return;
-    }
-
-    _strike(engine, pos);
-  }
-
-  /// Credita um martelo e, se havia alvo escolhido no Modo Fantasma, bate nele.
-  ///
-  /// É o retorno do funil de aquisição. Aplicar no alvo já destacado evita
-  /// cobrar duas vezes pelo mesmo golpe: quem assistiu ao anúncio não deve ter
-  /// que mirar de novo.
-  void grantHammer({int count = 1}) {
-    _setHammerCount(state.hammerCount + count);
-
-    final pending = state.pendingHammerTarget;
-    final engine = _engine;
-    if (pending == null || engine == null) return;
-    if (state.status != GameStatus.playing || state.isResolving) return;
-    if (state.board.getTileAt(pending) == null) {
-      // O tabuleiro pode ter andado enquanto o anúncio rodava. O martelo fica
-      // no estoque; o que se perde é só a mira.
-      cancelHammerTargeting();
-      return;
-    }
-
-    _strike(engine, pending);
-  }
-
-  /// O golpe propriamente: cobra o martelo, encena e aplica o desfecho.
-  void _strike(MatchEngine engine, Position pos) {
-    final victim = state.board.getTileAt(pos);
-    final resolution = engine.smash(state.board, pos);
-    if (victim == null || resolution == null) {
-      rejectionFeedback();
-      return;
-    }
-
-    _setHammerCount(state.hammerCount - 1);
-
-    state = state.copyWith(
-      isHammerTargeting: false,
-      clearPendingHammerTarget: true,
-      // O dígito viaja junto: quando a UI desenha o estilhaço, a peça já saiu
-      // do tabuleiro e não há de onde tirar a cor.
-      hammerStrike: (pos, victim.value),
-      hammerStrikes: state.hammerStrikes + 1,
-    );
-
-    if (JuiceTimings.instantResolution) {
-      _finishMove(
-        engine,
-        resolution,
-        extraScore: resolution.score,
-        countsAsMove: false,
-      );
-    } else {
-      _playResolution(engine, resolution, countsAsMove: false);
-    }
-  }
-
-  /// Grava o novo saldo e o publica no estado.
-  ///
-  /// A gravação é assíncrona e o estado não espera por ela: travar a jogada até
-  /// o disco responder seria pagar latência de I/O no meio da partida. Falha de
-  /// escrita custa o inventário na próxima abertura, e não a jogada de agora.
-  void _setHammerCount(int count) {
-    state = state.copyWith(hammerCount: count);
-    _persistHammers(count);
-  }
-
-  Future<void> _loadHammers() async {
-    try {
-      final saved = await _storage.readHammerCount();
-      // Nunca regride: um martelo creditado antes de a leitura chegar não pode
-      // ser apagado por um valor mais antigo do disco.
-      if (mounted && saved > state.hammerCount) {
-        state = state.copyWith(hammerCount: saved);
-      }
-    } catch (error, stack) {
-      debugPrint('Falha ao ler o inventário de martelos: $error\n$stack');
-    }
-  }
-
-  Future<void> _persistHammers(int count) async {
-    try {
-      await _storage.writeHammerCount(count);
-    } catch (error, stack) {
-      debugPrint('Falha ao gravar o inventário de martelos: $error\n$stack');
     }
   }
 
@@ -489,10 +379,8 @@ class GameNotifier extends StateNotifier<GameState> {
 
     return switch (objective.type) {
       ObjectiveType.reachDigit => resolution.countProduced(objective.digit!),
-      ObjectiveType.clearObstacles ||
-      ObjectiveType.clearAllObstacles => resolution.countCleared(
-        objective.obstacle,
-      ),
+      ObjectiveType.clearObstacles || ObjectiveType.clearAllObstacles =>
+        resolution.countCleared(objective.obstacle),
     };
   }
 

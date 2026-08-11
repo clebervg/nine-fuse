@@ -92,7 +92,8 @@ class ObstacleLayout {
   int get hashCode => Object.hash(ice, glass, stone);
 
   @override
-  String toString() => 'ObstacleLayout(gelo: $ice, vidro: $glass, pedra: $stone)';
+  String toString() =>
+      'ObstacleLayout(gelo: $ice, vidro: $glass, pedra: $stone)';
 }
 
 /// Um obstáculo que levou dano num passo da resolução.
@@ -122,6 +123,5 @@ class ObstacleHit {
   bool get cleared => remainingHp <= 0;
 
   @override
-  String toString() =>
-      'ObstacleHit($position, ${type.name}, hp: $remainingHp)';
+  String toString() => 'ObstacleHit($position, ${type.name}, hp: $remainingHp)';
 }

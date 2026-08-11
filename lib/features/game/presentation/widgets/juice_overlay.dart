@@ -67,89 +67,90 @@ class JuiceOverlay extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               if (current != null) ...[
-              for (final fusion in current.fusions)
-                Positioned(
-                  left: geometry.centerOf(fusion.at).dx - 44,
-                  // Acima da peça, não sobre ela: cobrindo o dígito o jogador
-                  // perde de vista justamente o que acabou de conquistar.
-                  top: geometry.centerOf(fusion.at).dy - tileSize * 0.85,
-                  width: 88,
-                  child: _FloatingScore(
-                    // A chave amarrada ao id da peça faz o widget renascer a
-                    // cada fusão, reiniciando a animação.
-                    key: ValueKey('score_${fusion.tileId}'),
-                    score: fusion.score,
-                    color: AppColors.getColorByDigit(fusion.value),
-                  ),
-                ),
-
-              for (final fusion in current.fusions)
-                if (fusion.isBig)
+                for (final fusion in current.fusions)
                   Positioned(
-                    left: geometry.centerOf(fusion.at).dx - tileSize,
-                    top: geometry.centerOf(fusion.at).dy - tileSize,
-                    width: tileSize * 2,
-                    height: tileSize * 2,
-                    child: _ImpactWave(
-                      key: ValueKey('wave_${fusion.tileId}'),
+                    left: geometry.centerOf(fusion.at).dx - 44,
+                    // Acima da peça, não sobre ela: cobrindo o dígito o jogador
+                    // perde de vista justamente o que acabou de conquistar.
+                    top: geometry.centerOf(fusion.at).dy - tileSize * 0.85,
+                    width: 88,
+                    child: _FloatingScore(
+                      // A chave amarrada ao id da peça faz o widget renascer a
+                      // cada fusão, reiniciando a animação.
+                      key: ValueKey('score_${fusion.tileId}'),
+                      score: fusion.score,
                       color: AppColors.getColorByDigit(fusion.value),
                     ),
                   ),
 
-              for (final centre in current.explosionCentres)
-                Positioned(
-                  left: geometry.centerOf(centre).dx - tileSize * 1.8,
-                  top: geometry.centerOf(centre).dy - tileSize * 1.8,
-                  width: tileSize * 3.6,
-                  height: tileSize * 3.6,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _ExplosionFlash(
-                        key: ValueKey('boom_${centre.row}_${centre.col}'),
+                for (final fusion in current.fusions)
+                  if (fusion.isBig)
+                    Positioned(
+                      left: geometry.centerOf(fusion.at).dx - tileSize,
+                      top: geometry.centerOf(fusion.at).dy - tileSize,
+                      width: tileSize * 2,
+                      height: tileSize * 2,
+                      child: _ImpactWave(
+                        key: ValueKey('wave_${fusion.tileId}'),
+                        color: AppColors.getColorByDigit(fusion.value),
                       ),
-                      // As faíscas vêm por cima do clarão: sob ele elas seriam
-                      // lavadas pelo branco justamente no quadro mais forte.
-                      _ExplosionParticles(
-                        key: ValueKey('sparks_${centre.row}_${centre.col}'),
-                      ),
-                    ],
-                  ),
-                ),
-
-              // A quebra da cobertura acontece na célula do obstáculo, não na
-              // da fusão: é ali que o jogador precisa olhar para entender que
-              // o golpe alcançou o que ele estava mirando.
-              for (final hit in current.obstacleHits)
-                Positioned(
-                  left: geometry.centerOf(hit.position).dx - tileSize * 0.75,
-                  top: geometry.centerOf(hit.position).dy - tileSize * 0.75,
-                  width: tileSize * 1.5,
-                  height: tileSize * 1.5,
-                  child: ObstacleShatter(
-                    key: ValueKey(
-                      'shatter_${current.cascade}_'
-                      '${hit.position.row}_${hit.position.col}',
                     ),
-                    type: hit.type,
-                    destroyed: hit.cleared,
-                  ),
-                ),
 
-              // O prêmio em movimentos aparece no topo do tabuleiro, longe da
-              // explosão: no centro ele competiria com o clarão e ninguém leria
-              // o texto justamente no quadro em que ele importa.
-              if (current.explosionCentres.isNotEmpty)
-                Positioned(
-                  top: -tileSize * 0.2,
-                  left: 0,
-                  right: 0,
-                  child: _BonusMovesFlash(
-                    key: ValueKey('bonus_${current.cascade}'),
-                    moves:
-                        current.explosionCentres.length * kExplosionBonusMoves,
+                for (final centre in current.explosionCentres)
+                  Positioned(
+                    left: geometry.centerOf(centre).dx - tileSize * 1.8,
+                    top: geometry.centerOf(centre).dy - tileSize * 1.8,
+                    width: tileSize * 3.6,
+                    height: tileSize * 3.6,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _ExplosionFlash(
+                          key: ValueKey('boom_${centre.row}_${centre.col}'),
+                        ),
+                        // As faíscas vêm por cima do clarão: sob ele elas seriam
+                        // lavadas pelo branco justamente no quadro mais forte.
+                        _ExplosionParticles(
+                          key: ValueKey('sparks_${centre.row}_${centre.col}'),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+
+                // A quebra da cobertura acontece na célula do obstáculo, não na
+                // da fusão: é ali que o jogador precisa olhar para entender que
+                // o golpe alcançou o que ele estava mirando.
+                for (final hit in current.obstacleHits)
+                  Positioned(
+                    left: geometry.centerOf(hit.position).dx - tileSize * 0.75,
+                    top: geometry.centerOf(hit.position).dy - tileSize * 0.75,
+                    width: tileSize * 1.5,
+                    height: tileSize * 1.5,
+                    child: ObstacleShatter(
+                      key: ValueKey(
+                        'shatter_${current.cascade}_'
+                        '${hit.position.row}_${hit.position.col}',
+                      ),
+                      type: hit.type,
+                      destroyed: hit.cleared,
+                    ),
+                  ),
+
+                // O prêmio em movimentos aparece no topo do tabuleiro, longe da
+                // explosão: no centro ele competiria com o clarão e ninguém leria
+                // o texto justamente no quadro em que ele importa.
+                if (current.explosionCentres.isNotEmpty)
+                  Positioned(
+                    top: -tileSize * 0.2,
+                    left: 0,
+                    right: 0,
+                    child: _BonusMovesFlash(
+                      key: ValueKey('bonus_${current.cascade}'),
+                      moves:
+                          current.explosionCentres.length *
+                          kExplosionBonusMoves,
+                    ),
+                  ),
               ],
 
               // O estilhaço do martelo vive fora do bloco do passo: quando a
@@ -518,7 +519,11 @@ class _ShatterEffectState extends State<ShatterEffect>
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: _c,
     builder: (context, _) => CustomPaint(
-      painter: _ParticlePainter(sparks: _shards, t: _c.value, tint: widget.color),
+      painter: _ParticlePainter(
+        sparks: _shards,
+        t: _c.value,
+        tint: widget.color,
+      ),
       size: Size.infinite,
     ),
   );
@@ -545,11 +550,7 @@ class _Spark {
 }
 
 class _ParticlePainter extends CustomPainter {
-  const _ParticlePainter({
-    required this.sparks,
-    required this.t,
-    this.tint,
-  });
+  const _ParticlePainter({required this.sparks, required this.t, this.tint});
 
   final List<_Spark> sparks;
   final double t;
