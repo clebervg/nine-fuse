@@ -1,3 +1,4 @@
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 
@@ -90,6 +91,24 @@ class Board {
     for (final row in grid) {
       for (final tile in row) {
         if (tile != null) count++;
+      }
+    }
+    return count;
+  }
+
+  /// Quantas peças estão presas por uma cobertura de [type].
+  ///
+  /// É a única fonte honesta do alvo de um objetivo "limpe todo o gelo": o
+  /// pedido da fase (`ObstacleLayout`) pode ter sido podado por
+  /// `placeObstacles`, e cobrar do jogador uma cobertura que nunca nasceu
+  /// tornaria a fase impossível.
+  int countObstacles(ObstacleType type) {
+    if (type == ObstacleType.none) return 0;
+
+    int count = 0;
+    for (final row in grid) {
+      for (final tile in row) {
+        if (tile?.obstacle == type) count++;
       }
     }
     return count;

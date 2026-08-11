@@ -1,4 +1,5 @@
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
 
 /// Como a janela de sorteio sobe ao longo de uma partida Endless.
 ///
@@ -25,6 +26,25 @@ class EndlessProgression {
   int spawnMinFor(int step) => step.clamp(firstStep, lastStep);
 
   int spawnMaxFor(int step) => spawnMinFor(step) + 3;
+
+  /// As coberturas que o degrau [step] acrescenta ao tabuleiro.
+  ///
+  /// O primeiro degrau é limpo de propósito: o jogador entra no Endless para
+  /// bater recorde, e a pressão do modo já vem da janela que sobe. O obstáculo
+  /// é o que passa a ocupar o tabuleiro quando ele **prova** que domina a
+  /// faixa — mesma lógica da promoção, aplicada ao espaço em vez do sorteio.
+  ///
+  /// A pedra fica para o último degrau porque a saída dela é a onda de choque
+  /// do dígito máximo, e só ali ele é alcançável de fato.
+  ObstacleLayout obstaclesFor(int step) => switch (step.clamp(
+    firstStep,
+    lastStep,
+  )) {
+    1 => const ObstacleLayout(ice: 2),
+    2 => const ObstacleLayout(ice: 2, glass: 1),
+    3 => const ObstacleLayout(ice: 1, glass: 2, stone: 1),
+    _ => ObstacleLayout.none,
+  };
 
   /// O dígito que promove o jogador do degrau [step] para o seguinte.
   int promotionDigitFor(int step) => spawnMaxFor(step) + 2;

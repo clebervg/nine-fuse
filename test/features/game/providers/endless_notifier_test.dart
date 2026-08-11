@@ -88,6 +88,57 @@ void main() {
       );
     });
 
+    test('o primeiro degrau abre o tabuleiro sem cobertura', () async {
+      await notifier.start();
+
+      expect(
+        notifier.state.board.getAllTiles().where((tile) => tile.isBlocked),
+        isEmpty,
+      );
+    });
+
+    test('subir de degrau acrescenta cobertura ao tabuleiro', () async {
+      await notifier.start();
+      playUntilStuck();
+
+      expect(
+        notifier.state.step,
+        greaterThan(EndlessProgression.firstStep),
+        reason: 'sem promoção este teste não prova nada',
+      );
+      expect(
+        notifier.state.board.getAllTiles().where((tile) => tile.isBlocked),
+        isNotEmpty,
+      );
+    });
+
+    test('a cobertura acrescentada nunca encosta em outra', () async {
+      await notifier.start();
+      playUntilStuck();
+
+      final board = notifier.state.board;
+      for (final tile in board.getAllTiles().where((t) => t.isBlocked)) {
+        for (final neighbour in tile.position.orthogonalNeighbours) {
+          expect(
+            board.getTileAt(neighbour)?.isBlocked ?? false,
+            isFalse,
+            reason: '${tile.position} encosta em $neighbour',
+          );
+        }
+      }
+    });
+
+    test('a partida nunca trava por causa da cobertura recém-posta', () async {
+      // Travar é fim de corrida legítimo — mas por assoreamento do tabuleiro,
+      // nunca por o próprio jogo ter coberto a última jogada disponível.
+      await notifier.start();
+      playUntilStuck();
+
+      if (notifier.state.status == EndlessStatus.stuck) {
+        expect(notifier.engine!.findHint(notifier.state.board), isNull);
+      }
+    });
+
     test('a janela nunca passa do último degrau', () async {
       await notifier.start();
       playUntilStuck();

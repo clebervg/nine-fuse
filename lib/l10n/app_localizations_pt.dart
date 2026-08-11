@@ -33,6 +33,49 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String obstacleIceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'gelos',
+      one: 'gelo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String obstacleGlassCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'vidros',
+      one: 'vidro',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String obstacleStoneCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'pedras',
+      one: 'pedra',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String objectiveClearObstacles(int count, String obstacle) {
+    return 'Quebre $count $obstacle';
+  }
+
+  @override
+  String objectiveClearAllObstacles(int count, String obstacle) {
+    return 'Limpe o tabuleiro: $count $obstacle';
+  }
+
+  @override
   String get hudObjective => 'OBJETIVO';
 
   @override
@@ -86,6 +129,10 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get tipZeroStopped =>
       'O 0 parou de cair. Peças maiores chegam do topo.';
+
+  @override
+  String get tipObstacleBlocks =>
+      'Peça coberta fica presa: faça uma fusão encostada nela para quebrar a cobertura.';
 
   @override
   String tipApexExplodes(int digit) {

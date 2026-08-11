@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/fusion_rule.dart';
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 
@@ -85,6 +86,24 @@ class Resolution {
   late final int explosions = steps.fold(
     0,
     (total, step) => total + step.explosionCentres.length,
+  );
+
+  /// Coberturas destruídas nesta resolução. É o que um objetivo de fase do
+  /// tipo "quebre todo o gelo" contaria.
+  late final int obstaclesCleared = steps.fold(
+    0,
+    (total, step) => total + step.obstacleHits.where((h) => h.cleared).length,
+  );
+
+  /// Coberturas de [type] destruídas nesta resolução.
+  ///
+  /// Só a quebra conta: um impacto que apenas trinca o vidro não entra. É o
+  /// mesmo critério que o jogador usa — ele conta o que sumiu do tabuleiro.
+  int countCleared(ObstacleType type) => steps.fold(
+    0,
+    (total, step) =>
+        total +
+        step.obstacleHits.where((h) => h.cleared && h.type == type).length,
   );
 
   /// Todos os dígitos criados por fusão, na ordem em que nasceram.
@@ -202,6 +221,7 @@ class ResolutionStep {
     required this.boardAfterFusion,
     required this.boardAfterSettle,
     required this.score,
+    this.obstacleHits = const [],
   });
 
   /// 1 para o movimento do jogador, 2+ para as cascatas que ele desencadeou.
@@ -223,6 +243,12 @@ class ResolutionStep {
   final Board boardAfterSettle;
 
   final int score;
+
+  /// Coberturas atingidas por este passo, com o que sobrou de cada uma.
+  ///
+  /// Posições são as de **antes da gravidade**: é onde a quebra acontece na
+  /// tela, no mesmo quadro em que as peças da combinação ainda estão visíveis.
+  final List<ObstacleHit> obstacleHits;
 
   bool get hasBigFusion => fusions.any((f) => f.isBig);
 }
@@ -329,14 +355,63 @@ class MatchEngine {
 
   /// Gera um tabuleiro cheio, sem combinações já formadas e com pelo menos
   /// um movimento válido disponível.
-  Board generateBoard() {
+  /// Sorteia um tabuleiro jogável e aplica o desenho de obstáculos da fase.
+  ///
+  /// A cobertura entra **depois** de o sorteio provar que há jogada, porque
+  /// [placeObstacles] só cobre o que não trava a partida — checar antes daria
+  /// um veredito sobre um tabuleiro que não é o que o jogador vai receber.
+  Board generateBoard({ObstacleLayout obstacles = ObstacleLayout.none}) {
     for (int attempt = 0; attempt < _maxBoardAttempts; attempt++) {
       final board = _generateCandidate();
-      if (hasValidMoves(board)) return board;
+      if (hasValidMoves(board)) return placeObstacles(board, obstacles);
     }
     // Nunca observado na prática; melhor um tabuleiro jogável porém com
     // combinação pronta do que um tabuleiro sem jogada.
-    return _generateCandidate();
+    return placeObstacles(_generateCandidate(), obstacles);
+  }
+
+  /// Espalha as coberturas de [layout] pelas casas livres de [board].
+  ///
+  /// Serve ao sorteio inicial e ao Endless, que acrescenta cobertura ao subir
+  /// de degrau — daí receber o tabuleiro de fora em vez de criar um.
+  ///
+  /// Duas guardas, e cada uma tem um teste:
+  ///
+  /// - **Nada de coberturas encostadas.** A área de dano é ortogonal, então um
+  ///   bloco maciço teria células internas que nenhuma fusão alcança até as de
+  ///   fora cederem. Espalhar mantém todo obstáculo atacável já no primeiro
+  ///   movimento.
+  /// - **Nunca cobrir a última jogada.** Peça coberta não entra em combinação
+  ///   nem pode ser trocada; sem esta guarda o próprio jogo fabricaria o fim de
+  ///   partida que a `LossReason` existe para explicar.
+  ///
+  /// Uma cobertura que não encontra lugar é simplesmente descartada — daí
+  /// [ObstacleLayout.types] entregar o tipo mais duro primeiro.
+  Board placeObstacles(Board board, ObstacleLayout layout) {
+    if (layout.isEmpty) return board;
+
+    final spots = board.getAllTiles().map((tile) => tile.position).toList()
+      ..shuffle(_random);
+
+    var result = board;
+    for (final type in layout.types) {
+      for (final spot in spots) {
+        final tile = result.getTileAt(spot);
+        if (tile == null || tile.isBlocked) continue;
+        if (_orthogonalNeighbours(spot).any(
+          (neighbour) => result.getTileAt(neighbour)?.isBlocked ?? false,
+        )) {
+          continue;
+        }
+
+        final covered = result.updateTile(spot, tile.withObstacle(type));
+        if (!hasValidMoves(covered)) continue;
+
+        result = covered;
+        break;
+      }
+    }
+    return result;
   }
 
   Board _generateCandidate() {
@@ -418,9 +493,12 @@ class MatchEngine {
       return const MoveImpossible();
     }
     if (!a.isAdjacentTo(b)) return const MoveImpossible();
-    if (board.getTileAt(a) == null || board.getTileAt(b) == null) {
-      return const MoveImpossible();
-    }
+    final tileA = board.getTileAt(a);
+    final tileB = board.getTileAt(b);
+    if (tileA == null || tileB == null) return const MoveImpossible();
+    // Peça presa por cobertura não sai do lugar — nem como origem nem como
+    // destino da troca.
+    if (tileA.isBlocked || tileB.isBlocked) return const MoveImpossible();
 
     final swapped = swap(board, a, b);
     if (detectMatches(swapped).isEmpty) return MoveRejected(a, b);
@@ -450,6 +528,13 @@ class MatchEngine {
       final fused = _applyFusions(current, matches, currentAnchor);
       current = fused.board;
       var stepScore = fused.score;
+
+      // A onda de choque da fusão bate nas coberturas encostadas nela. Vem
+      // antes da explosão e da queda de propósito: uma cobertura liberada
+      // agora já cai junto com o resto no mesmo passo, em vez de esperar o
+      // próximo movimento.
+      final damage = _damageObstacles(current, fused.events);
+      current = damage.board;
 
       // A âncora vale só para a combinação do movimento do jogador.
       currentAnchor = null;
@@ -485,12 +570,64 @@ class MatchEngine {
           boardAfterFusion: afterFusion,
           boardAfterSettle: current,
           score: stepScore,
+          obstacleHits: damage.hits,
         ),
       );
     }
 
     return Resolution(board: current, steps: steps);
   }
+
+  /// Bate uma vez em cada cobertura encostada nas combinações de [events].
+  ///
+  /// "Encostada" é a vizinhança ortogonal das casas consumidas, mais as
+  /// próprias casas — a diagonal fica de fora porque é a mesma adjacência que
+  /// define uma troca válida, e misturar as duas réguas faria o jogador
+  /// esperar dano onde não pode nem jogar.
+  ///
+  /// **Um impacto por passo**, por mais combinações que toquem a mesma célula:
+  /// senão uma cascata feliz derreteria uma pedra inteira de uma vez, e a
+  /// resistência do obstáculo deixaria de significar o que diz.
+  ({Board board, List<ObstacleHit> hits}) _damageObstacles(
+    Board board,
+    List<FusionEvent> events,
+  ) {
+    if (events.isEmpty) return (board: board, hits: const []);
+
+    final touched = <Position>{};
+    for (final event in events) {
+      for (final cell in event.consumed) {
+        touched.add(cell);
+        touched.addAll(_orthogonalNeighbours(cell));
+      }
+    }
+
+    var result = board;
+    final hits = <ObstacleHit>[];
+
+    for (final position in touched) {
+      final tile = result.getTileAt(position);
+      if (tile == null || !tile.isBlocked) continue;
+
+      final damaged = tile.damageObstacle();
+      result = result.updateTile(position, damaged);
+      hits.add(
+        ObstacleHit(
+          position: position,
+          // O tipo é o de **antes** do impacto: numa quebra o de depois seria
+          // sempre `none`, e a UI não saberia que partícula desenhar.
+          type: tile.obstacle,
+          remainingHp: damaged.obstacleHp,
+        ),
+      );
+    }
+
+    return (board: result, hits: hits);
+  }
+
+  /// As quatro casas que encostam em [at] e existem no tabuleiro.
+  Iterable<Position> _orthogonalNeighbours(Position at) =>
+      at.orthogonalNeighbours.where(Board.contains);
 
   /// Limpa a vizinhança de cada peça que alcançou o dígito máximo, e a própria
   /// peça. Explosões não encadeiam: uma peça destruída pelo estouro não
@@ -736,7 +873,11 @@ class MatchEngine {
         final position = horizontal
             ? Position(row: outer, col: inner)
             : Position(row: inner, col: outer);
-        final value = board.getTileAt(position)?.value;
+        final tile = board.getTileAt(position);
+        // Peça coberta interrompe a sequência como se a casa estivesse vazia:
+        // ela está presa, e nada nela pode ser consumido antes de a cobertura
+        // cair. É isso que obriga o jogador a atacar o obstáculo de fora.
+        final value = (tile == null || tile.isBlocked) ? null : tile.value;
 
         if (value != null && value == currentValue) {
           current.add(position);
@@ -809,14 +950,19 @@ class MatchEngine {
     for (int row = 0; row < Board.boardSize; row++) {
       for (int col = 0; col < Board.boardSize; col++) {
         final position = Position(row: row, col: col);
-        if (board.getTileAt(position) == null) continue;
+        final tile = board.getTileAt(position);
+        // Casa coberta não entra: a dica não pode sugerir uma troca que
+        // `tryMove` recusa, e `hasValidMoves` — que é derivado daqui — passaria
+        // a dizer "ainda dá para jogar" apoiado numa jogada impossível.
+        if (tile == null || tile.isBlocked) continue;
 
         for (final neighbour in [
           Position(row: row, col: col + 1),
           Position(row: row + 1, col: col),
         ]) {
           if (!board.isValidPosition(neighbour)) continue;
-          if (board.getTileAt(neighbour) == null) continue;
+          final other = board.getTileAt(neighbour);
+          if (other == null || other.isBlocked) continue;
           yield (position, neighbour);
         }
       }

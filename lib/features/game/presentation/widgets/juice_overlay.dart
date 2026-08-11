@@ -6,6 +6,7 @@ import 'package:nine_fuse/l10n/app_localizations.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_geometry.dart';
 
 const Key floatingScoreKey = Key('floating_score');
@@ -93,6 +94,25 @@ class JuiceOverlay extends StatelessWidget {
                         key: ValueKey('sparks_${centre.row}_${centre.col}'),
                       ),
                     ],
+                  ),
+                ),
+
+              // A quebra da cobertura acontece na célula do obstáculo, não na
+              // da fusão: é ali que o jogador precisa olhar para entender que
+              // o golpe alcançou o que ele estava mirando.
+              for (final hit in current.obstacleHits)
+                Positioned(
+                  left: geometry.centerOf(hit.position).dx - tileSize * 0.75,
+                  top: geometry.centerOf(hit.position).dy - tileSize * 0.75,
+                  width: tileSize * 1.5,
+                  height: tileSize * 1.5,
+                  child: ObstacleShatter(
+                    key: ValueKey(
+                      'shatter_${current.cascade}_'
+                      '${hit.position.row}_${hit.position.col}',
+                    ),
+                    type: hit.type,
+                    destroyed: hit.cleared,
                   ),
                 ),
 
@@ -321,6 +341,86 @@ class _ExplosionParticlesState extends State<_ExplosionParticles>
   );
 }
 
+/// Estilhaços de uma cobertura que levou impacto.
+///
+/// Público porque é o marcador que a suíte usa para afirmar que o obstáculo
+/// certo reagiu no lugar certo — os efeitos duram menos de meio segundo e não
+/// deixariam outro rastro verificável.
+///
+/// Um golpe que **destrói** espalha mais e mais longe que um que apenas trinca:
+/// é o que diferencia "faltou um" de "acabou", sem texto nenhum.
+class ObstacleShatter extends StatefulWidget {
+  const ObstacleShatter({
+    super.key,
+    required this.type,
+    required this.destroyed,
+  });
+
+  final ObstacleType type;
+
+  /// A cobertura caiu neste impacto.
+  final bool destroyed;
+
+  @override
+  State<ObstacleShatter> createState() => _ObstacleShatterState();
+}
+
+class _ObstacleShatterState extends State<ObstacleShatter>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _c;
+  late final List<_Spark> _shards;
+
+  /// Cor dos cacos, por material. A poeira da pedra é opaca e curta; o gelo e
+  /// o vidro estilhaçam claros.
+  Color get _color => switch (widget.type) {
+    ObstacleType.stone => const Color(0xFF9AA0A6),
+    ObstacleType.glass => const Color(0xFFE8F1F8),
+    _ => const Color(0xFFBFEBFF),
+  };
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Semente fixa, como nas faíscas da explosão: o efeito não precisa ser
+    // diferente a cada quebra, e assim um golden desta cena não treme.
+    final random = Random(31);
+    final count = widget.destroyed ? 14 : 6;
+    _shards = [
+      for (int i = 0; i < count; i++)
+        _Spark(
+          angle: (i / count) * 2 * pi + (random.nextDouble() - 0.5) * 0.6,
+          distance:
+              (widget.destroyed ? 0.5 : 0.28) + random.nextDouble() * 0.35,
+          size: 1.4 + random.nextDouble() * 2.0,
+          silver: random.nextBool(),
+        ),
+    ];
+
+    // Criado aqui, e não como `late final`: um campo preguiçoso pode acabar
+    // sendo inicializado pelo próprio `dispose()`.
+    _c = AnimationController(
+      vsync: this,
+      duration: JuiceTimings.explosionParticles,
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _c,
+    builder: (context, _) => CustomPaint(
+      painter: _ParticlePainter(sparks: _shards, t: _c.value, tint: _color),
+      size: Size.infinite,
+    ),
+  );
+}
+
 /// Uma faísca: para onde vai, quão longe e de que cor.
 class _Spark {
   const _Spark({
@@ -342,10 +442,18 @@ class _Spark {
 }
 
 class _ParticlePainter extends CustomPainter {
-  const _ParticlePainter({required this.sparks, required this.t});
+  const _ParticlePainter({
+    required this.sparks,
+    required this.t,
+    this.tint,
+  });
 
   final List<_Spark> sparks;
   final double t;
+
+  /// Cor do material. Nula na explosão do dígito máximo, que é branco/prata
+  /// por definição.
+  final Color? tint;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -362,8 +470,14 @@ class _ParticlePainter extends CustomPainter {
       final offset =
           centre + Offset(cos(spark.angle) * reach, sin(spark.angle) * reach);
 
-      paint.color = (spark.silver ? const Color(0xFFB0BEC5) : Colors.white)
-          .withValues(alpha: fade);
+      // Sem material, a explosão do dígito máximo: branco e prata, que é a
+      // leitura de metal que o clímax pede.
+      final base = tint ?? Colors.white;
+      final pale = tint == null
+          ? const Color(0xFFB0BEC5)
+          : Color.lerp(base, Colors.white, 0.45)!;
+
+      paint.color = (spark.silver ? pale : base).withValues(alpha: fade);
 
       // Encolhe enquanto voa: uma faísca de tamanho fixo parece uma bolinha.
       canvas.drawCircle(offset, spark.size * (0.4 + fade * 0.6), paint);
@@ -371,7 +485,8 @@ class _ParticlePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ParticlePainter oldDelegate) => oldDelegate.t != t;
+  bool shouldRepaint(_ParticlePainter oldDelegate) =>
+      oldDelegate.t != t || oldDelegate.tint != tint;
 }
 
 /// "+3 Movimentos!" subindo no topo do tabuleiro.

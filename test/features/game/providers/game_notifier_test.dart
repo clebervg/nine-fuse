@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
@@ -44,6 +45,47 @@ void main() {
       expect(state.objectiveProgress, 0);
       expect(state.movesLeft, roomy.moveLimit);
       expect(state.selectedTile, isNull);
+    });
+
+    test('espalha as coberturas pedidas pela fase', () {
+      const covered = GameLevel(
+        number: 98,
+        objective: Objective(digit: 8, count: 9),
+        moveLimit: 500,
+        obstacles: ObstacleLayout(ice: 2, stone: 1),
+      );
+
+      notifier.startLevel(covered);
+      final blocked = notifier.state.board
+          .getAllTiles()
+          .where((tile) => tile.isBlocked)
+          .toList();
+
+      expect(blocked, hasLength(3));
+      expect(blocked.where((t) => t.obstacle == ObstacleType.stone), hasLength(1));
+    });
+
+    test('a fase sem obstáculo nasce com o tabuleiro todo livre', () {
+      expect(
+        notifier.state.board.getAllTiles().where((tile) => tile.isBlocked),
+        isEmpty,
+      );
+    });
+
+    test('o tabuleiro coberto ainda tem dica, e portanto jogada', () {
+      // Peça coberta não entra em `candidateSwaps`; se a cobertura entrasse
+      // depois da checagem, a fase abriria já perdida.
+      const covered = GameLevel(
+        number: 97,
+        objective: Objective(digit: 8, count: 9),
+        moveLimit: 500,
+        obstacles: ObstacleLayout(ice: 3, glass: 2),
+      );
+
+      notifier.startLevel(covered);
+
+      expect(notifier.state.hint, isNotNull);
+      expect(notifier.state.status, GameStatus.playing);
     });
 
     test('usa a janela de spawn da fase', () {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/features/game/domain/star_rating.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/obstacle_overlay.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_metric_card.dart';
 import 'package:nine_fuse/features/game/presentation/l10n_labels.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
@@ -44,7 +45,11 @@ class LevelBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final objective = state.level.objective;
-    final targetColor = AppColors.getColorByDigit(objective.digit);
+    // Numa fase de cobertura não há dígito-alvo; a assinatura de cor do HUD
+    // passa a ser a da própria cobertura, a mesma que ela tem no tabuleiro.
+    final targetColor = objective.isObstacleGoal
+        ? obstacleAccent(objective.obstacle)
+        : AppColors.getColorByDigit(objective.digit!);
 
     // A dica escrita da fase ocupa espaço permanente no HUD para dizer algo que
     // só vale antes da primeira jogada — e o cartão de início já a mostra em
@@ -92,18 +97,28 @@ class LevelBanner extends StatelessWidget {
                   child: GameMetricCard(
                     key: hudObjectiveKey,
                     label: l10n.hudObjective,
-                    icon: Icons.adjust,
+                    // O ícone da pílula diz de que meta se trata antes de o
+                    // jogador ler o número: floco de gelo e alvo não se
+                    // confundem.
+                    icon: objective.isObstacleGoal
+                        ? obstacleIcon(objective.obstacle)
+                        : Icons.adjust,
                     accent: targetColor,
                     compact: true,
                     valueWidget: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _TargetChip(digit: objective.digit),
+                        if (objective.isObstacleGoal)
+                          ObstacleBadge(type: objective.obstacle)
+                        else
+                          _TargetChip(digit: objective.digit!),
                         const SizedBox(width: 6),
                         Text(
                           l10n.objectiveProgress(
                             state.objectiveProgress,
-                            objective.count,
+                            // O alvo do estado, e não o da fase: em "limpe
+                            // todas" quem manda é o tabuleiro sorteado.
+                            state.objectiveTarget,
                           ),
                           style: const TextStyle(
                             fontFamily: AppFonts.display,
@@ -160,7 +175,7 @@ class LevelBanner extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            l10n.objectiveLabel(objective),
+            l10n.objectiveLabel(objective, target: state.objectiveTarget),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

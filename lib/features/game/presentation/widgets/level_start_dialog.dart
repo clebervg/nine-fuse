@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/presentation/l10n_labels.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/obstacle_overlay.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 /// Chave do cartão de início de fase.
@@ -37,7 +39,18 @@ class LevelStartDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final objective = level.objective;
-    final accent = AppColors.getColorByDigit(objective.digit);
+    // Numa fase de cobertura não há dígito-alvo, e pintar o cartão com a cor de
+    // um dígito qualquer prometeria uma peça que a fase não pede.
+    final accent = objective.isObstacleGoal
+        ? obstacleAccent(objective.obstacle)
+        : AppColors.getColorByDigit(objective.digit!);
+
+    // Numa fase "limpe todas" o tabuleiro ainda não existe quando este cartão
+    // abre, então o número vem do pedido da fase — e o motor só poda para
+    // menos, nunca para mais.
+    final target = objective.type == ObjectiveType.clearAllObstacles
+        ? level.obstacles.countOf(objective.obstacle)
+        : objective.count;
 
     return GameDialog(
       cardKey: levelStartKey,
@@ -47,13 +60,21 @@ class LevelStartDialog extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // A peça-alvo em tamanho grande. É a tradução visual do objetivo:
-          // "crie **esta** peça" diz mais rápido do que qualquer frase.
-          _TargetTile(digit: objective.digit, color: accent),
+          // O alvo em tamanho grande. É a tradução visual do objetivo: "crie
+          // **esta** peça" — ou "quebre **isto**" — diz mais rápido do que
+          // qualquer frase.
+          if (objective.isObstacleGoal)
+            _TargetObstacle(
+              type: objective.obstacle,
+              count: target,
+              color: accent,
+            )
+          else
+            _TargetTile(digit: objective.digit!, color: accent),
           const SizedBox(height: 16),
 
           Text(
-            l10n.objectiveLabel(objective),
+            l10n.objectiveLabel(objective, target: target),
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
@@ -79,7 +100,9 @@ class LevelStartDialog extends StatelessWidget {
             key: startLevelKey,
             label: l10n.playButton,
             color: accent,
-            foreground: AppColors.getTextColorForDigit(objective.digit),
+            foreground: objective.isObstacleGoal
+                ? AppColors.darkBackground
+                : AppColors.getTextColorForDigit(objective.digit!),
             fontSize: 18,
             onPressed: onPlay,
           ),
@@ -133,6 +156,53 @@ class _TargetTile extends StatelessWidget {
         ),
       ),
     ),
+  );
+}
+
+/// Chave do alvo de cobertura do cartão de início.
+const Key levelStartObstacleKey = Key('level_start_obstacle');
+
+/// A cobertura-alvo, do tamanho da peça-alvo, com a contagem por cima.
+///
+/// Usa a textura de verdade ([ObstacleBadge]), e não um ícone: o jogador precisa
+/// reconhecer no tabuleiro exatamente a coisa que o cartão lhe mostrou.
+class _TargetObstacle extends StatelessWidget {
+  const _TargetObstacle({
+    required this.type,
+    required this.count,
+    required this.color,
+  });
+
+  final ObstacleType type;
+  final int count;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    key: levelStartObstacleKey,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      ObstacleBadge(type: type, size: 84),
+      const SizedBox(height: 10),
+      // O número separado da textura, e não por cima: a cobertura já é clara e
+      // facetada, e um dígito sobreposto some contra o vidro.
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(obstacleIcon(type), color: color, size: 20),
+          const SizedBox(width: 6),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontFamily: AppFonts.display,
+              color: color,
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    ],
   );
 }
 

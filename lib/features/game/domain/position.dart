@@ -16,6 +16,18 @@ class Position {
     return (rowDiff == 1 && colDiff == 0) || (rowDiff == 0 && colDiff == 1);
   }
 
+  /// As quatro casas que encostam nesta, **sem filtrar** as que caem fora do
+  /// tabuleiro — quem chama decide o recorte (`Board.contains`).
+  ///
+  /// É a mesma régua da troca válida e da área de dano do obstáculo: a
+  /// diagonal fica de fora de propósito.
+  Iterable<Position> get orthogonalNeighbours => [
+    Position(row: row - 1, col: col),
+    Position(row: row + 1, col: col),
+    Position(row: row, col: col - 1),
+    Position(row: row, col: col + 1),
+  ];
+
   /// Retorna a distância de Manhattan entre duas posições
   int distanceTo(Position other) =>
       (row - other.row).abs() + (col - other.col).abs();

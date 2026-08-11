@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_geometry.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/combo_banner.dart';
@@ -15,6 +16,7 @@ ResolutionStep stepWith({
   int cascade = 1,
   List<FusionEvent> fusions = const [],
   List<Position> explosions = const [],
+  List<ObstacleHit> obstacleHits = const [],
 }) => ResolutionStep(
   cascade: cascade,
   fusions: fusions,
@@ -23,6 +25,7 @@ ResolutionStep stepWith({
   boardAfterFusion: Board.empty(),
   boardAfterSettle: Board.empty(),
   score: fusions.fold(0, (t, f) => t + f.score),
+  obstacleHits: obstacleHits,
 );
 
 FusionEvent fusionAt(
@@ -299,6 +302,72 @@ void main() {
 
       expect(tapped, isTrue);
       await tester.pumpAndSettle();
+    });
+  });
+
+  group('quebra de obstáculo', () {
+    ObstacleHit hit(
+      Position at, {
+      ObstacleType type = ObstacleType.ice,
+      int remaining = 0,
+    }) => ObstacleHit(position: at, type: type, remainingHp: remaining);
+
+    testWidgets('cada impacto rende um estilhaço', (tester) async {
+      await tester.pumpWidget(
+        host(
+          JuiceOverlay(
+            step: stepWith(
+              obstacleHits: [
+                hit(const Position(row: 1, col: 1)),
+                hit(const Position(row: 4, col: 2), type: ObstacleType.stone,
+                    remaining: 2),
+              ],
+            ),
+            comboCount: 1,
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 60));
+
+      expect(find.byType(ObstacleShatter), findsNWidgets(2));
+    });
+
+    testWidgets('o estilhaço usa a cor do obstáculo atingido', (tester) async {
+      await tester.pumpWidget(
+        host(
+          JuiceOverlay(
+            step: stepWith(
+              obstacleHits: [
+                hit(const Position(row: 3, col: 3), type: ObstacleType.glass,
+                    remaining: 1),
+              ],
+            ),
+            comboCount: 1,
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 60));
+
+      final shatter = tester.widget<ObstacleShatter>(
+        find.byType(ObstacleShatter),
+      );
+      expect(shatter.type, ObstacleType.glass);
+      // Trincou, não quebrou: o efeito é mais contido.
+      expect(shatter.destroyed, isFalse);
+    });
+
+    testWidgets('passo sem obstáculo não desenha estilhaço', (tester) async {
+      await tester.pumpWidget(
+        host(
+          JuiceOverlay(
+            step: stepWith(fusions: [fusionAt(const Position(row: 2, col: 2))]),
+            comboCount: 1,
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 60));
+
+      expect(find.byType(ObstacleShatter), findsNothing);
     });
   });
 }

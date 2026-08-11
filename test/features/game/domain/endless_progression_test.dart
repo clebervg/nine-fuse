@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/endless_progression.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
 
 void main() {
   const progression = EndlessProgression();
@@ -92,6 +93,71 @@ void main() {
 
     test('sem nada produzido, fica no lugar', () {
       expect(progression.advance(step: 2, produced: const []), 2);
+    });
+  });
+
+  group('obstáculos por degrau', () {
+    test('o primeiro degrau começa limpo', () {
+      // O jogador entra no Endless para bater recorde, não para decifrar uma
+      // fase: a pressão do modo já vem da janela que sobe.
+      expect(progression.obstaclesFor(EndlessProgression.firstStep),
+          ObstacleLayout.none);
+    });
+
+    test('cada degrau acima do primeiro pede cobertura', () {
+      for (int s = 1; s <= EndlessProgression.lastStep; s++) {
+        expect(
+          progression.obstaclesFor(s).isEmpty,
+          isFalse,
+          reason: 'degrau $s',
+        );
+      }
+    });
+
+    test('a cobertura endurece degrau a degrau', () {
+      final totals = [
+        for (int s = 0; s <= EndlessProgression.lastStep; s++)
+          progression.obstaclesFor(s).total,
+      ];
+
+      for (int s = 1; s < totals.length; s++) {
+        expect(
+          totals[s],
+          greaterThanOrEqualTo(totals[s - 1]),
+          reason: 'degrau $s afrouxou',
+        );
+      }
+      expect(totals.last, greaterThan(totals.first));
+    });
+
+    test('a pedra só entra no último degrau, onde o dígito máximo é possível', () {
+      // Três impactos precisa da onda de choque como saída, e ela só é
+      // realista com a janela no topo.
+      for (int s = 0; s < EndlessProgression.lastStep; s++) {
+        expect(progression.obstaclesFor(s).stone, 0, reason: 'degrau $s');
+      }
+      expect(
+        progression.obstaclesFor(EndlessProgression.lastStep).stone,
+        greaterThan(0),
+      );
+    });
+
+    test('nenhum degrau cobre tabuleiro demais', () {
+      for (int s = 0; s <= EndlessProgression.lastStep; s++) {
+        expect(
+          progression.obstaclesFor(s).total,
+          lessThanOrEqualTo(8),
+          reason: 'degrau $s',
+        );
+      }
+    });
+
+    test('degrau fora da faixa é contido nas pontas', () {
+      expect(progression.obstaclesFor(-3), ObstacleLayout.none);
+      expect(
+        progression.obstaclesFor(99),
+        progression.obstaclesFor(EndlessProgression.lastStep),
+      );
     });
   });
 

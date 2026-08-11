@@ -63,7 +63,9 @@ class EndlessNotifier extends StateNotifier<EndlessState> {
     _applyWindow(engine, EndlessProgression.firstStep);
     _engine = engine;
 
-    final board = engine.generateBoard();
+    final board = engine.generateBoard(
+      obstacles: progression.obstaclesFor(EndlessProgression.firstStep),
+    );
 
     state = EndlessState(
       board: board,
@@ -216,17 +218,24 @@ class EndlessNotifier extends StateNotifier<EndlessState> {
       step: state.step,
       produced: resolution.producedDigits,
     );
-    if (step != state.step) _applyWindow(engine, step);
+    // O degrau novo cobra o espaço junto com a janela: quem provou que domina
+    // a faixa recebe o tabuleiro mais apertado. `placeObstacles` só cobre o
+    // que não trava a partida, então isto nunca fabrica um fim de corrida.
+    var board = resolution.board;
+    if (step != state.step) {
+      _applyWindow(engine, step);
+      board = engine.placeObstacles(board, progression.obstaclesFor(step));
+    }
 
     final score = state.score + extraScore;
 
     // Uma varredura só serve às duas perguntas: ainda dá para jogar e qual é
     // a jogada.
-    final hint = engine.findHint(resolution.board);
+    final hint = engine.findHint(board);
     final stuck = hint == null;
 
     state = state.copyWith(
-      board: resolution.board,
+      board: board,
       score: score,
       moves: state.moves + 1,
       step: step,

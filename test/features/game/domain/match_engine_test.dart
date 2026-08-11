@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/fusion_rule.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 
@@ -1238,6 +1239,175 @@ void main() {
       final ids = board.getAllTiles().map((t) => t.id).toSet();
 
       expect(ids, hasLength(Board.boardSize * Board.boardSize));
+    });
+  });
+
+  group('obstáculos', () {
+    /// Cobre a célula [at] sem mexer no dígito que está embaixo.
+    Board cover(Board board, Position at, ObstacleType type) =>
+        board.updateTile(at, board.getTileAt(at)!.withObstacle(type));
+
+    /// Base sem combinação com uma fila de três `5` na linha 4.
+    Board boardWithMatchOnRow4() {
+      final values = baseGrid();
+      values[4][0] = 5;
+      values[4][1] = 5;
+      values[4][2] = 5;
+      return boardFromValues(values);
+    }
+
+    ObstacleHit? hitAt(ResolutionStep step, Position at) =>
+        step.obstacleHits.where((hit) => hit.position == at).firstOrNull;
+
+    test('a fusão numa célula vizinha derrete o gelo', () {
+      // (4,3) encosta em (4,2), que a combinação consome.
+      final board = cover(
+        boardWithMatchOnRow4(),
+        const Position(row: 4, col: 3),
+        ObstacleType.ice,
+      );
+
+      final step = MatchEngine(random: Random(1)).resolve(board).steps.first;
+
+      final hit = hitAt(step, const Position(row: 4, col: 3));
+      expect(hit, isNotNull);
+      expect(hit!.type, ObstacleType.ice);
+      expect(hit.cleared, isTrue);
+      // A liberação já vale no quadro que a UI anima.
+      expect(
+        step.boardAfterFusion.getTileAt(const Position(row: 4, col: 3))!.isBlocked,
+        isFalse,
+      );
+    });
+
+    test('o vidro sobrevive ao primeiro impacto, trincado', () {
+      final board = cover(
+        boardWithMatchOnRow4(),
+        const Position(row: 4, col: 3),
+        ObstacleType.glass,
+      );
+
+      final step = MatchEngine(random: Random(1)).resolve(board).steps.first;
+      final tile = step.boardAfterFusion.getTileAt(
+        const Position(row: 4, col: 3),
+      )!;
+
+      expect(hitAt(step, const Position(row: 4, col: 3))!.cleared, isFalse);
+      expect(tile.obstacle, ObstacleType.glass);
+      expect(tile.obstacleHp, 1);
+      expect(tile.isDamaged, isTrue);
+    });
+
+    test('a pedra mal se abala com um impacto', () {
+      final board = cover(
+        boardWithMatchOnRow4(),
+        const Position(row: 4, col: 3),
+        ObstacleType.stone,
+      );
+
+      final step = MatchEngine(random: Random(1)).resolve(board).steps.first;
+
+      expect(hitAt(step, const Position(row: 4, col: 3))!.remainingHp, 2);
+      expect(
+        step.boardAfterFusion
+            .getTileAt(const Position(row: 4, col: 3))!
+            .obstacle,
+        ObstacleType.stone,
+      );
+    });
+
+    test('obstáculo longe da fusão não leva dano', () {
+      final board = cover(
+        boardWithMatchOnRow4(),
+        const Position(row: 0, col: 7),
+        ObstacleType.ice,
+      );
+
+      final step = MatchEngine(random: Random(1)).resolve(board).steps.first;
+
+      expect(hitAt(step, const Position(row: 0, col: 7)), isNull);
+      expect(
+        step.boardAfterFusion.getTileAt(const Position(row: 0, col: 7))!.isBlocked,
+        isTrue,
+      );
+    });
+
+    test('duas combinações no mesmo passo valem um impacto só', () {
+      // (5,2) encosta em (4,2) e em (6,2) — uma célula de cada combinação.
+      final values = baseGrid();
+      values[4][0] = 5;
+      values[4][1] = 5;
+      values[4][2] = 5;
+      values[6][2] = 7;
+      values[6][3] = 7;
+      values[6][4] = 7;
+
+      final board = cover(
+        boardFromValues(values),
+        const Position(row: 5, col: 2),
+        ObstacleType.glass,
+      );
+
+      final step = MatchEngine(random: Random(1)).resolve(board).steps.first;
+      final hits = step.obstacleHits.where(
+        (hit) => hit.position == const Position(row: 5, col: 2),
+      );
+
+      expect(step.fusions, hasLength(2));
+      expect(hits, hasLength(1));
+      expect(hits.first.remainingHp, 1);
+    });
+
+    test('peça coberta não participa de combinação', () {
+      final board = cover(
+        boardWithMatchOnRow4(),
+        const Position(row: 4, col: 1),
+        ObstacleType.stone,
+      );
+
+      expect(MatchEngine(random: Random(1)).detectMatches(board), isEmpty);
+    });
+
+    test('peça coberta não pode ser trocada', () {
+      final board = cover(
+        boardFromValues(baseGrid()),
+        const Position(row: 4, col: 1),
+        ObstacleType.ice,
+      );
+      final engine = MatchEngine(random: Random(1));
+
+      expect(
+        engine.tryMove(
+          board,
+          const Position(row: 4, col: 0),
+          const Position(row: 4, col: 1),
+        ),
+        isA<MoveImpossible>(),
+      );
+      expect(
+        engine.tryMove(
+          board,
+          const Position(row: 4, col: 1),
+          const Position(row: 4, col: 2),
+        ),
+        isA<MoveImpossible>(),
+      );
+    });
+
+    test('a busca por jogada ignora as células cobertas', () {
+      final board = cover(
+        boardFromValues(baseGrid()),
+        const Position(row: 4, col: 1),
+        ObstacleType.ice,
+      );
+
+      final swaps = MatchEngine(random: Random(1)).candidateSwaps(board);
+
+      expect(
+        swaps.any((s) => s.$1 == const Position(row: 4, col: 1) ||
+            s.$2 == const Position(row: 4, col: 1)),
+        isFalse,
+      );
     });
   });
 }

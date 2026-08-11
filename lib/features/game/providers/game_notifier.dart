@@ -45,7 +45,7 @@ class GameNotifier extends StateNotifier<GameState> {
       spawnMax: level.spawnMax,
     );
 
-    final board = _engine!.generateBoard();
+    final board = _engine!.generateBoard(obstacles: level.obstacles);
 
     state = GameState(
       board: board,
@@ -56,8 +56,20 @@ class GameNotifier extends StateNotifier<GameState> {
       // tê-la perdido é indistinguível de nada ter mudado, e a UI não teria
       // como saber que precisa reabrir o cartão de início.
       runId: state.runId + 1,
+      boardObstacleGoal: _obstacleGoalFor(level, board),
     );
   }
+
+  /// O alvo de um objetivo "limpe todas as coberturas", medido **no tabuleiro
+  /// que o jogador recebeu**.
+  ///
+  /// Não sai de `level.obstacles` porque `placeObstacles` descarta a cobertura
+  /// que não acha lugar: pedir as quatro pedras que a fase queria, num tabuleiro
+  /// onde só três couberam, seria fabricar uma fase impossível.
+  static int? _obstacleGoalFor(GameLevel level, Board board) =>
+      level.objective.type == ObjectiveType.clearAllObstacles
+      ? board.countObstacles(level.objective.obstacle)
+      : null;
 
   /// Recomeça a fase atual.
   void restartLevel() => startLevel(state.level);
@@ -69,7 +81,16 @@ class GameNotifier extends StateNotifier<GameState> {
   @visibleForTesting
   void debugSetBoard(Board board) {
     final hint = _engine?.findHint(board);
-    state = state.copyWith(board: board, hint: hint, clearHint: hint == null);
+    state = state.copyWith(
+      board: board,
+      hint: hint,
+      clearHint: hint == null,
+      // O alvo de "limpe todas" vem do tabuleiro, e o tabuleiro acabou de
+      // trocar. Sem recalcular, a fase cobraria as coberturas do sorteio que
+      // este board substituiu.
+      boardObstacleGoal: _obstacleGoalFor(state.level, board),
+      clearBoardObstacleGoal: _obstacleGoalFor(state.level, board) == null,
+    );
   }
 
   /// Vai para a fase seguinte, ou repete a última se a campanha acabou.
@@ -228,9 +249,7 @@ class GameNotifier extends StateNotifier<GameState> {
     Resolution resolution, {
     required int extraScore,
   }) {
-    final progress =
-        state.objectiveProgress +
-        resolution.countProduced(state.level.objective.digit);
+    final progress = state.objectiveProgress + _gainedThisMove(resolution);
     final moves = state.moves + 1;
 
     // Cada dígito máximo criado devolve movimentos. É o que faz a explosão ser
@@ -245,6 +264,11 @@ class GameNotifier extends StateNotifier<GameState> {
 
     final outcome = _outcomeAfterMove(
       progress: progress,
+      // O alvo é estável durante a fase: `boardObstacleGoal` foi fixado no
+      // sorteio, e os outros objetivos declaram a quantidade. Lê-lo do estado
+      // **antes** da atualização é seguro, e evita montar um estado provisório
+      // só para poder perguntar se ele já ganhou.
+      target: state.objectiveTarget,
       moves: moves,
       // O saldo já contando o bônus deste movimento: um 9 criado na última
       // jogada precisa salvar a fase, não chegar tarde demais.
@@ -275,6 +299,24 @@ class GameNotifier extends StateNotifier<GameState> {
     );
   }
 
+  /// O quanto esta jogada rendeu ao objetivo da fase.
+  ///
+  /// As metas se medem em unidades diferentes, e a diferença importa: um dígito
+  /// só conta se tiver **nascido de fusão**, e uma cobertura só conta se tiver
+  /// **quebrado** — trincar o vidro não é progresso, porque não é o que o
+  /// jogador vê sumir do tabuleiro.
+  int _gainedThisMove(Resolution resolution) {
+    final objective = state.level.objective;
+
+    return switch (objective.type) {
+      ObjectiveType.reachDigit => resolution.countProduced(objective.digit!),
+      ObjectiveType.clearObstacles ||
+      ObjectiveType.clearAllObstacles => resolution.countCleared(
+        objective.obstacle,
+      ),
+    };
+  }
+
   /// Como a fase fica depois deste movimento, e por quê.
   ///
   /// As duas causas de derrota são independentes e são apuradas separadamente:
@@ -286,11 +328,12 @@ class GameNotifier extends StateNotifier<GameState> {
   /// movimento disponível vale como vitória, não como movimentos esgotados.
   ({GameStatus status, LossReason? loss}) _outcomeAfterMove({
     required int progress,
+    required int target,
     required int moves,
     required int movesAvailable,
     required bool hasMove,
   }) {
-    if (progress >= state.level.objective.count) {
+    if (progress >= target) {
       return (status: GameStatus.won, loss: null);
     }
     if (moves >= movesAvailable) {

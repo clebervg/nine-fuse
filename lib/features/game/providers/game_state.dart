@@ -53,6 +53,7 @@ class GameState {
     this.bonusMoves = 0,
     this.runId = 0,
     this.apexCelebrated = false,
+    this.boardObstacleGoal,
   });
 
   final Board board;
@@ -67,8 +68,23 @@ class GameState {
   /// Movimentos gastos. Troca recusada não conta.
   final int moves;
 
-  /// Quantas peças do dígito pedido já foram **criadas** nesta fase.
+  /// O quanto do objetivo já foi cumprido.
+  ///
+  /// A unidade depende do tipo do objetivo: peças **criadas** por fusão no
+  /// [ObjectiveType.reachDigit], coberturas **destruídas** nos outros dois.
   final int objectiveProgress;
+
+  /// Quantas coberturas do tipo pedido o tabuleiro sorteado realmente trouxe.
+  ///
+  /// Só vale para [ObjectiveType.clearAllObstacles], e é fixado quando a fase
+  /// começa. Existe porque `placeObstacles` descarta a cobertura que não acha
+  /// lugar: cobrar do jogador as quatro pedras que a fase pediu, quando o
+  /// tabuleiro só coube três, seria uma fase impossível por acidente de sorteio.
+  ///
+  /// Nulo fora desse objetivo — e também quando o tabuleiro foi montado à mão
+  /// antes de o valor ser calculado, caso em que [objectiveTarget] o deduz do
+  /// que ainda está no tabuleiro mais o que já foi quebrado.
+  final int? boardObstacleGoal;
 
   /// Posições da última troca recusada por não formar combinação. A UI usa
   /// isso para animar a volta das peças; `null` quando não houve recusa.
@@ -129,12 +145,26 @@ class GameState {
   /// Movimentos que ainda restam, nunca negativo.
   int get movesLeft => (movesAvailable - moves).clamp(0, movesAvailable);
 
+  /// Quanto o objetivo pede, nesta partida.
+  ///
+  /// Quase sempre é o número declarado pela fase. A exceção é
+  /// [ObjectiveType.clearAllObstacles], em que "todas" só tem sentido contra o
+  /// tabuleiro que o jogador recebeu.
+  int get objectiveTarget =>
+      level.objective.type == ObjectiveType.clearAllObstacles
+      // Restantes + já quebradas: a soma é invariante porque nenhuma cobertura
+      // nasce no meio da fase. É o que salva o caso do tabuleiro montado à mão.
+      ? boardObstacleGoal ??
+            board.countObstacles(level.objective.obstacle) + objectiveProgress
+      : level.objective.count;
+
   /// O objetivo já foi cumprido?
-  bool get objectiveMet => objectiveProgress >= level.objective.count;
+  bool get objectiveMet => objectiveProgress >= objectiveTarget;
 
   /// Fração do objetivo concluída, de 0 a 1. Serve para a barra de progresso.
-  double get objectiveFraction =>
-      (objectiveProgress / level.objective.count).clamp(0.0, 1.0);
+  double get objectiveFraction => objectiveTarget <= 0
+      ? 1.0
+      : (objectiveProgress / objectiveTarget).clamp(0.0, 1.0);
 
   /// A fase terminou, de qualquer forma?
   bool get isOver => status == GameStatus.won || status == GameStatus.lost;
@@ -166,6 +196,8 @@ class GameState {
     int? bonusMoves,
     int? runId,
     bool? apexCelebrated,
+    int? boardObstacleGoal,
+    bool clearBoardObstacleGoal = false,
   }) => GameState(
     board: board ?? this.board,
     level: level ?? this.level,
@@ -188,6 +220,9 @@ class GameState {
     bonusMoves: bonusMoves ?? this.bonusMoves,
     runId: runId ?? this.runId,
     apexCelebrated: apexCelebrated ?? this.apexCelebrated,
+    boardObstacleGoal: clearBoardObstacleGoal
+        ? null
+        : (boardObstacleGoal ?? this.boardObstacleGoal),
   );
 
   /// Estado antes de qualquer fase começar.
@@ -217,7 +252,8 @@ class GameState {
           lossReason == other.lossReason &&
           bonusMoves == other.bonusMoves &&
           runId == other.runId &&
-          apexCelebrated == other.apexCelebrated;
+          apexCelebrated == other.apexCelebrated &&
+          boardObstacleGoal == other.boardObstacleGoal;
 
   @override
   int get hashCode => Object.hash(
@@ -237,11 +273,12 @@ class GameState {
     bonusMoves,
     runId,
     apexCelebrated,
+    boardObstacleGoal,
   );
 
   @override
   String toString() =>
       'GameState(fase ${level.number}, $status, '
-      '$objectiveProgress/${level.objective.count} do objetivo, '
+      '$objectiveProgress/$objectiveTarget do objetivo, '
       '$moves/$movesAvailable mov, score $score)';
 }

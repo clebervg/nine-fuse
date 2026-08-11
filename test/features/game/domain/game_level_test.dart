@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
 
 void main() {
   group('Objective', () {
@@ -40,9 +41,18 @@ void main() {
       }
     });
 
+    /// As fases de dígito.
+    ///
+    /// As invariantes de janela de spawn e de progressão de dificuldade só
+    /// falam delas: uma fase de cobertura não tem dígito-alvo para comparar com
+    /// nada, e forçá-la para dentro da conta pediria um número de fachada.
+    final digitLevels = kCampaign
+        .where((level) => level.objective.type == ObjectiveType.reachDigit)
+        .toList();
+
     // Esta é a invariante que um assert const não conseguiria checar.
     test('o dígito do objetivo está sempre acima da janela de spawn', () {
-      for (final level in kCampaign) {
+      for (final level in digitLevels) {
         expect(
           level.objective.digit,
           greaterThan(level.spawnMax),
@@ -54,7 +64,7 @@ void main() {
     });
 
     test('nenhum objetivo passa do dígito máximo', () {
-      for (final level in kCampaign) {
+      for (final level in digitLevels) {
         expect(
           level.objective.digit,
           lessThanOrEqualTo(kMaxDigit),
@@ -81,19 +91,19 @@ void main() {
     });
 
     test('a campanha termina no dígito máximo', () {
-      expect(kCampaign.last.objective.digit, kMaxDigit);
+      expect(digitLevels.last.objective.digit, kMaxDigit);
     });
 
     test('o dígito pedido nunca diminui', () {
       var previous = 0;
 
-      for (final level in kCampaign) {
+      for (final level in digitLevels) {
         expect(
           level.objective.digit,
           greaterThanOrEqualTo(previous),
           reason: 'fase ${level.number}',
         );
-        previous = level.objective.digit;
+        previous = level.objective.digit!;
       }
     });
 
@@ -105,8 +115,8 @@ void main() {
       // O que não se admite é a dificuldade desabar.
       var hardestSoFar = 0;
 
-      for (final level in kCampaign) {
-        final climb = level.objective.digit - level.spawnMax;
+      for (final level in digitLevels) {
+        final climb = level.objective.digit! - level.spawnMax;
 
         expect(
           climb,
@@ -121,7 +131,7 @@ void main() {
 
       // E o pico tem de estar no fim, não no meio.
       final finalClimb =
-          kCampaign.last.objective.digit - kCampaign.last.spawnMax;
+          digitLevels.last.objective.digit! - digitLevels.last.spawnMax;
       expect(
         finalClimb,
         hardestSoFar,
@@ -157,6 +167,66 @@ void main() {
     test('as primeiras fases são curtas, para ensinar rápido', () {
       expect(kCampaign.first.moveLimit, lessThanOrEqualTo(10));
       expect(kCampaign.first.objective.count, 1);
+    });
+
+    test('as sete primeiras fases não têm obstáculo', () {
+      // O obstáculo é a mecânica mais restritiva do jogo: peça coberta não
+      // combina nem troca. Entra depois de o jogador dominar a fusão em
+      // cadeia, não durante o ensino dela.
+      for (final level in kCampaign.where((l) => l.number < 8)) {
+        expect(
+          level.obstacles,
+          ObstacleLayout.none,
+          reason: 'fase ${level.number} ensina fusão, não obstáculo',
+        );
+      }
+    });
+
+    test('a partir da fase 8 toda fase tem obstáculo', () {
+      for (final level in kCampaign.where((l) => l.number >= 8)) {
+        expect(
+          level.obstacles.isEmpty,
+          isFalse,
+          reason: 'fase ${level.number}',
+        );
+      }
+    });
+
+    test('a fase 8 estreia o gelo sozinho', () {
+      // Um tipo por estreia: o gelo cede num impacto, então ensina a regra
+      // (fusão encostada quebra) sem punir quem ainda não entendeu.
+      final level = kCampaign[7];
+
+      expect(level.obstacles.ice, greaterThan(0));
+      expect(level.obstacles.glass, 0);
+      expect(level.obstacles.stone, 0);
+      expect(level.teaches, LevelTip.obstacleBlocks);
+    });
+
+    test('a pedra só aparece na fase do dígito máximo', () {
+      // Três impactos é muito para pedir sem a onda de choque como saída — e a
+      // onda de choque é justamente o que a fase 10 ensina.
+      for (final level in kCampaign) {
+        if (level.obstacles.stone == 0) continue;
+        expect(
+          level.objective.digit,
+          kMaxDigit,
+          reason: 'fase ${level.number} pede pedra sem dar a onda de choque',
+        );
+      }
+    });
+
+    test('o obstáculo entra em dose que sobra tabuleiro', () {
+      // Coberturas não podem nascer encostadas, e cada uma tira uma casa do
+      // jogo: mais de um oitavo do tabuleiro coberto e a fase deixa de ser
+      // match-3 para virar corredor.
+      for (final level in kCampaign) {
+        expect(
+          level.obstacles.total,
+          lessThanOrEqualTo(8),
+          reason: 'fase ${level.number} cobre demais',
+        );
+      }
     });
 
     test('as fases que ensinam algo novo têm dica', () {

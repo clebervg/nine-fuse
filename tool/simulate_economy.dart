@@ -19,6 +19,7 @@ import 'package:nine_fuse/features/game/domain/endless_progression.dart';
 import 'package:nine_fuse/features/game/domain/fusion_rule.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 
 /// Como o jogador simulado escolhe a jogada.
@@ -315,11 +316,12 @@ void _reportCampaign({required int games}) {
       );
       final chooser = Random(1000 + seed);
 
-      var board = engine.generateBoard();
+      var board = engine.generateBoard(obstacles: level.obstacles);
+      final target = _targetOf(level, board);
       var produced = 0;
       var moves = 0;
 
-      while (moves < level.moveLimit && produced < level.objective.count) {
+      while (moves < level.moveLimit && produced < target) {
         final options = _rankMoves(engine, board);
         if (options.isEmpty) {
           stalled++;
@@ -332,13 +334,13 @@ void _reportCampaign({required int games}) {
           anchor: chosen.to,
         );
         board = resolution.board;
-        produced += resolution.countProduced(level.objective.digit);
+        produced += _gainOf(level, resolution);
         moves++;
         // Silencia o aviso de variável não usada quando a estratégia é fixa.
         chooser.nextInt(2);
       }
 
-      if (produced >= level.objective.count) movesToWin.add(moves);
+      if (produced >= target) movesToWin.add(moves);
     }
 
     final rate = movesToWin.length / games;
@@ -408,11 +410,12 @@ void _reportEfficiency({required int games}) {
         spawnMax: level.spawnMax,
       );
 
-      var board = engine.generateBoard();
+      var board = engine.generateBoard(obstacles: level.obstacles);
+      final target = _targetOf(level, board);
       var produced = 0;
       var moves = 0;
 
-      while (moves < cap && produced < level.objective.count) {
+      while (moves < cap && produced < target) {
         final options = _rankMoves(engine, board);
         if (options.isEmpty) break; // tabuleiro travado: partida perdida
 
@@ -422,11 +425,11 @@ void _reportEfficiency({required int games}) {
           anchor: chosen.to,
         );
         board = resolution.board;
-        produced += resolution.countProduced(level.objective.digit);
+        produced += _gainOf(level, resolution);
         moves++;
       }
 
-      if (produced >= level.objective.count) needed.add(moves);
+      if (produced >= target) needed.add(moves);
     }
 
     final reachRate = needed.length / games;
@@ -437,10 +440,17 @@ void _reportEfficiency({required int games}) {
     final viableLimit =
         reachRate >= _minWinRate ? _percentile(needed, _minWinRate) : null;
 
-    final required = level.objective.count / level.moveLimit;
+    // O alvo nominal da fase basta aqui: a eficiência é um retrato da fase, não
+    // de um sorteio.
+    final nominalTarget = level.objective.type ==
+            ObjectiveType.clearAllObstacles
+        ? level.obstacles.countOf(level.objective.obstacle)
+        : level.objective.count;
+
+    final required = nominalTarget / level.moveLimit;
     final attainable = _median(needed) == null
         ? null
-        : level.objective.count / _median(needed)!;
+        : nominalTarget / _median(needed)!;
 
     final String diagnosis;
     if (reachRate < _minWinRate) {
@@ -699,6 +709,50 @@ void main(List<String> args) {
     );
   }
 
+  if (mode == 'obstacles' || mode == 'both') {
+    print('');
+    print('#' * 62);
+    print('# H) FASES DE LIMPEZA DE COBERTURA   (candidatas)');
+    print('#' * 62);
+    print('# Taxa de sucesso por limite, com o jogador guloso de sempre —');
+    print('# que nunca mira a cobertura. O número é um piso.');
+    print('#' * 62);
+
+    _reportObstaclePhases(
+      games: games,
+      limits: const [5, 10, 15, 20, 25, 30, 40],
+      phases: const [
+        (
+          layout: ObstacleLayout(ice: 3),
+          objective: Objective.clearAllObstacles(ObstacleType.ice),
+          label: 'limpe 3 gelos',
+        ),
+        (
+          layout: ObstacleLayout(glass: 3),
+          objective: Objective.clearAllObstacles(ObstacleType.glass),
+          label: 'limpe 3 vidros',
+        ),
+        (
+          layout: ObstacleLayout(stone: 3),
+          objective: Objective.clearAllObstacles(ObstacleType.stone),
+          label: 'limpe 3 pedras',
+        ),
+        (
+          layout: ObstacleLayout(ice: 2, glass: 2, stone: 2),
+          objective: Objective.clearObstacles(
+            obstacle: ObstacleType.stone,
+            count: 2,
+          ),
+          label: 'quebre 2 pedras',
+        ),
+      ],
+    );
+
+    print('');
+    print('  Meta: 70-90%. Coluna 100% cedo demais quer dizer que a');
+    print('  cobertura cai sozinha e a fase não pede nada de propósito.');
+  }
+
   if (mode == 'explosion' || mode == 'both') {
     print('');
     print('#' * 62);
@@ -757,4 +811,100 @@ void main(List<String> args) {
   }
 
   print('');
+}
+
+/// O alvo do objetivo desta fase, medido no tabuleiro sorteado.
+///
+/// Em `clearAllObstacles` o pedido da fase não serve: `placeObstacles` descarta
+/// a cobertura que não acha lugar, e simular contra o pedido mediria uma fase
+/// mais dura do que a que o jogador recebe.
+int _targetOf(GameLevel level, Board board) =>
+    level.objective.type == ObjectiveType.clearAllObstacles
+    ? board.countObstacles(level.objective.obstacle)
+    : level.objective.count;
+
+/// O que uma jogada rendeu ao objetivo — dígitos criados ou coberturas quebradas.
+///
+/// O jogador automático continua escolhendo a fusão de maior valor, e **não**
+/// mira as coberturas. Numa fase de limpeza isso mede o piso: se até o bot
+/// distraído passa, a fase é frouxa; se ele reprova, ainda pode ser justa para
+/// quem joga de propósito.
+int _gainOf(GameLevel level, Resolution resolution) =>
+    switch (level.objective.type) {
+      ObjectiveType.reachDigit => resolution.countProduced(
+        level.objective.digit!,
+      ),
+      ObjectiveType.clearObstacles ||
+      ObjectiveType.clearAllObstacles => resolution.countCleared(
+        level.objective.obstacle,
+      ),
+    };
+
+/// Taxa de vitória de fases **candidatas** de limpeza de cobertura, por limite
+/// de movimentos.
+///
+/// Existe separado da calibragem da campanha porque essas fases ainda não estão
+/// em [kCampaign]: o desenho de fase precisa escolher o limite **antes** de
+/// gravar a fase, e escolher no olho foi exatamente o que a calibragem por
+/// simulação veio substituir.
+///
+/// O jogador automático continua sendo o guloso de sempre — ele mira a fusão de
+/// maior valor e nunca a cobertura. O número que sai daqui é, portanto, um
+/// **piso**: a cobertura quebra de raspão, como efeito colateral das fusões.
+/// Uma fase que já aprova o bot distraído não vai pesar para ninguém.
+void _reportObstaclePhases({
+  required int games,
+  required List<int> limits,
+  required List<({ObstacleLayout layout, Objective objective, String label})>
+  phases,
+}) {
+  final header = limits.map((l) => _padLeft('$l mov', 9)).join();
+  print('');
+  print('  ${_pad('objetivo', 24)}$header');
+  print('  ${'-' * (24 + header.length)}');
+
+  for (final phase in phases) {
+    final cells = StringBuffer();
+
+    for (final limit in limits) {
+      var wins = 0;
+
+      for (int seed = 0; seed < games; seed++) {
+        // Janela 1-4: a mesma das fases de campanha em que a cobertura estreia.
+        final engine = MatchEngine(
+          random: Random(seed),
+          spawnMin: 1,
+          spawnMax: 4,
+        );
+
+        var board = engine.generateBoard(obstacles: phase.layout);
+        final target = phase.objective.type == ObjectiveType.clearAllObstacles
+            ? board.countObstacles(phase.objective.obstacle)
+            : phase.objective.count;
+
+        var cleared = 0;
+        var moves = 0;
+
+        while (moves < limit && cleared < target) {
+          final options = _rankMoves(engine, board);
+          if (options.isEmpty) break;
+
+          final chosen = options.first;
+          final resolution = engine.resolve(
+            engine.swap(board, chosen.from, chosen.to),
+            anchor: chosen.to,
+          );
+          board = resolution.board;
+          cleared += resolution.countCleared(phase.objective.obstacle);
+          moves++;
+        }
+
+        if (cleared >= target) wins++;
+      }
+
+      cells.write(_padLeft('${(wins / games * 100).round()}%', 9));
+    }
+
+    print('  ${_pad(phase.label, 24)}$cells');
+  }
 }

@@ -122,6 +122,36 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Create one {digit} tile} other{Create {count} {digit} tiles}}'**
   String objectiveCreateMany(int count, int digit);
 
+  /// Nome do gelo com a quantidade implícita. O plural fica em ICU porque cada idioma pluraliza a sua palavra.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{ice block} other{ice blocks}}'**
+  String obstacleIceCount(int count);
+
+  /// No description provided for @obstacleGlassCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{glass pane} other{glass panes}}'**
+  String obstacleGlassCount(int count);
+
+  /// No description provided for @obstacleStoneCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{stone} other{stones}}'**
+  String obstacleStoneCount(int count);
+
+  /// Objetivo de quebrar N coberturas. O nome já vem flexionado pelo ICU de obstacle*Count.
+  ///
+  /// In en, this message translates to:
+  /// **'Break {count} {obstacle}'**
+  String objectiveClearObstacles(int count, String obstacle);
+
+  /// Objetivo de limpar tudo. Diz o número porque 'todas' sem quantidade não deixa o jogador planejar as jogadas.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the board: {count} {obstacle}'**
+  String objectiveClearAllObstacles(int count, String obstacle);
+
   /// No description provided for @hudObjective.
   ///
   /// In en, this message translates to:
@@ -199,6 +229,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The 0 stopped falling. Bigger tiles arrive from the top.'**
   String get tipZeroStopped;
+
+  /// No description provided for @tipObstacleBlocks.
+  ///
+  /// In en, this message translates to:
+  /// **'Covered tiles are stuck: fuse right next to them to break the cover.'**
+  String get tipObstacleBlocks;
 
   /// No description provided for @tipApexExplodes.
   ///

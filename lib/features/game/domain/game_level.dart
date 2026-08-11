@@ -1,37 +1,11 @@
+import 'package:nine_fuse/features/game/domain/level_objective.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
 
-/// O que uma fase pede do jogador.
-///
-/// Só conta peça **criada por fusão** — receber um dígito do sorteio do topo
-/// não cumpre o objetivo. É o que dá sentido a "crie um 6".
-class Objective {
-  const Objective({required this.digit, this.count = 1})
-    : assert(digit >= 0 && digit <= kMaxDigit),
-      assert(count >= 1);
-
-  final int digit;
-  final int count;
-
-  /// Rótulo **de desenvolvedor**, não de jogador.
-  ///
-  /// O texto que o jogador lê é montado na apresentação, a partir de [digit] e
-  /// [count] (ver `AppLocalizations.objectiveCreateOne`/`objectiveCreateMany`).
-  /// Este aqui existe para o `toString()` e para o relatório de
-  /// `tool/simulate_economy.dart`, que roda em `dart run` — fora de qualquer
-  /// árvore de widgets, e portanto sem `BuildContext` de onde tirar tradução.
-  String get debugLabel =>
-      count == 1 ? 'Crie um $digit' : 'Crie $count peças $digit';
-
-  @override
-  bool operator ==(Object other) =>
-      other is Objective && other.digit == digit && other.count == count;
-
-  @override
-  int get hashCode => Object.hash(digit, count);
-
-  @override
-  String toString() => 'Objective($digit x$count)';
-}
+// [Objective] mudou de arquivo quando ganhou os objetivos de cobertura, mas
+// continua sendo lido a partir daqui por toda a UI e por todos os testes: quem
+// pede uma fase quase sempre pede o objetivo junto.
+export 'package:nine_fuse/features/game/domain/level_objective.dart';
 
 /// O que uma fase ensina, como **identidade** e não como frase.
 ///
@@ -49,6 +23,10 @@ enum LevelTip {
   /// A explosão do dígito máximo. Traduzida com o dígito como parâmetro, para
   /// a frase acompanhar [kMaxDigit] em vez de repetir "9" à mão.
   apexExplodes,
+
+  /// A peça coberta: não combina, não troca, e só se solta com uma fusão
+  /// encostada nela.
+  obstacleBlocks,
 }
 
 /// Uma fase da campanha: um objetivo, um limite de movimentos e a janela de
@@ -60,6 +38,7 @@ class GameLevel {
     required this.moveLimit,
     this.spawnMin = kSpawnMin,
     this.spawnMax = kSpawnMax,
+    this.obstacles = ObstacleLayout.none,
     this.teaches,
   }) : assert(moveLimit > 0),
        assert(
@@ -87,13 +66,20 @@ class GameLevel {
   final int spawnMin;
   final int spawnMax;
 
+  /// Coberturas que a fase espalha pelo tabuleiro no sorteio inicial.
+  ///
+  /// É pedido, não posição: onde cada uma cabe é decisão do motor
+  /// (`MatchEngine.placeObstacles`), que garante tabuleiro jogável.
+  final ObstacleLayout obstacles;
+
   /// O que a fase ensina, mostrado como dica. Nulo quando não ensina nada novo.
   final LevelTip? teaches;
 
   @override
   String toString() =>
       'Fase $number (${objective.debugLabel}, '
-      '$moveLimit mov, spawn $spawnMin-$spawnMax)';
+      '$moveLimit mov, spawn $spawnMin-$spawnMax'
+      '${obstacles.isEmpty ? '' : ', $obstacles'})';
 }
 
 /// As dez primeiras fases.
@@ -152,12 +138,17 @@ const List<GameLevel> kCampaign = [
     spawnMax: 4,
     teaches: LevelTip.zeroStopped,
   ),
+  // Da fase 8 em diante entram as coberturas, um tipo por estreia. O gelo
+  // primeiro porque cede a um impacto: ensina a regra ("fusão encostada
+  // quebra") sem punir quem ainda não a entendeu.
   GameLevel(
     number: 8,
     objective: Objective(digit: 7),
     moveLimit: 45,
     spawnMin: 1,
     spawnMax: 4,
+    obstacles: ObstacleLayout(ice: 3),
+    teaches: LevelTip.obstacleBlocks,
   ),
   GameLevel(
     number: 9,
@@ -165,13 +156,18 @@ const List<GameLevel> kCampaign = [
     moveLimit: 45,
     spawnMin: 2,
     spawnMax: 5,
+    obstacles: ObstacleLayout(ice: 2, glass: 2),
   ),
+  // A pedra aguenta três impactos, e só aparece aqui: esta é a fase que dá a
+  // onda de choque do dígito máximo, a saída que varre a célula coberta por
+  // inteiro. Pedir pedra antes disso seria pedir paciência, não plano.
   GameLevel(
     number: 10,
     objective: Objective(digit: kMaxDigit),
     moveLimit: 45,
     spawnMin: 3,
     spawnMax: 6,
+    obstacles: ObstacleLayout(glass: 2, stone: 2),
     teaches: LevelTip.apexExplodes,
   ),
 ];

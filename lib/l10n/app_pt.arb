@@ -9,6 +9,16 @@
 
   "objectiveCreateMany": "{count, plural, =1{Crie uma peça {digit}} other{Crie {count} peças {digit}}}",
 
+  "obstacleIceCount": "{count, plural, =1{gelo} other{gelos}}",
+
+  "obstacleGlassCount": "{count, plural, =1{vidro} other{vidros}}",
+
+  "obstacleStoneCount": "{count, plural, =1{pedra} other{pedras}}",
+
+  "objectiveClearObstacles": "Quebre {count} {obstacle}",
+
+  "objectiveClearAllObstacles": "Limpe o tabuleiro: {count} {obstacle}",
+
   "hudObjective": "OBJETIVO",
   "hudScore": "PONTOS",
   "hudMoves": "JOGADAS",
@@ -27,6 +37,8 @@
   "tipBiggerMatches": "Combinações de 4 ou 5 peças rendem mais que duas de 3.",
   "tipLongLevel": "Fase longa: cuide do espaço do tabuleiro.",
   "tipZeroStopped": "O 0 parou de cair. Peças maiores chegam do topo.",
+
+  "tipObstacleBlocks": "Peça coberta fica presa: faça uma fusão encostada nela para quebrar a cobertura.",
 
   "tipApexExplodes": "O {digit} não evolui: ele explode e limpa a área em volta.",
 

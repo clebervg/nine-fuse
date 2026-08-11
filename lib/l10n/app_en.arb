@@ -25,6 +25,40 @@
     }
   },
 
+  "obstacleIceCount": "{count, plural, =1{ice block} other{ice blocks}}",
+  "@obstacleIceCount": {
+    "description": "Nome do gelo com a quantidade implícita. O plural fica em ICU porque cada idioma pluraliza a sua palavra.",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "obstacleGlassCount": "{count, plural, =1{glass pane} other{glass panes}}",
+  "@obstacleGlassCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "obstacleStoneCount": "{count, plural, =1{stone} other{stones}}",
+  "@obstacleStoneCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "objectiveClearObstacles": "Break {count} {obstacle}",
+  "@objectiveClearObstacles": {
+    "description": "Objetivo de quebrar N coberturas. O nome já vem flexionado pelo ICU de obstacle*Count.",
+    "placeholders": {
+      "count": { "type": "int" },
+      "obstacle": { "type": "String" }
+    }
+  },
+
+  "objectiveClearAllObstacles": "Clear the board: {count} {obstacle}",
+  "@objectiveClearAllObstacles": {
+    "description": "Objetivo de limpar tudo. Diz o número porque 'todas' sem quantidade não deixa o jogador planejar as jogadas.",
+    "placeholders": {
+      "count": { "type": "int" },
+      "obstacle": { "type": "String" }
+    }
+  },
+
   "hudObjective": "GOAL",
   "hudScore": "POINTS",
   "hudMoves": "MOVES",
@@ -55,6 +89,8 @@
   "tipBiggerMatches": "Matches of 4 or 5 tiles pay more than two of 3.",
   "tipLongLevel": "Long level: mind the space on the board.",
   "tipZeroStopped": "The 0 stopped falling. Bigger tiles arrive from the top.",
+
+  "tipObstacleBlocks": "Covered tiles are stuck: fuse right next to them to break the cover.",
 
   "tipApexExplodes": "The {digit} does not evolve: it explodes and clears the area around it.",
   "@tipApexExplodes": {

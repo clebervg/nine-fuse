@@ -3,6 +3,7 @@ import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/constants/tile_shape.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/obstacle_overlay.dart';
 
 /// Duração do pulo de uma peça que acabou de evoluir.
 const Duration kTilePopDuration = Duration(milliseconds: 260);
@@ -260,6 +261,14 @@ class _TileWidgetState extends State<TileWidget>
                   ),
                 ),
               ),
+            ),
+          // Por cima de tudo, inclusive do clarão: a cobertura é o que está
+          // fisicamente entre o jogador e a peça.
+          if (widget.tile.isBlocked)
+            ObstacleOverlay(
+              type: widget.tile.obstacle,
+              cracked: widget.tile.isDamaged,
+              radius: radius,
             ),
         ],
       ),

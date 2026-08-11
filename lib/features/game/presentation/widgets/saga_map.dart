@@ -7,6 +7,7 @@ import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/presentation/l10n_labels.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/obstacle_overlay.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 /// Chave do pin de uma fase.
@@ -423,7 +424,11 @@ class _LevelPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = AppColors.getColorByDigit(level.objective.digit);
+    // Fase de cobertura não tem dígito-alvo: o pin toma a cor da própria
+    // cobertura, a mesma que ela terá no tabuleiro.
+    final accent = level.objective.isObstacleGoal
+        ? obstacleAccent(level.objective.obstacle)
+        : AppColors.getColorByDigit(level.objective.digit!);
 
     // O rótulo é `Positioned` e não irmão de `Column`: fora do cálculo de
     // tamanho, ele fica ancorado a uma distância fixa da borda do círculo, sem
@@ -584,7 +589,9 @@ class _StaticPin extends StatelessWidget {
                 '${level.number}',
                 style: TextStyle(
                   fontFamily: AppFonts.display,
-                  color: AppColors.getTextColorForDigit(level.objective.digit),
+                  color: level.objective.isObstacleGoal
+                      ? AppColors.darkBackground
+                      : AppColors.getTextColorForDigit(level.objective.digit!),
                   fontSize: highlighted ? 29 : 26,
                   fontWeight: FontWeight.w900,
                 ),
