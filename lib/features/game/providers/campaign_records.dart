@@ -48,31 +48,55 @@ class CampaignRecords extends StateNotifier<Map<int, LevelRecord>> {
     try {
       final saved = await _storage.readLevelRecords();
       final loadedPrunedBelow = await _storage.readPrunedBelow();
+      final loadedArchivedStars = await _storage.readArchivedStars();
       if (!mounted) return;
 
-      // A marca some primeiro: descartar do detalhe fundido qualquer fase já
-      // paga reconcilia o caso de gravação parcial (agregado gravado, mapa
-      // detalhado não) — senão as mesmas estrelas contariam nas duas pontas
-      // para sempre, a cada abertura do jogo.
-      prunedBelow = loadedPrunedBelow;
-      final prunedSaved = saved.keys.any((n) => n <= prunedBelow)
-          ? Map.fromEntries(
-              saved.entries.where((entry) => entry.key > prunedBelow),
-            )
-          : saved;
+      // A marca nunca pode regredir. Enquanto a leitura estava em voo, uma
+      // vitória registrada em memória pode ter empurrado `prunedBelow` para a
+      // frente (uma poda disparada por `record()`); adotar cegamente o valor
+      // do disco devolveria a marca para trás e reabriria, ainda que por uma
+      // sessão, o farm que ela existe para fechar.
+      prunedBelow = prunedBelow > loadedPrunedBelow
+          ? prunedBelow
+          : loadedPrunedBelow;
 
-      if (prunedSaved.isNotEmpty) {
-        // A leitura pode chegar **depois** de o jogador já ter vencido uma
-        // fase nesta sessão. Fundir em vez de substituir preserva o resultado
-        // mais recente, pela mesma razão do `if (saved > state)` em
-        // CampaignProgress.
-        state = _merge(prunedSaved, state);
-      }
-      archivedStars = await _storage.readArchivedStars();
+      // O mesmo vale para o agregado: ele só cresce (é poda, nunca desfaz), e
+      // o lado que chegou depois não pode apagar estrelas que a memória já
+      // sabia ter arquivado.
+      archivedStars = archivedStars > loadedArchivedStars
+          ? archivedStars
+          : loadedArchivedStars;
+
+      // A marca vale para os dois lados do merge, não só para o que veio do
+      // disco: uma vitória registrada nesta sessão, na janela antes de a
+      // carga responder, pode ter pago uma fase que a marca (já atualizada
+      // acima) considera podada. Sem filtrar `state` também, essa fase
+      // indevida ficaria presa no mapa e no `totalStars` para sempre, uma vez
+      // por abertura do app.
+      final prunedSaved = Map.fromEntries(
+        saved.entries.where((entry) => entry.key > prunedBelow),
+      );
+      final prunedState = Map.fromEntries(
+        state.entries.where((entry) => entry.key > prunedBelow),
+      );
+
+      // A leitura pode chegar **depois** de o jogador já ter vencido uma fase
+      // nesta sessão. Fundir em vez de substituir preserva o resultado mais
+      // recente, pela mesma razão do `if (saved > state)` em
+      // CampaignProgress.
+      state = _merge(prunedSaved, prunedState);
     } catch (error, stack) {
       debugPrint('Falha ao ler os registros das fases: $error\n$stack');
     }
   }
+
+  /// Dispara uma releitura do disco fora do construtor.
+  ///
+  /// Só existe para o teste simular uma segunda carga (ex.: verificar que uma
+  /// marca mais antiga vinda do disco não rebaixa a que a sessão já avançou em
+  /// memória) sem precisar destruir e recriar o notifier inteiro.
+  @visibleForTesting
+  Future<void> debugReload() => _load();
 
   /// Combina dois históricos ficando com o melhor de cada fase.
   static Map<int, LevelRecord> _merge(
@@ -204,14 +228,18 @@ class CampaignRecords extends StateNotifier<Map<int, LevelRecord>> {
       prunedBelow = number;
     }
 
-    // Marca e agregado primeiro, o mapa podado depois: se só uma gravação
-    // sobreviver a uma falha de disco, que seja a que impede repagamento —
-    // mesma regra que `Wallet.claimChapterChest` já aplica (baú antes da
-    // moeda). Um mapa gravado sem a marca correspondente é inofensivo (a
-    // releitura conta certo de qualquer jeito); uma marca sem o mapa
-    // atualizado é que seria perigosa, e essa ordem evita justamente isso.
-    unawaited(_persistArchivedStars());
-    unawaited(_persistPrunedBelow());
+    // As duas gravações são encadeadas numa única `Future`, agregado primeiro
+    // e marca por último: é a marca que autoriza `_load()` a descartar do
+    // detalhe as fases já pagas, então ela só pode existir em disco depois de
+    // o agregado já estar lá. Gravar as duas em paralelo (dois `unawaited`
+    // independentes) não garante ordem nenhuma entre elas — se a marca
+    // vencesse a corrida e o agregado falhasse, a releitura descartaria do
+    // mapa fases cujas estrelas nunca chegaram a entrar no total: perda
+    // silenciosa. Um mapa gravado sem a marca correspondente é inofensivo (a
+    // releitura conta certo de qualquer jeito); é a ordem inversa que dói.
+    unawaited(
+      _persistArchivedStars().then((_) => _persistPrunedBelow()),
+    );
     return kept;
   }
 }
