@@ -8,13 +8,18 @@ Base: c446730 (camada de monetização com AdMob)
 ## Tarefas
 - [x] 1 Persistência de moedas e baús reclamados — completa (commit 4367470, revisão limpa)
 - [x] 2 Wallet (estado + notifier + provider) — completa (commit b2d7878, revisão limpa)
-- [ ] 3 Torneira: estrelas novas creditam moedas
+- [x] 3 Torneira: estrelas novas creditam moedas — completa (commit fd0bf24, revisão: 1 achado Menor)
 - [ ] 4 Ralo: comprar martelo com moedas
 - [ ] 5 Reconciliar a carteira ao voltar ao mapa
 - [ ] 6 Fechamento (analyze, suíte, CLAUDE.md)
 
 ## Achados menores (para a revisão final triar)
-Nenhum até agora.
+- Menor (rev. T3): nenhum teste exercita a **fiação** em `game_screen.dart` — os
+  4 testes da torneira compõem `record()` + `creditCoins()` fora da tela. Um erro
+  de fiação (chamada fora da guarda de transição, por exemplo) não seria pego.
+  Risco baixo: o código novo são duas linhas dentro da guarda `!won -> won` que
+  já protegia `record()`, e a regra de verdade está coberta. A revisão final
+  decide se vale um teste de widget.
 
 ## Notas de execução
 - Estado antes da branch: 641 testes passando. Depois da Task 1: 644.
