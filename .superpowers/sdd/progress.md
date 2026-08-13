@@ -13,9 +13,19 @@ Baseline: 662 testes passando, analyze limpo.
 - [x] 4 O mapa perde o "Em Breve" — completa (commit e600e8b, revisão aprovada, 1 achado Menor)
 - [x] 5 Janela deslizante + denominador do capítulo — completa (commits bd23b0d..1d886ca, revisão limpa após 1 reparo). Árvore verde de novo: 680 testes.
 - [x] 6 Poda dos registros de fase — completa (commits cb2bd9b..aae3fb2, revisão limpa após 2 reparos). 689 testes.
-- [ ] 7 Calibragem por simulação
+- [x] 7 Calibragem por simulação — completa (commits dc7332f..454d0ff, após 1 rejeição e 2 reparos)
+- [x] 8 (extra, autorizada) Onda de choque credita objetivo de cobertura — commit 5c51cf1
 
 ## Achados menores (para a revisão final triar)
+- Menor (rev. T7): `kDigitMovesPerPiece = 2.2` é quase inerte — com count 1-4 a base
+  fica abaixo de `kMinMoveLimit`, então quem decide o limite das fases de dígito é o
+  piso de 10, não o multiplicador. Documentado como tal, mas é sinal de que o eixo
+  de calibragem disponível é estreito.
+- **Dívida de fórmula (rev. T7, decisão do dono do produto: registrar, não corrigir):**
+  `digit = position.isOdd ? spawnMax + 2 : spawnMax + 1` cria dois arquétipos com
+  custo ~5x diferente. 3 em cada 10 fases são "+2"; as de contagem alta medem ~2%.
+  Nenhum multiplicador linear em `count` separa os dois — exige mexer na fórmula do
+  objetivo, o que esta branch tinha proibido.
 - Menor (re-rev. T6): `reset()` ainda dispara `_persistArchivedStars()` e
   `_persistPrunedBelow()` como dois `unawaited` independentes, sem o encadeamento
   que `_pruned()` passou a ter. Hoje `reset()` não tem chamador em `lib/` — é só
