@@ -1,8 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
+
+/// Quantas fases guardam registro detalhado.
+///
+/// A campanha não tem fim, mas a memória tem: o histórico é uma única string
+/// JSON reescrita a cada vitória, então guardar tudo tornaria cada fase vencida
+/// mais cara que a anterior, para sempre. Duzentas fases são muito mais do que
+/// o mapa mostra sem minutos de rolagem — o que se perde é detalhe que ninguém
+/// consulta, e as estrelas seguem contadas no agregado.
+const int kRecordWindow = 200;
 
 /// Estrelas e melhor placar de cada fase vencida.
 ///
@@ -19,18 +30,24 @@ class CampaignRecords extends StateNotifier<Map<int, LevelRecord>> {
 
   final GameStorage _storage;
 
+  /// Estrelas de fases já podadas. Somadas ao total, nunca ao mapa.
+  int archivedStars = 0;
+
   /// A leitura é assíncrona: o mapa abre vazio e se preenche quando o disco
   /// responde. Falha de leitura vale como "nada salvo" — perder as estrelas é
   /// ruim, travar o mapa é pior.
   Future<void> _load() async {
     try {
       final saved = await _storage.readLevelRecords();
-      if (!mounted || saved.isEmpty) return;
-
-      // A leitura pode chegar **depois** de o jogador já ter vencido uma fase
-      // nesta sessão. Fundir em vez de substituir preserva o resultado mais
-      // recente, pela mesma razão do `if (saved > state)` em CampaignProgress.
-      state = _merge(saved, state);
+      if (!mounted) return;
+      if (saved.isNotEmpty) {
+        // A leitura pode chegar **depois** de o jogador já ter vencido uma
+        // fase nesta sessão. Fundir em vez de substituir preserva o resultado
+        // mais recente, pela mesma razão do `if (saved > state)` em
+        // CampaignProgress.
+        state = _merge(saved, state);
+      }
+      archivedStars = await _storage.readArchivedStars();
     } catch (error, stack) {
       debugPrint('Falha ao ler os registros das fases: $error\n$stack');
     }
@@ -68,7 +85,7 @@ class CampaignRecords extends StateNotifier<Map<int, LevelRecord>> {
     // Nada mudou: não vale um estado novo nem uma gravação em disco.
     if (existing == merged) return 0;
 
-    state = {...state, levelNumber: merged};
+    state = _pruned({...state, levelNumber: merged});
     _persist();
     return gained;
   }
@@ -76,8 +93,9 @@ class CampaignRecords extends StateNotifier<Map<int, LevelRecord>> {
   /// Estrelas de uma fase, ou zero se ela nunca foi vencida.
   int starsFor(int levelNumber) => state[levelNumber]?.stars ?? 0;
 
-  /// Soma de todas as estrelas conquistadas.
+  /// Soma de todas as estrelas conquistadas, incluindo as das fases podadas.
   int get totalStars =>
+      archivedStars +
       state.values.fold(0, (total, record) => total + record.stars);
 
   /// Soma dos melhores placares de cada fase — a "pontuação da conta".
@@ -102,7 +120,9 @@ class CampaignRecords extends StateNotifier<Map<int, LevelRecord>> {
 
   void reset() {
     state = const {};
+    archivedStars = 0;
     _persist();
+    unawaited(_storage.writeArchivedStars(0));
   }
 
   Future<void> _persist() async {
@@ -111,6 +131,27 @@ class CampaignRecords extends StateNotifier<Map<int, LevelRecord>> {
     } catch (error, stack) {
       debugPrint('Falha ao gravar os registros das fases: $error\n$stack');
     }
+  }
+
+  /// Mantém apenas as [kRecordWindow] fases mais recentes, arquivando as
+  /// estrelas das que saem.
+  ///
+  /// Poda pelo **número da fase**, e não pela ordem de gravação: o jogador pode
+  /// rejogar uma fase antiga a qualquer momento, e nesse caso o que interessa
+  /// continua sendo onde ela está na trilha.
+  Map<int, LevelRecord> _pruned(Map<int, LevelRecord> records) {
+    if (records.length <= kRecordWindow) return records;
+
+    final ordered = records.keys.toList()..sort();
+    final dropCount = records.length - kRecordWindow;
+
+    final kept = Map.of(records);
+    for (final number in ordered.take(dropCount)) {
+      archivedStars += kept.remove(number)!.stars;
+    }
+
+    unawaited(_storage.writeArchivedStars(archivedStars));
+    return kept;
   }
 }
 

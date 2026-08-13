@@ -22,6 +22,15 @@ abstract interface class GameStorage {
   Future<Map<int, LevelRecord>> readLevelRecords();
   Future<void> writeLevelRecords(Map<int, LevelRecord> records);
 
+  /// Estrelas de fases cujo detalhe já foi podado.
+  ///
+  /// A campanha é infinita, e o histórico por fase é gravado como **uma única
+  /// string JSON** reescrita a cada vitória: sem poda, cada fase vencida
+  /// custaria uma escrita proporcional a tudo que já foi jogado. O agregado é
+  /// o que preserva a conta de estrelas quando o detalhe sai.
+  Future<int> readArchivedStars();
+  Future<void> writeArchivedStars(int stars);
+
   /// Martelos de Fusão em estoque.
   ///
   /// É inventário do **jogador**, não da fase: sobrevive a começar, perder e
@@ -53,6 +62,7 @@ class PrefsGameStorage implements GameStorage {
   static const String _campaignKey = 'campaign_progress';
   static const String _highScoreKey = 'endless_high_score';
   static const String _recordsKey = 'campaign_level_records';
+  static const String _archivedStarsKey = 'campaign_archived_stars';
   static const String _hammerKey = 'booster_hammer_count';
   static const String _coinsKey = 'wallet_coins';
   static const String _chestsKey = 'campaign_chests_claimed';
@@ -148,6 +158,17 @@ class PrefsGameStorage implements GameStorage {
       encoded,
     );
   }
+
+  @override
+  Future<int> readArchivedStars() async =>
+      (await SharedPreferences.getInstance()).getInt(_archivedStarsKey) ?? 0;
+
+  @override
+  Future<void> writeArchivedStars(int stars) async =>
+      (await SharedPreferences.getInstance()).setInt(
+        _archivedStarsKey,
+        stars,
+      );
 }
 
 /// Persistência só em memória, para testes.
@@ -157,6 +178,7 @@ class InMemoryGameStorage implements GameStorage {
     this.highScore = 0,
     this.hammerCount = 0,
     this.coins = 0,
+    this.archivedStars = 0,
     Set<int>? claimedChests,
     Map<int, LevelRecord>? levelRecords,
   }) : claimedChests = claimedChests ?? {},
@@ -166,6 +188,7 @@ class InMemoryGameStorage implements GameStorage {
   int highScore;
   int hammerCount;
   int coins;
+  int archivedStars;
   Set<int> claimedChests;
   Map<int, LevelRecord> levelRecords;
 
@@ -208,4 +231,10 @@ class InMemoryGameStorage implements GameStorage {
   @override
   Future<void> writeLevelRecords(Map<int, LevelRecord> records) async =>
       levelRecords = Map.of(records);
+
+  @override
+  Future<int> readArchivedStars() async => archivedStars;
+
+  @override
+  Future<void> writeArchivedStars(int stars) async => archivedStars = stars;
 }
