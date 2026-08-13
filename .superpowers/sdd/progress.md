@@ -8,7 +8,7 @@ Baseline: 662 testes passando, analyze limpo.
 
 ## Tarefas
 - [x] 1 LevelGenerator — completa (commit 61f4d3a, revisão limpa, 669 testes)
-- [ ] 2 levelAt + capítulos infinitos
+- [x] 2 levelAt + capítulos infinitos — completa (commit 67695a5, revisão limpa)
 - [ ] 3 A campanha deixa de ter fim
 - [ ] 4 O mapa perde o "Em Breve"
 - [ ] 5 Janela deslizante + denominador do capítulo
@@ -25,6 +25,14 @@ Baseline: 662 testes passando, analyze limpo.
 - Menor (rev. T1): o teste de recusa só cobre `n=10`; não cobre 0 nem negativo.
 
 ## Notas de execução
+- O plano errou uma conta: pedia `chapterOf(1000).number == 102`; o algoritmo do
+  próprio plano dá 101 (990 fases além do artesanal, bloco 98, 2+98+1). Implementador
+  e revisor conferiram a aritmética em separado; a asserção do teste foi corrigida
+  para 101. O plano é que estava errado, não a implementação.
+- Fallout de `kCampaignStarTotal` é maior do que o plano previa: além de
+  `level_select_screen.dart`, quebram `test/features/game/presentation/saga_map_test.dart`
+  (4 usos) e `test/l10n/english_screens_test.dart` (1 uso). **A Task 5 tem de cobrir
+  os três arquivos**, senão a árvore segue vermelha.
 - Tasks 2 e 5 deixam a árvore sem compilar entre si (remover `kCampaignStarTotal`
   quebra `level_select_screen.dart` até a Task 5). Previsto no plano.
 - Subagentes: trabalhar em primeiro plano; não disparar comandos em segundo
