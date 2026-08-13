@@ -404,17 +404,13 @@ void main() {
       expect(notifier.state.level.number, kCampaign[1].number);
     });
 
-    test('nextLevel na última fase repete a última', () {
-      notifier.startLevel(kCampaign.last);
+    // O caso "última fase artesanal abre a próxima, gerada" já é coberto por
+    // infinite_campaign_test.dart — mantê-lo aqui duplicaria o mesmo cenário.
+
+    test('nextLevel de uma fase fora da campanha avança um número', () {
       notifier.nextLevel();
 
-      expect(notifier.state.level.number, kCampaign.last.number);
-    });
-
-    test('nextLevel de uma fase fora da campanha repete a fase', () {
-      notifier.nextLevel();
-
-      expect(notifier.state.level.number, roomy.number);
+      expect(notifier.state.level.number, roomy.number + 1);
     });
   });
 
