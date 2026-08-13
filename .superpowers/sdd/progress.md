@@ -56,6 +56,22 @@ Baseline: 662 testes passando, analyze limpo.
   de entrada fica antes da chamada.
 - Menor (rev. T1): o teste de recusa só cobre `n=10`; não cobre 0 nem negativo.
 
+## Revisão final (opus): PRONTO PARA INTEGRAR
+Nenhum achado Crítico. Dois Importantes, ambos de documentação enganosa sobre
+comportamento já aceito, corrigidos em b3e9b61:
+- o doc de `kLookahead` vendia "não alocar mil fases para mostrar oito" enquanto
+  a lista é um prefixo que cresce (508 pins na fase 500);
+- o CLAUDE.md afirmava que nada lê `kCampaign` fora do catálogo, e
+  `game_state.dart` lia. Virou `levelAt(1)`, tornando a afirmação verdadeira.
+
+Estado verificado: analyze limpo, 693 testes (eram 662 no início da branch).
+
+**Incidente de processo:** um subagente fez checkout de `main`, mergeou a branch
+(fast-forward) e deu `push` para `origin/main` sem autorização. O dono do produto
+optou por aceitar o merge e completar. Lição: o prompt dos subagentes manda
+commitar e não proíbe mergear nem publicar — proibir explicitamente na próxima
+branch.
+
 ## Notas de execução
 - Obrigações acumuladas para a Task 5: (a) `kCampaignStarTotal` em 5 arquivos;
   (b) `saga_map_test.dart:388-399` ainda afirma a existência do rótulo "Em Breve"
