@@ -250,7 +250,7 @@ void main() {
         CampaignHeader(
           chapter: kChapters.first,
           totalStars: 4,
-          starTotal: kCampaignStarTotal,
+          starTotal: kChapters.first.starTotal,
         ),
       );
 

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
-import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/level_catalog.dart';
+import 'package:nine_fuse/features/game/domain/level_generator.dart';
 import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/campaign_header.dart';
@@ -16,6 +17,14 @@ import 'package:nine_fuse/l10n/app_localizations.dart';
 
 /// Quanto tempo o caminho leva para se preencher até a fase recém-liberada.
 const Duration kPathRevealDuration = Duration(milliseconds: 900);
+
+/// Quantas fases o mapa mostra à frente do progresso do jogador.
+///
+/// Mais de uma tela de pins, para a trilha nunca terminar dentro do campo de
+/// visão: o jogador precisa ver que há continuação sem precisar rolar para
+/// descobrir. Uma lista infinita não existe em memória e não precisa existir —
+/// alocar mil fases para mostrar oito seria pagar por nada.
+const int kLookahead = 8;
 
 /// Mapa da campanha: trilha de pins, cabeçalho de progresso e a ilha do
 /// Endless.
@@ -80,7 +89,7 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
       // A largura não altera a posição **vertical**, que é a única de que a
       // rolagem precisa — daí não haver problema em usar a da tela.
       width: MediaQuery.of(context).size.width,
-      levelCount: kCampaign.length,
+      levelCount: _visibleCount(progress),
     );
 
     final viewport = _scroll.position.viewportDimension;
@@ -100,13 +109,18 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
     }
   }
 
-  /// Índice da primeira fase ainda não vencida.
-  int _currentIndex(int progress) {
-    for (int i = 0; i < kCampaign.length; i++) {
-      if (kCampaign[i].number > progress) return i;
-    }
-    return kCampaign.length - 1;
+  /// Quantas fases a trilha mostra agora.
+  int _visibleCount(int progress) {
+    final wanted = progress + kLookahead;
+    return wanted < kHandcraftedLevels ? kHandcraftedLevels : wanted;
   }
+
+  /// Índice da primeira fase ainda não vencida, dentro da janela visível.
+  ///
+  /// A janela sempre começa na fase 1, então índice e número diferem por um —
+  /// não há mais busca a fazer.
+  int _currentIndex(int progress) =>
+      progress.clamp(0, _visibleCount(progress) - 1);
 
   /// Toca a animação de liberação do trecho que leva à fase recém-aberta.
   void _playReveal(int progress) {
@@ -145,7 +159,10 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
       });
     }
 
-    final chapter = chapterOf(kCampaign[_currentIndex(progress)].number);
+    final visible = [
+      for (int n = 1; n <= _visibleCount(progress); n++) levelAt(n),
+    ];
+    final chapter = chapterOf(progress + 1);
 
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
@@ -165,10 +182,15 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
               child: Column(
                 children: [
+                  // O denominador é o **capítulo**, não a campanha: sem
+                  // `length` não há total de campanha, e uma barra com
+                  // denominador infinito decairia para zero para sempre. Medir
+                  // o trecho atual devolve à barra um significado — quanto
+                  // falta para fechar este pedaço.
                   CampaignHeader(
                     chapter: chapter,
-                    totalStars: records.totalStars,
-                    starTotal: kCampaignStarTotal,
+                    totalStars: records.starsInChapter(chapter),
+                    starTotal: chapter.starTotal,
                   ),
                   const SizedBox(height: 10),
                   EndlessHighlight(
@@ -233,7 +255,7 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
                       child: AnimatedBuilder(
                         animation: _reveal,
                         builder: (context, _) => SagaMapWidget(
-                          levels: kCampaign,
+                          levels: visible,
                           progress: progress,
                           starsOf: records.starsFor,
                           revealTo: _reveal.isAnimating ? _revealTo : null,

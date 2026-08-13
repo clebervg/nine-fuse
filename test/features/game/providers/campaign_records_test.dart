@@ -252,9 +252,17 @@ void main() {
       expect(chapterOf(7).number, 2);
     });
 
-    test('uma fase fora das faixas não quebra o mapa', () {
-      // Estender a campanha sem estender os capítulos não pode lançar.
-      expect(chapterOf(999), kChapters.last);
+    // A campanha ficou infinita: uma fase além dos capítulos artesanais não
+    // pode lançar, e também não pode fingir que pertence ao último capítulo
+    // escrito à mão — isso faria o mapa anunciar "Capítulo 2" para sempre,
+    // por mais fases geradas que o jogador vencesse. `chapterOf` gera um
+    // capítulo novo, no mesmo compasso do bloco de progressão do gerador.
+    test('uma fase além dos capítulos artesanais gera um capítulo, não quebra',
+        () {
+      final chapter = chapterOf(999);
+
+      expect(chapter.number, greaterThan(kChapters.last.number));
+      expect(chapter.contains(999), isTrue);
     });
   });
 }

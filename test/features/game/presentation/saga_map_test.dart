@@ -217,7 +217,12 @@ void main() {
   });
 
   group('cabeçalho de progresso', () {
-    testWidgets('soma as estrelas de todas as fases', (tester) async {
+    // Campanha infinita não tem total (Task 2 removeu `kCampaignStarTotal`):
+    // o denominador virou o do **capítulo** atual, não mais o da campanha
+    // inteira. Progresso 2 aponta para a fase 3, dentro do capítulo 1
+    // (fases 1-6, 18 estrelas em jogo) — a soma é só das duas fases vencidas
+    // que caem nesse capítulo.
+    testWidgets('soma as estrelas do capítulo atual', (tester) async {
       storage.campaignProgress = 2;
       storage.levelRecords = {
         1: const LevelRecord(stars: 3, bestScore: 900),
@@ -225,39 +230,36 @@ void main() {
       };
       await pumpMap(tester);
 
+      final chapter = chapterOf(3);
       expect(find.byKey(totalStarsKey), findsOneWidget);
-      expect(find.text('5/$kCampaignStarTotal'), findsOneWidget);
+      expect(find.text('5/${chapter.starTotal}'), findsOneWidget);
     });
 
-    // O contador é da campanha inteira, mas fica lado a lado com o nome de um
-    // **capítulo**, que cobre só um trecho dela. Sem a legenda, "23/30" ao lado
-    // de "Capítulo 2" se lê como progresso do capítulo — que tem 4 fases e 12
-    // estrelas, não 30. Foi relato de jogador, não hipótese.
-    testWidgets('a legenda diz que o contador é da campanha', (tester) async {
+    // O denominador agora É o do capítulo — o oposto do que este teste
+    // afirmava antes da campanha virar infinita. Sem `kCampaign.length` não
+    // há total de campanha, e uma barra que tentasse medi-lo decairia para
+    // zero para sempre.
+    testWidgets('o denominador é o do capítulo, não o da campanha', (
+      tester,
+    ) async {
       storage.campaignProgress = kChapters.last.firstLevel;
       await pumpMap(tester);
 
+      final chapter = chapterOf(kChapters.last.firstLevel + 1);
       expect(find.text(l10nFor().starsCaption), findsOneWidget);
-
-      // O denominador tem de ser o da campanha, e não o do capítulo em que o
-      // jogador está: trocá-lo faria a legenda mentir.
-      expect(find.text('0/$kCampaignStarTotal'), findsOneWidget);
-      expect(
-        find.text('0/${kChapters.last.starTotal}'),
-        findsNothing,
-        reason: 'o total do capítulo não pode aparecer no contador da conta',
-      );
+      expect(find.text('0/${chapter.starTotal}'), findsOneWidget);
     });
 
-    // "23/30" lido em voz alta não diz de que é a fração — a mesma ambiguidade
+    // "5/18" lido em voz alta não diz de que é a fração — a mesma ambiguidade
     // que a legenda resolve para quem enxerga.
     testWidgets('o leitor de tela ouve de que é a fração', (tester) async {
       final semantics = tester.ensureSemantics();
       storage.levelRecords = {1: const LevelRecord(stars: 3, bestScore: 900)};
       await pumpMap(tester);
 
+      final chapter = chapterOf(1);
       expect(
-        find.bySemanticsLabel(l10nFor().starsSemantics(3, kCampaignStarTotal)),
+        find.bySemanticsLabel(l10nFor().starsSemantics(3, chapter.starTotal)),
         findsOneWidget,
       );
 
@@ -267,7 +269,8 @@ void main() {
     testWidgets('sem progresso, o placar começa zerado', (tester) async {
       await pumpMap(tester);
 
-      expect(find.text('0/$kCampaignStarTotal'), findsOneWidget);
+      final chapter = chapterOf(1);
+      expect(find.text('0/${chapter.starTotal}'), findsOneWidget);
     });
 
     // O NineFuse não tem trava de vidas nem energia. Um medidor desses no topo
@@ -371,33 +374,34 @@ void main() {
   // O mapa não pode terminar em corte seco na última fase existente: sem
   // continuidade visível, quem chega ao fim da campanha lê "acabou o jogo".
   group('continuidade da trilha', () {
-    testWidgets('a trilha segue além da última fase', (tester) async {
+    testWidgets('a trilha segue além da última fase artesanal', (
+      tester,
+    ) async {
       storage.campaignProgress = kCampaign.length;
       await pumpMap(tester);
 
-      // Todas as fases estão vencidas — nenhum cadeado vem de fase. Os que
-      // sobram na trilha são exatamente os nós projetados.
+      // Todas as dez fases artesanais estão vencidas — nenhum cadeado vem
+      // delas. A janela deslizante (Task 5) abre `kLookahead` fases GERADAS
+      // à frente do progresso; a primeira delas é a fase da vez (sem
+      // cadeado, pin "current"), e as `kLookahead - 1` seguintes são
+      // travadas de verdade, não projetadas. Some-se a isso os nós
+      // projetados de sempre, no fim da janela visível.
       expect(
         find.descendant(
           of: find.byType(SagaMapWidget),
           matching: find.byIcon(Icons.lock_outline),
         ),
-        findsNWidgets(SagaGeometry.futureNodes),
+        findsNWidgets(kLookahead - 1 + SagaGeometry.futureNodes),
       );
     });
 
-    // Três cadeados sozinhos dizem "travado", que é o que o pin de uma fase
-    // ainda fechada também diz. O rótulo é o que transforma o fim da trilha em
-    // promessa de continuação — e ele anuncia o capítulo **seguinte**, não o
-    // último existente.
-    testWidgets('o fim da trilha anuncia o capítulo seguinte', (tester) async {
-      await pumpMap(tester);
-
-      expect(
-        find.text(l10nFor().chapterComingSoon(kChapters.last.number + 1)),
-        findsOneWidget,
-      );
-    });
+    // A campanha passou a ser infinita (Task 2): não existe mais "o capítulo
+    // seguinte ao último", porque sempre há um próximo capítulo gerado. O
+    // aviso "Em Breve" foi removido de propósito, e o teste que afirmava a
+    // sua existência (`chapterComingSoon`) foi removido com ele — a API que
+    // ele chamava não existe mais em `AppLocalizations`. A cobertura do novo
+    // comportamento ("o mapa não anuncia mais fim de conteúdo") já vive em
+    // `saga_map_infinite_test.dart`.
 
     // A altura tem de contar os nós projetados, senão eles nasceriam fora da
     // área rolável e ninguém os veria.
