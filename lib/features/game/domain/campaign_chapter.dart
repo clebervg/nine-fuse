@@ -1,4 +1,4 @@
-import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/level_generator.dart';
 
 /// Um trecho nomeado da campanha.
 ///
@@ -67,13 +67,27 @@ const List<CampaignChapter> kChapters = [
 
 /// O capítulo a que [levelNumber] pertence.
 ///
-/// Nunca devolve nulo: uma fase fora de qualquer faixa cai no último capítulo,
-/// porque estender a campanha sem lembrar de estender os capítulos não pode
-/// quebrar o mapa.
-CampaignChapter chapterOf(int levelNumber) => kChapters.firstWhere(
-  (chapter) => chapter.contains(levelNumber),
-  orElse: () => kChapters.last,
-);
+/// Além do último capítulo artesanal os capítulos são **gerados**, um a cada
+/// [kBlockSize] fases, no mesmo compasso do bloco de progressão do gerador — o
+/// jogador vê o bloco virar e o capítulo virar no mesmo pin.
+///
+/// Os nomes ciclam pela lista de [ChapterName]. Nomes se repetem lá na frente,
+/// e isso é aceitável: o que não pode repetir é o **número**, que é o que dá
+/// ao jogador a medida de quanto ele atravessou.
+CampaignChapter chapterOf(int levelNumber) {
+  for (final chapter in kChapters) {
+    if (chapter.contains(levelNumber)) return chapter;
+  }
 
-/// Total de estrelas que a campanha inteira oferece.
-int get kCampaignStarTotal => kCampaign.length * kStarsPerLevel;
+  final beyond = levelNumber - kChapters.last.lastLevel;
+  final block = (beyond - 1) ~/ kBlockSize;
+  final first = kChapters.last.lastLevel + block * kBlockSize + 1;
+
+  return CampaignChapter(
+    number: kChapters.last.number + block + 1,
+    name: ChapterName.values[(block + kChapters.length) %
+        ChapterName.values.length],
+    firstLevel: first,
+    lastLevel: first + kBlockSize - 1,
+  );
+}
