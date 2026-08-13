@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
-import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
@@ -186,14 +186,9 @@ class GameNotifier extends StateNotifier<GameState>
     );
   }
 
-  /// Vai para a fase seguinte, ou repete a última se a campanha acabou.
-  void nextLevel() {
-    final index = kCampaign.indexWhere((l) => l.number == state.level.number);
-    final next = index >= 0 && index + 1 < kCampaign.length
-        ? kCampaign[index + 1]
-        : state.level;
-    startLevel(next);
-  }
+  /// Vai para a fase seguinte. Não há última fase: acima do conteúdo
+  /// artesanal, `levelAt` calcula.
+  void nextLevel() => startLevel(levelAt(state.level.number + 1));
 
   /// Tap consecutivo: o primeiro toque seleciona, o segundo em peça adjacente
   /// tenta a troca. Tocar longe move a seleção.

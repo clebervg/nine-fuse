@@ -152,9 +152,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outcomeGenericTitle => 'NOT THIS TIME';
 
   @override
-  String get outcomeCampaignFinished => 'You finished the campaign!';
-
-  @override
   String outcomeWonMessage(int moves) {
     String _temp0 = intl.Intl.pluralLogic(
       moves,
@@ -192,9 +189,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nextLevelButton => 'NEXT LEVEL';
-
-  @override
-  String get playEndlessButton => 'PLAY HIGH SCORE MODE';
 
   @override
   String get playAgainButton => 'PLAY AGAIN';

@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
-import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/features/game/domain/star_rating.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/chapter_star_progress.dart';
@@ -26,7 +25,6 @@ class LevelOutcomeCard extends StatelessWidget {
     required this.onRetry,
     required this.onNext,
     required this.onBack,
-    this.onEndless,
     this.starsInChapter,
     this.starsGained,
   });
@@ -35,9 +33,6 @@ class LevelOutcomeCard extends StatelessWidget {
   final VoidCallback onRetry;
   final VoidCallback onNext;
   final VoidCallback onBack;
-
-  /// Oferecido só ao vencer a última fase, como continuação da campanha.
-  final VoidCallback? onEndless;
 
   /// Estrelas acumuladas no capítulo desta fase, já contando esta partida, e
   /// quantas entraram agora.
@@ -49,8 +44,6 @@ class LevelOutcomeCard extends StatelessWidget {
   final int? starsGained;
 
   bool get _won => state.status == GameStatus.won;
-
-  bool get _isLastLevel => state.level.number >= kCampaign.last.number;
 
   int get _stars => starRating(
     movesLeft: state.movesLeft,
@@ -74,11 +67,7 @@ class LevelOutcomeCard extends StatelessWidget {
 
   /// Subtítulo: o que isso significa para o jogador.
   String _message(AppLocalizations l10n) {
-    if (_won) {
-      return _isLastLevel
-          ? l10n.outcomeCampaignFinished
-          : l10n.outcomeWonMessage(state.moves);
-    }
+    if (_won) return l10n.outcomeWonMessage(state.moves);
 
     return switch (state.lossReason) {
       LossReason.moveLimitReached => l10n.outcomeMovesMessage,
@@ -150,23 +139,13 @@ class LevelOutcomeCard extends StatelessWidget {
             style: const TextStyle(color: Colors.white38, fontSize: 13),
           ),
           const SizedBox(height: 18),
-          if (_won && !_isLastLevel)
+          if (_won)
             _FullWidthButton(
               key: const Key('next_level'),
               label: l10n.nextLevelButton,
               icon: Icons.arrow_forward,
               color: accent,
               onPressed: onNext,
-            )
-          // Zerar a campanha não pode terminar em nada: o Endless é a
-          // continuação natural, e a essa altura já está destravado.
-          else if (_won && _isLastLevel && onEndless != null)
-            _FullWidthButton(
-              key: const Key('go_endless'),
-              label: l10n.playEndlessButton,
-              icon: Icons.all_inclusive,
-              color: accent,
-              onPressed: onEndless!,
             )
           else
             _FullWidthButton(

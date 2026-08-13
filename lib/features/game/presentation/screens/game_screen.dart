@@ -8,7 +8,6 @@ import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/star_rating.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
 import 'package:nine_fuse/features/game/providers/wallet.dart';
-import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/apex_celebration.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/combo_banner.dart';
@@ -353,9 +352,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   onRetry: notifier.restartLevel,
                   onNext: notifier.nextLevel,
                   onBack: () => Navigator.of(context).maybePop(),
-                  onEndless: () => Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const EndlessScreen()),
-                  ),
                   starsInChapter: chapterStars,
                   starsGained: _chapterStarsGained,
                 ),

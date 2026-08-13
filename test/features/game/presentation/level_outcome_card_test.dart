@@ -50,7 +50,6 @@ void main() {
                 onRetry: () {},
                 onNext: () {},
                 onBack: () {},
-                onEndless: () {},
                 starsInChapter: starsInChapter,
                 starsGained: starsGained,
               ),
@@ -123,13 +122,14 @@ void main() {
       expect(earnedStars(tester), 2);
     });
 
-    testWidgets('a última fase oferece o Endless, não a próxima fase', (
+    // A campanha não tem última fase: vencer qualquer uma, inclusive a mais
+    // avançada do conteúdo artesanal, sempre oferece a próxima.
+    testWidgets('vencer a última fase artesanal ainda oferece a próxima', (
       tester,
     ) async {
       await pumpCard(tester, status: GameStatus.won, target: kCampaign.last);
 
-      expect(find.byKey(const Key('go_endless')), findsOneWidget);
-      expect(find.byKey(const Key('next_level')), findsNothing);
+      expect(find.byKey(const Key('next_level')), findsOneWidget);
     });
   });
 

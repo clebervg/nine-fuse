@@ -47,8 +47,6 @@
   "outcomeStuckTitle": "TABULEIRO TRAVADO",
   "outcomeGenericTitle": "NÃO FOI DESSA VEZ",
 
-  "outcomeCampaignFinished": "Você terminou a campanha!",
-
   "outcomeWonMessage": "{moves, plural, =1{Objetivo cumprido em 1 movimento.} other{Objetivo cumprido em {moves} movimentos.}}",
 
   "outcomeMovesMessage": "Faltou pouco para alcançar o objetivo!",
@@ -60,7 +58,6 @@
   "outcomeScore": "Pontos: {score}",
 
   "nextLevelButton": "PRÓXIMA FASE",
-  "playEndlessButton": "JOGAR MODO RECORDE",
   "playAgainButton": "JOGAR DE NOVO",
   "tryAgainButton": "TENTAR NOVAMENTE",
   "backToLevels": "Voltar às fases",

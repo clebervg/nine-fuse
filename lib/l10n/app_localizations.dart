@@ -266,12 +266,6 @@ abstract class AppLocalizations {
   /// **'NOT THIS TIME'**
   String get outcomeGenericTitle;
 
-  /// No description provided for @outcomeCampaignFinished.
-  ///
-  /// In en, this message translates to:
-  /// **'You finished the campaign!'**
-  String get outcomeCampaignFinished;
-
   /// No description provided for @outcomeWonMessage.
   ///
   /// In en, this message translates to:
@@ -313,12 +307,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'NEXT LEVEL'**
   String get nextLevelButton;
-
-  /// No description provided for @playEndlessButton.
-  ///
-  /// In en, this message translates to:
-  /// **'PLAY HIGH SCORE MODE'**
-  String get playEndlessButton;
 
   /// No description provided for @playAgainButton.
   ///

@@ -102,8 +102,6 @@
   "outcomeStuckTitle": "BOARD STUCK",
   "outcomeGenericTitle": "NOT THIS TIME",
 
-  "outcomeCampaignFinished": "You finished the campaign!",
-
   "outcomeWonMessage": "{moves, plural, =1{Goal reached in 1 move.} other{Goal reached in {moves} moves.}}",
   "@outcomeWonMessage": {
     "placeholders": { "moves": { "type": "int" } }
@@ -125,7 +123,6 @@
   },
 
   "nextLevelButton": "NEXT LEVEL",
-  "playEndlessButton": "PLAY HIGH SCORE MODE",
   "playAgainButton": "PLAY AGAIN",
   "tryAgainButton": "TRY AGAIN",
   "backToLevels": "Back to levels",
