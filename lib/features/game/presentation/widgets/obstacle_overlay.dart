@@ -168,6 +168,20 @@ class _ObstaclePainter extends CustomPainter {
   }
 
   /// Vidro: mais limpo que o gelo, e trincado depois do primeiro impacto.
+  ///
+  /// **A leitura "isto está coberto" vem antes da leitura "isto é liso".** O
+  /// desenho original era tão discreto (véu branco em alfa 0x73→0x40, uma
+  /// faceta a 35%) que a peça envidraçada ficava indistinguível de uma peça
+  /// **sem cobertura nenhuma** — só um leve clareado sobre a mesma moldura
+  /// colorida. Numa fase de "quebre 1 vidro" com dois gelos no tabuleiro, o
+  /// gelo é o único obstáculo que o jogador acha, e ele quebra gelo a fase
+  /// inteira sem o contador andar. O objetivo estava certo e a tela é que não
+  /// dizia onde estava o alvo.
+  ///
+  /// O remédio é dar ao vidro uma **silhueta**, não mais opacidade: o dígito
+  /// por baixo continua sendo a razão de a cobertura ser translúcida. Daí o
+  /// canto de brilho chapado e as duas facetas fortes — bordas leem como
+  /// camada por cima, véu chapado leria como peça apagada.
   void _paintGlass(Canvas canvas, Rect rect) {
     canvas.drawRect(
       rect,
@@ -175,22 +189,37 @@ class _ObstaclePainter extends CustomPainter {
         ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0x73FFFFFF), Color(0x40C9D6E0)],
+          colors: [Color(0x8CFFFFFF), Color(0x59C9D6E0)],
         ).createShader(rect),
     );
 
     final stroke = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..color = Colors.white.withValues(alpha: cracked ? 0.85 : 0.35);
+      ..strokeWidth = cracked ? 1.2 : 1.6
+      ..color = Colors.white.withValues(alpha: cracked ? 0.85 : 0.75);
 
-    // Sem dano, uma faceta só — o vidro é liso. Com dano, uma estrela de
-    // rachaduras saindo do centro: o aviso de que o próximo golpe resolve.
+    // Sem dano, o vidro é liso: duas facetas paralelas e o canto de brilho.
+    // Duas e não uma porque um traço só se confunde com o reflexo que a
+    // própria peça já tem; o par lê como painel.
     if (!cracked) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(rect.width * 0.62, 0)
+          ..lineTo(rect.width, 0)
+          ..lineTo(rect.width, rect.height * 0.42)
+          ..close(),
+        Paint()..color = Colors.white.withValues(alpha: 0.30),
+      );
+
       canvas.drawLine(
-        Offset(rect.width * 0.70, 0),
-        Offset(rect.width * 0.95, rect.height),
+        Offset(rect.width * 0.62, 0),
+        Offset(rect.width * 0.92, rect.height),
         stroke,
+      );
+      canvas.drawLine(
+        Offset(rect.width * 0.24, 0),
+        Offset(rect.width * 0.54, rect.height),
+        stroke..color = Colors.white.withValues(alpha: 0.45),
       );
       return;
     }
