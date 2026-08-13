@@ -7,7 +7,7 @@ Base: c446730 (camada de monetização com AdMob)
 
 ## Tarefas
 - [x] 1 Persistência de moedas e baús reclamados — completa (commit 4367470, revisão limpa)
-- [ ] 2 Wallet (estado + notifier + provider)
+- [x] 2 Wallet (estado + notifier + provider) — completa (commit b2d7878, revisão limpa)
 - [ ] 3 Torneira: estrelas novas creditam moedas
 - [ ] 4 Ralo: comprar martelo com moedas
 - [ ] 5 Reconciliar a carteira ao voltar ao mapa
