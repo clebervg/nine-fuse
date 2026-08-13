@@ -18,6 +18,7 @@ import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/endless_progression.dart';
 import 'package:nine_fuse/features/game/domain/fusion_rule.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/level_generator.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
@@ -753,6 +754,25 @@ void main(List<String> args) {
     print('  cobertura cai sozinha e a fase não pede nada de propósito.');
   }
 
+  if (mode == 'generated' || mode == 'both') {
+    print('');
+    print('#' * 62);
+    print('# I) FASES GERADAS   (campanha infinita)');
+    print('#' * 62);
+    print('# Taxa de vitória das fases procedurais, no limite que o');
+    print('# próprio gerador escolheu. Meta: 70-90%.');
+    print('#' * 62);
+
+    _reportGeneratedLevels(
+      games: games,
+      // Os pontos em que a curva muda de natureza: primeira fase gerada, troca
+      // de degrau de janela, saturação do dígito máximo, e o longo prazo.
+      // Sete amostras não provam mil fases; provam que a curva não descarrila
+      // onde ela muda.
+      numbers: const [11, 25, 50, 100, 250, 500, 1000],
+    );
+  }
+
   if (mode == 'explosion' || mode == 'both') {
     print('');
     print('#' * 62);
@@ -907,4 +927,71 @@ void _reportObstaclePhases({
 
     print('  ${_pad(phase.label, 24)}$cells');
   }
+}
+
+/// Taxa de vitória das fases geradas, cada uma no limite de movimentos que o
+/// gerador escolheu para ela.
+///
+/// O jogador automático é o guloso de sempre — mira a fusão de maior valor e
+/// **nunca** a cobertura. Nas fases de objetivo de cobertura o número que sai
+/// daqui é portanto um **piso**, pela mesma razão já registrada em
+/// `_reportObstaclePhases`.
+void _reportGeneratedLevels({
+  required int games,
+  required List<int> numbers,
+}) {
+  print('');
+  print('  ${_pad('fase', 8)}${_pad('objetivo', 24)}'
+      '${_padLeft('janela', 10)}${_padLeft('mov', 7)}${_padLeft('vitórias', 11)}');
+  print('  ${'-' * 60}');
+
+  for (final number in numbers) {
+    final level = generateLevel(number);
+    var wins = 0;
+
+    for (int seed = 0; seed < games; seed++) {
+      final engine = MatchEngine(
+        random: Random(seed),
+        spawnMin: level.spawnMin,
+        spawnMax: level.spawnMax,
+      );
+
+      var board = engine.generateBoard(obstacles: level.obstacles);
+
+      // `_targetOf` e `_gainOf` já existem no arquivo e já sabem tratar os três
+      // tipos de objetivo — inclusive o alvo de "limpe todas", que sai do
+      // tabuleiro sorteado e não do pedido da fase. Reusá-los é o que mantém
+      // este modo medindo a mesma coisa que os outros.
+      final target = _targetOf(level, board);
+
+      var progress = 0;
+      var moves = 0;
+
+      while (moves < level.moveLimit && progress < target) {
+        final options = _rankMoves(engine, board);
+        if (options.isEmpty) break;
+
+        final chosen = options.first;
+        final resolution = engine.resolve(
+          engine.swap(board, chosen.from, chosen.to),
+          anchor: chosen.to,
+        );
+        board = resolution.board;
+        progress += _gainOf(level, resolution);
+        moves++;
+      }
+
+      if (progress >= target) wins++;
+    }
+
+    final rate = (wins / games * 100).toStringAsFixed(0);
+    print('  ${_pad('$number', 8)}'
+        '${_pad(level.objective.debugLabel, 24)}'
+        '${_padLeft('${level.spawnMin}-${level.spawnMax}', 10)}'
+        '${_padLeft('${level.moveLimit}', 7)}'
+        '${_padLeft('$rate%', 11)}');
+  }
+
+  print('');
+  print('  Piso nas fases de cobertura: o bot nunca mira a cobertura.');
 }

@@ -32,9 +32,13 @@ const int kMaxObstacles = 7;
 /// Piso do limite de movimentos.
 ///
 /// O aperto por bloco é percentual, e percentual aplicado para sempre chega a
-/// zero. O piso é onde a curva para de apertar e a dificuldade passa a vir
-/// inteira dos outros eixos.
-const int kMinMoveLimit = 8;
+/// zero (e, em blocos bem distantes, a negativo). O piso é onde a curva para
+/// de apertar e a dificuldade passa a vir inteira dos outros eixos. Calibrado
+/// por `--mode=generated`: nas fases de dígito ele quase nunca pesa (o
+/// multiplicador de `_movesFor` já entrega um número baixo por si só), mas nas
+/// fases de "limpe tudo" de blocos muito altos (fase 500, 1000...) é ele quem
+/// impede o limite de virar zero ou negativo.
+const int kMinMoveLimit = 1;
 
 /// A fase de número [number], calculada.
 ///
@@ -175,13 +179,16 @@ ObstacleType _hardestOf(ObstacleLayout layout) {
 /// cobertura só cede a fusões encostadas nela — que o jogador não escolhe
 /// diretamente, e por isso custam mais.
 ///
-/// Os números são **provisórios** e serão fixados por
-/// `tool/simulate_economy.dart --mode=generated`.
+/// Os números foram fixados por `tool/simulate_economy.dart --mode=generated`:
+/// o multiplicador de dígito ficou bem menor que o de cobertura porque o
+/// jogador simulado (guloso, sem mirar cobertura) forma um dígito só de subir
+/// a fusão adjacente — pedir o mesmo número de movimentos por peça nos dois
+/// arquétipos faria a fase de dígito nunca reprovar ninguém.
 int _movesFor({required Objective objective, required int block}) {
-  final base = switch (objective.type) {
-    ObjectiveType.reachDigit => 15 * objective.count,
-    ObjectiveType.clearObstacles => 12 * objective.count,
-    ObjectiveType.clearAllObstacles => 30,
+  final double base = switch (objective.type) {
+    ObjectiveType.reachDigit => 1.45 * objective.count,
+    ObjectiveType.clearObstacles => 12.0 * objective.count,
+    ObjectiveType.clearAllObstacles => 30.0,
   };
 
   // Aperto de 2% por bloco: a fase encolhe devagar o bastante para o jogador

@@ -622,3 +622,122 @@ na hora de linkar.
 de 45s e a proibição na derrota), o cap de 3 martelos/dia da regra 4, o No-Ads
 Pass e o Bônus Diário VIP. O `RewardedAdService` é por unidade de anúncio
 justamente para o cap caber depois sem reescrever o funil.
+
+
+### Fase 15: Campanha Infinita (`LevelGenerator`) ✅ Concluída
+
+**`levelAt` é função, não lista.** As dez fases artesanais continuam vindo de
+`kCampaign`, mas a campanha não tem mais fim: guardar fase 11, 500, 10000 numa
+lista significaria ou gerar tudo antecipadamente (memória sem teto, para um
+jogo que não tem teto de progresso) ou paginar uma estrutura que só existe para
+ser indexada por número — o que uma função já é de graça. `levelAt(n)` devolve
+`kCampaign[n - 1]` para as dez primeiras e `generateLevel(n)` daí em diante, e é
+a única porta: nada além dela lê `kCampaign` fora de `level_catalog.dart`.
+
+**A seed determina o contrato da fase, não o tabuleiro.** `generateLevel(n)` é
+aritmética pura sobre `n` — janela de spawn, obstáculos, objetivo e limite de
+movimentos —, e nada nela sorteia uma peça. O tabuleiro continua saindo do
+`MatchEngine`, a cada tentativa, do mesmo jeito que a Fase 13 decidiu: fixar o
+grid faria repetir uma fase perdida virar decorar a solução em vez de jogar de
+novo. Uma campanha infinita que gerasse (e persistisse) o tabuleiro pela seed
+teria resolvido "infinita" trocando por "decorável" — o problema oposto ao que
+a mecânica de fusão tenta resolver.
+
+**A dificuldade não escala pelo dígito-alvo.** `kMaxDigit` é 9, e um gerador que
+tentasse "fase 500 pede o dígito 500" não teria onde pôr o número: a partir do
+terceiro bloco o dígito já satura no teto, e é aí que a variedade de
+`_objectiveFor` (corpo do bloco em dígito, as duas antes do fecho em quebra de
+cobertura, o fecho em limpeza total) assume o papel de continuar diferenciando
+fases que já pedem o mesmo pico. Os eixos que seguem crescendo são `count`
+(até `kMaxObjectiveCount`), o limite de movimentos (aperto de 2% por bloco) e a
+quantidade de cobertura (até `kMaxObstacles`) — três eixos com teto próprio,
+porque um jogo sem teto em lugar nenhum não tem onde a dificuldade parar de
+crescer e começar a *repetir*, que é o que uma campanha longa precisa fazer.
+
+**O degrau da janela de sorteio cicla a partir de 2, e nunca volta a 0 ou 1.**
+`_spawnMinFor` sobe um degrau por bloco até a janela alcançar o dígito máximo
+(`spawnMax` bate em `kMaxDigit`) e daí cicla entre os degraus de cima. Voltar
+ao degrau em que o `0` cai seria regredir uma conquista que a Fase 7 já deu ao
+jogador — a campanha longa tem de continuar difícil, nunca fingir que ele
+regrediu.
+
+**O denominador da barra de estrelas virou o capítulo, não o total da
+campanha.** Uma campanha sem fim não tem "total de estrelas possíveis" para
+dividir — o denominador só existe enquanto há um fim declarado. A legenda ao
+lado do número dizia "CAMPANHA" enquanto o número já contava dentro do
+capítulo ("6/18 CAMPANHA" ao lado de "Capítulo 1", dois escopos diferentes na
+mesma linha); virou "CAPÍTULO" nos dois idiomas, e a semântica do leitor de
+tela (`Semantics.label`) foi corrigida junto — não é só texto visível, é o que
+o VoiceOver/TalkBack anuncia.
+
+**O histórico de fases precisa de poda, e a poda quase virou farm de
+moedas.** `CampaignRecords` guarda um registro por fase jogada; sem poda, uma
+campanha infinita guarda um registro por fase **para sempre**, um vazamento de
+memória e de disco que cresce com o tempo de jogo em vez de com o conteúdo do
+jogo. A poda mantém só a soma de estrelas e descarta o detalhe das fases
+antigas — e foi aí que o bug apareceu: `record()` calcula o ganho de uma
+jogada como `merged.stars - existing.stars`, e é esse retorno que a economia
+paga. Com o detalhe da fase podado, `existing` é nulo, e o ganho contra "nada"
+é o total de novo — rejogar uma fase de capítulos atrás pagava as mesmas
+estrelas outra vez, e a poda seguinte devolvia o histórico ao estado anterior,
+fechando um ciclo infinito de moedas. A correção foi uma marca d'água,
+`prunedBelow` (a maior fase já podada): fase igual ou abaixo dela rende
+**zero**, não o total. Zero é a resposta certa ali porque o crédito daquela
+fase já foi dado quando ela foi jogada a primeira vez, antes de ser podada —
+sem o detalhe não há como calcular um ganho verdadeiro, e pagar o total de novo
+é o pior dos dois erros possíveis (o outro seria não pagar uma fase nova, que
+ao menos é visível e reclamável; pagar duas vezes é silencioso e se acumula). A
+marca nunca regride quando uma leitura assíncrona do disco chega depois de o
+saldo já ter mudado em memória — adotar um `prunedBelow` mais antigo reabriria
+a mesma janela que acabou de ser fechada.
+
+**Calibragem por `--mode=generated`, com a mesma disciplina das Fases 4 e 13:
+nunca escolher limite de movimentos a olho.** Sete amostras (fases 11, 25, 50,
+100, 250, 500, 1000) — os pontos em que a curva muda de natureza: primeira
+fase gerada, troca de degrau de janela, saturação do dígito máximo e o longo
+prazo. `_targetOf`/`_gainOf`, já usados pelo modo `efficiency`, foram
+reaproveitados em vez de reescritos, para o novo modo medir exatamente a mesma
+coisa que os outros. Resultado, com o jogador guloso de sempre:
+
+| fase | objetivo         | janela | mov | vitórias |
+|------|------------------|--------|-----|----------|
+| 11   | Crie um 7        | 3-6    | 1   | 80%      |
+| 25   | Crie 2 peças 8   | 4-7    | 2   | 80%      |
+| 50   | Limpe todo stone | 2-5    | 28  | 67%      |
+| 100  | Limpe todo stone | 3-6    | 25  | 40%      |
+| 250  | Limpe todo stone | 2-5    | 16  | 7%       |
+| 500  | Limpe todo stone | 3-6    | 1   | 0%       |
+| 1000 | Limpe todo stone | 5-8    | 1   | 0%       |
+
+As duas fases de objetivo de dígito (as únicas do lote de sete) caem em 80%,
+dentro da meta de 70-90%. As cinco de "limpe todo(a) X" ficam abaixo — **e é
+esperado, não é defeito**: o jogador automático é guloso por fusão e nunca
+mira a cobertura de propósito, então o número que sai dali é um **piso**, a
+mesma leitura que a Fase 13 já registrou para as fases candidatas de limpeza.
+Um jogador de verdade, mirando a cobertura, bate acima do que o bot mede. A
+constante que mudou foi o multiplicador de `_movesFor` para `reachDigit` — de
+`15 * count` (provisório) para `1.45 * count` —, porque medir mostrou que
+formar um dígito por cima da janela de spawn custa muito menos que quebrar uma
+cobertura: a fusão que sobe até ele é direta, e a cobertura só cede a fusões
+encostadas, que o jogador não escolhe livremente. Manter os dois arquétipos no
+mesmo multiplicador fazia toda fase de dígito aprovar 100% das vezes — um
+limite que nunca pesa é uma fase que não pede nada.
+
+**Ainda não implementado, e é uma dívida real, não uma decisão:** a "janela
+deslizante" do mapa não desliza. `_visibleCount` é `progress + kLookahead`, um
+prefixo que só cresce — na fase 500 o `build` monta 508 pins, todos os
+anteriores incluídos. É consequência direta de `_currentIndex` depender de a
+janela **começar** na fase 1 (`progress.clamp(0, _visibleCount(progress) - 1)`
+soma sobre o mesmo início); fazer a janela deslizar de verdade exige mudar essa
+conta para um início móvel, o que ficou fora do escopo desta task porque não é
+um número de calibragem — é uma mudança de fórmula, e cada pin nunca renderizado
+some da lista. Prefixo sem teto é aceitável hoje (centenas de pins ainda
+renderizam); deixa de ser aceitável na casa dos milhares.
+
+**Outra dívida registrada, fora da UI ainda:** `Wallet.claimChapterChest` paga
+200 moedas por capítulo reclamado e guarda os capítulos já pagos num `Set`
+persistido. Com capítulos infinitos isso é uma torneira sem fim (moeda por
+capítulo, para sempre) sobre um `Set` que também não tem teto. Hoje o método
+não está ligado a nenhuma tela — não é bug em produção —, mas precisa ganhar
+um teto ou um valor decrescente por capítulo antes de a Fase B do baú (ainda
+não construída) o conectar a um botão.
