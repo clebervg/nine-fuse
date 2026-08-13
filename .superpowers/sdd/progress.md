@@ -9,7 +9,7 @@ Base: c446730 (camada de monetização com AdMob)
 - [x] 1 Persistência de moedas e baús reclamados — completa (commit 4367470, revisão limpa)
 - [x] 2 Wallet (estado + notifier + provider) — completa (commit b2d7878, revisão limpa)
 - [x] 3 Torneira: estrelas novas creditam moedas — completa (commit fd0bf24, revisão: 1 achado Menor)
-- [ ] 4 Ralo: comprar martelo com moedas
+- [x] 4 Ralo: comprar martelo com moedas — completa (commit 6ff28a1, revisão: 2 achados Menores)
 - [ ] 5 Reconciliar a carteira ao voltar ao mapa
 - [ ] 6 Fechamento (analyze, suíte, CLAUDE.md)
 
@@ -30,3 +30,11 @@ Base: c446730 (camada de monetização com AdMob)
   "vou aguardar a tarefa em segundo plano" sem ter terminado. O remédio que
   funcionou foi instruir explicitamente: não disparar comandos em segundo plano
   nem criar subtarefas; trabalhar em primeiro plano.
+- Menor (rev. T4): `_buy()` checa `_waiting`, mas nunca o **liga** — só `_watch()`
+  liga. Dois toques na compra processados antes do rebuild que reavalia
+  `canAfford` debitariam duas vezes. O Flutter serializa toques em uso normal e
+  `spendCoins` é síncrono, então é risco teórico; o caso ruim seria comprar dois
+  martelos com saldo para um. Sem teste cobrindo.
+- Menor (rev. T4): não há teste isolado do `GameButton` desabilitado (que ele não
+  afunda ao toque). O efeito que importa está coberto de fora, pelo teste de
+  saldo curto.
