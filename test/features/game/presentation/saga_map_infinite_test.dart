@@ -72,8 +72,9 @@ void main() {
     );
   });
 
-  testWidgets('a tela do mapa abre com fases além da campanha artesanal',
-      (tester) async {
+  testWidgets(
+      'a tela do mapa abre sem quebrar e sem anunciar fim de conteúdo com '
+      'progresso zero', (tester) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -90,5 +91,6 @@ void main() {
     // Com progresso zero a janela ainda tem de alcançar as dez artesanais.
     expect(find.byKey(levelCardKey(10)), findsOneWidget);
     expect(find.textContaining('Em Breve'), findsNothing);
+    expect(find.textContaining('Coming Soon'), findsNothing);
   });
 }

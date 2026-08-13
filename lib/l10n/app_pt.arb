@@ -88,9 +88,9 @@
 
   "endlessCta": "Superar Recorde",
 
-  "starsCaption": "CAMPANHA",
+  "starsCaption": "CAPÍTULO",
 
-  "starsSemantics": "{earned} de {total} estrelas da campanha",
+  "starsSemantics": "{earned} de {total} estrelas do capítulo",
 
   "chapterLabel": "Capítulo {number}: {name}",
 

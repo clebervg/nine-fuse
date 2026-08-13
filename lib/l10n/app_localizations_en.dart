@@ -261,11 +261,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get endlessCta => 'Beat Record';
 
   @override
-  String get starsCaption => 'CAMPAIGN';
+  String get starsCaption => 'CHAPTER';
 
   @override
   String starsSemantics(int earned, int total) {
-    return '$earned of $total campaign stars';
+    return '$earned of $total chapter stars';
   }
 
   @override

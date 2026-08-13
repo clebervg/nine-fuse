@@ -58,13 +58,15 @@ class CampaignHeader extends StatelessWidget {
           // título de passar por baixo do contador numa tela estreita.
           Row(
             children: [
-              // A legenda "CAMPANHA" não é enfeite. O contador é da campanha
-              // inteira (30 estrelas nas 10 fases), mas fica lado a lado com o
-              // nome de um **capítulo**, que cobre só um trecho dela — e o olho
-              // lê os dois como se falassem da mesma coisa. Relato real: "de
-              // onde vem 23/30 no Capítulo 2?", sendo que o capítulo 2 tem 4
-              // fases e 12 estrelas. A palavra é justamente a que contrasta
-              // com "Capítulo" ao lado.
+              // A legenda "CAPÍTULO" não é enfeite. Numa campanha infinita não
+              // existe total de campanha — e um contador com denominador
+              // infinito decairia para zero para sempre, virando uma barra
+              // que nunca enche e não diz nada ao jogador. Por isso o número
+              // é do **capítulo atual**, que tem começo e fim: ele devolve à
+              // barra um significado de verdade ("quanto falta para fechar
+              // este trecho"), e a legenda existe para deixar isso explícito
+              // ao lado do nome do capítulo — sem ela o par "6/18" + "Capítulo
+              // 1" se leria como progresso da campanha inteira.
               _Stat(
                 key: totalStarsKey,
                 icon: Icons.star_rounded,

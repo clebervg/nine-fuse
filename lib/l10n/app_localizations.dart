@@ -440,16 +440,16 @@ abstract class AppLocalizations {
   /// **'Beat Record'**
   String get endlessCta;
 
-  /// Legenda do contador de estrelas do mapa. Existe para o número não se ler como progresso do capítulo nomeado ao lado.
+  /// Legenda do contador de estrelas do mapa. Existe para o número não se ler como progresso da campanha inteira: numa campanha infinita não há total de campanha, então o contador é sempre do capítulo atual.
   ///
   /// In en, this message translates to:
-  /// **'CAMPAIGN'**
+  /// **'CHAPTER'**
   String get starsCaption;
 
   /// No description provided for @starsSemantics.
   ///
   /// In en, this message translates to:
-  /// **'{earned} of {total} campaign stars'**
+  /// **'{earned} of {total} chapter stars'**
   String starsSemantics(int earned, int total);
 
   /// No description provided for @chapterLabel.

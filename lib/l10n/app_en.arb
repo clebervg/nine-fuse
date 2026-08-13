@@ -159,12 +159,12 @@
 
   "endlessCta": "Beat Record",
 
-  "starsCaption": "CAMPAIGN",
+  "starsCaption": "CHAPTER",
   "@starsCaption": {
-    "description": "Legenda do contador de estrelas do mapa. Existe para o número não se ler como progresso do capítulo nomeado ao lado."
+    "description": "Legenda do contador de estrelas do mapa. Existe para o número não se ler como progresso da campanha inteira: numa campanha infinita não há total de campanha, então o contador é sempre do capítulo atual."
   },
 
-  "starsSemantics": "{earned} of {total} campaign stars",
+  "starsSemantics": "{earned} of {total} chapter stars",
   "@starsSemantics": {
     "placeholders": {
       "earned": { "type": "int" },
