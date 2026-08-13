@@ -253,6 +253,15 @@
   "hammerOfferWatch": "WATCH AD",
   "hammerOfferDecline": "NOT NOW",
   "hammerOfferFailed": "No ad available right now.",
+  "hammerOfferBuy": "Buy for {price} 🪙",
+  "@hammerOfferBuy": {
+    "description": "Button that trades coins for a Fusion Hammer.",
+    "placeholders": { "price": { "type": "int" } }
+  },
+  "hammerOfferNoCoins": "Not enough coins",
+  "@hammerOfferNoCoins": {
+    "description": "Explains why the buy button is disabled."
+  },
 
   "hammerSemantics": "Fusion Hammer, {count} in stock. Smashes one cell without spending a move.",
   "@hammerSemantics": {

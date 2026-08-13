@@ -368,6 +368,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hammerOfferFailed => 'No ad available right now.';
 
   @override
+  String hammerOfferBuy(int price) {
+    return 'Buy for $price 🪙';
+  }
+
+  @override
+  String get hammerOfferNoCoins => 'Not enough coins';
+
+  @override
   String hammerSemantics(int count) {
     return 'Fusion Hammer, $count in stock. Smashes one cell without spending a move.';
   }

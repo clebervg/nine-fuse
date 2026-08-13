@@ -225,7 +225,7 @@ class GameButton extends StatefulWidget {
 
   final String label;
   final Color color;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final IconData? icon;
 
   /// Cor do texto. Por padrão sai do contraste com [color].
@@ -240,6 +240,9 @@ class GameButton extends StatefulWidget {
 
 class _GameButtonState extends State<GameButton> {
   bool _pressed = false;
+
+  /// Sem callback o botão é decorativo: não afunda e não anuncia ação.
+  bool get _enabled => widget.onPressed != null;
 
   /// Altura da aresta inferior. É ela que dá o volume — e é ela que some
   /// quando o botão é pressionado, o que o olho lê como afundar.
@@ -284,10 +287,14 @@ class _GameButtonState extends State<GameButton> {
 
     return Semantics(
       button: true,
+      enabled: _enabled,
       // Sem `label`: o `Text` de dentro já anuncia o rótulo, e repeti-lo aqui
       // faria o leitor de tela ler "CONTINUAR CONTINUAR".
       child: GestureDetector(
-        onTapDown: (_) => setState(() => _pressed = true),
+        onTapDown: (_) {
+          if (!_enabled) return;
+          setState(() => _pressed = true);
+        },
         onTapCancel: () => setState(() => _pressed = false),
         onTapUp: (_) => setState(() => _pressed = false),
         onTap: widget.onPressed,

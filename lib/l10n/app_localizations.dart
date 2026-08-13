@@ -595,6 +595,18 @@ abstract class AppLocalizations {
   /// **'No ad available right now.'**
   String get hammerOfferFailed;
 
+  /// Button that trades coins for a Fusion Hammer.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy for {price} 🪙'**
+  String hammerOfferBuy(int price);
+
+  /// Explains why the buy button is disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough coins'**
+  String get hammerOfferNoCoins;
+
   /// No description provided for @hammerSemantics.
   ///
   /// In en, this message translates to:

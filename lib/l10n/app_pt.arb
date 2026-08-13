@@ -129,6 +129,15 @@
   "hammerOfferWatch": "ASSISTIR AD",
   "hammerOfferDecline": "AGORA NÃO",
   "hammerOfferFailed": "Nenhum anúncio disponível agora.",
+  "hammerOfferBuy": "Comprar por {price} 🪙",
+  "@hammerOfferBuy": {
+    "description": "Botão que troca moedas por um Martelo de Fusão.",
+    "placeholders": { "price": { "type": "int" } }
+  },
+  "hammerOfferNoCoins": "Moedas insuficientes",
+  "@hammerOfferNoCoins": {
+    "description": "Explica por que o botão de compra está desabilitado."
+  },
 
   "hammerSemantics": "Martelo de Fusão, {count} em estoque. Quebra uma célula sem gastar movimento.",
 
