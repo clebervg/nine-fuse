@@ -10,12 +10,15 @@ Baseline: 662 testes passando, analyze limpo.
 - [x] 1 LevelGenerator — completa (commit 61f4d3a, revisão limpa, 669 testes)
 - [x] 2 levelAt + capítulos infinitos — completa (commit 67695a5, revisão limpa)
 - [x] 3 A campanha deixa de ter fim — completa (commits 0d33672..c886984, revisão limpa após 1 reparo)
-- [ ] 4 O mapa perde o "Em Breve"
+- [x] 4 O mapa perde o "Em Breve" — completa (commit e600e8b, revisão aprovada, 1 achado Menor)
 - [ ] 5 Janela deslizante + denominador do capítulo
 - [ ] 6 Poda dos registros de fase
 - [ ] 7 Calibragem por simulação
 
 ## Achados menores (para a revisão final triar)
+- Menor (rev. T4): o teste `'mostra pins além da última fase artesanal'` verifica
+  `levelCardKey(11)` e `(18)`, mas a fixture passa 18 fases reais — os índices caem
+  dentro da lista e renderizam como pin comum. O nome promete `_FuturePin`.
 - Menor (rev. T1): `ice = (2 + block % 3).clamp(1, 4)` — o `clamp` é código morto,
   `2 + block%3` já vive em [2,4]. Os clamps de `glass`/`stone` são necessários.
 - Menor (rev. T1): `generateLevel` recusa fase artesanal por `assert`, que some em
@@ -25,6 +28,11 @@ Baseline: 662 testes passando, analyze limpo.
 - Menor (rev. T1): o teste de recusa só cobre `n=10`; não cobre 0 nem negativo.
 
 ## Notas de execução
+- Obrigações acumuladas para a Task 5: (a) `kCampaignStarTotal` em 5 arquivos;
+  (b) `saga_map_test.dart:388-399` ainda afirma a existência do rótulo "Em Breve"
+  já removido; (c) o teste `'mostra pins além da última fase artesanal'` em
+  `saga_map_infinite_test.dart` promete mais do que verifica — hoje só confirma
+  pins comuns. Conferir se passa a exercitar um `_FuturePin` de verdade.
 - O plano errou uma conta: pedia `chapterOf(1000).number == 102`; o algoritmo do
   próprio plano dá 101 (990 fases além do artesanal, bloco 98, 2+98+1). Implementador
   e revisor conferiram a aritmética em separado; a asserção do teste foi corrigida
