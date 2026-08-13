@@ -11,11 +11,23 @@ Baseline: 662 testes passando, analyze limpo.
 - [x] 2 levelAt + capítulos infinitos — completa (commit 67695a5, revisão limpa)
 - [x] 3 A campanha deixa de ter fim — completa (commits 0d33672..c886984, revisão limpa após 1 reparo)
 - [x] 4 O mapa perde o "Em Breve" — completa (commit e600e8b, revisão aprovada, 1 achado Menor)
-- [ ] 5 Janela deslizante + denominador do capítulo
+- [x] 5 Janela deslizante + denominador do capítulo — completa (commits bd23b0d..1d886ca, revisão limpa após 1 reparo). Árvore verde de novo: 680 testes.
 - [ ] 6 Poda dos registros de fase
 - [ ] 7 Calibragem por simulação
 
 ## Achados menores (para a revisão final triar)
+- Menor (rev. T5): a "janela deslizante" **não desliza** — `_visibleCount` é
+  `progress + kLookahead`, um prefixo que cresce sem teto: na fase 500 o `build`
+  monta 508 pins. É o que o plano especificou (a aritmética de `_currentIndex`
+  depende de a janela começar na fase 1), mas o doc-comment vende "não alocar mil
+  fases para mostrar oito" enquanto o código faz isso a longo prazo. Precisa de
+  recorte inferior ou de um TODO honesto.
+- Menor (rev. T5): asserção `find.text('JOGAR').evaluate().isNotEmpty || ...` foge
+  do sistema de matchers (mensagem de falha vira "Expected: true") e não é
+  `descendant` do pin 11.
+- Menor (rev. T5): `_currentIndex` tem `clamp` inalcançável nas duas pontas.
+- Menor (re-rev. T5): `campaign_header.dart:150` ainda cita "CAMPANHA" como
+  exemplo dentro de um comentário sobre `excludeSemantics`.
 - Menor (rev. T4): o teste `'mostra pins além da última fase artesanal'` verifica
   `levelCardKey(11)` e `(18)`, mas a fixture passa 18 fases reais — os índices caem
   dentro da lista e renderizam como pin comum. O nome promete `_FuturePin`.
