@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
+import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 /// Chave do cartão de aquisição do martelo.
@@ -12,6 +14,9 @@ const Key hammerOfferWatchKey = Key('hammer_offer_watch');
 
 /// Chave do botão de recusa.
 const Key hammerOfferDeclineKey = Key('hammer_offer_decline');
+
+/// Chave do botão que troca moedas por martelo.
+const Key hammerOfferBuyKey = Key('hammer_offer_buy');
 
 /// Como o jogo pede um anúncio premiado, e o que ele responde.
 ///
@@ -81,9 +86,37 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
     });
   }
 
+  /// Troca moedas por um martelo.
+  ///
+  /// Debita e delega a entrega ao mesmo `onGranted` do anúncio: quem credita o
+  /// item e bate no alvo guardado é `GameNotifier.grantHammer`. Creditar aqui
+  /// também renderia dois martelos por uma compra.
+  void _buy() {
+    if (_waiting) return;
+    // Mesma trava do anúncio, pela mesma razão: um item pago não pode ser
+    // cobrado duas vezes por um deslize de dedo. Sem ligar `_waiting` aqui,
+    // dois toques processados antes do rebuild que reavalia `canAfford`
+    // debitam duas vezes — e o segundo martelo nem tem alvo, porque o
+    // primeiro golpe já limpou o `pendingHammerTarget`.
+    setState(() => _waiting = true);
+    if (!ref.read(walletProvider.notifier).spendCoins(kHammerCoinPrice)) {
+      // A trava vale só enquanto a compra está em curso. Aqui ela não
+      // aconteceu (saldo insuficiente no instante do débito, ainda que o
+      // botão tivesse nascido habilitado), então a caixa tem de voltar ao
+      // estado utilizável — senão o botão do anúncio, que também começa com
+      // `if (_waiting) return;`, morre travado junto, e sobra só a recusa.
+      setState(() => _waiting = false);
+      return;
+    }
+
+    widget.onGranted();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final wallet = ref.watch(walletProvider);
+    final canAfford = wallet.canAfford(kHammerCoinPrice);
 
     return GameDialog(
       cardKey: hammerOfferKey,
@@ -115,6 +148,26 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
             icon: Icons.play_circle_fill_rounded,
             onPressed: _watch,
           ),
+          const SizedBox(height: 10),
+          GameButton(
+            key: hammerOfferBuyKey,
+            label: l10n.hammerOfferBuy(kHammerCoinPrice),
+            color: canAfford ? AppColors.digit3 : AppColors.darkSurface,
+            foreground: canAfford ? Colors.black : Colors.white38,
+            icon: Icons.shopping_bag_rounded,
+            // Nulo desabilita o botão, e é o que o teste de saldo curto afirma:
+            // um botão que aceita o toque e não faz nada é pior do que um
+            // botão apagado, porque o jogador não sabe se falhou ou foi cobrado.
+            onPressed: canAfford ? _buy : null,
+          ),
+          if (!canAfford) ...[
+            const SizedBox(height: 6),
+            Text(
+              l10n.hammerOfferNoCoins,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white38, fontSize: 12),
+            ),
+          ],
           const SizedBox(height: 10),
           GameButton(
             key: hammerOfferDeclineKey,

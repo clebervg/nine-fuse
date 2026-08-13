@@ -3,9 +3,11 @@ import 'package:nine_fuse/core/ads/ad_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/star_rating.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
+import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/apex_celebration.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
@@ -133,6 +135,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ),
               score: next.score,
             );
+
+        // A torneira da economia. Paga pelo ganho, e não pelas estrelas da
+        // partida: `record()` já descontou as que o jogador tinha, então
+        // rejogar a fase 1 em looping rende zero e nenhuma regra anti-farm
+        // precisa existir.
+        ref
+            .read(walletProvider.notifier)
+            .creditCoins(_chapterStarsGained * kCoinsPerStar);
       }
 
       // Toda partida que começa mostra o cartão de novo — inclusive ao tentar

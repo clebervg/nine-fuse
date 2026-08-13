@@ -29,6 +29,21 @@ abstract interface class GameStorage {
   /// dinheiro tirado de quem pagou.
   Future<int> readHammerCount();
   Future<void> writeHammerCount(int count);
+
+  /// Moedas em carteira.
+  ///
+  /// Como o martelo, é do **jogador** e não da fase. Diferente dele, nenhuma
+  /// regra de partida a consome: quem gasta é o convite de aquisição.
+  Future<int> readCoins();
+  Future<void> writeCoins(int coins);
+
+  /// Números dos capítulos cujo baú já foi reclamado.
+  ///
+  /// Guardar quem **já pagou** é o que impede o baú de repagar a cada visita ao
+  /// mapa. É um conjunto, e não um contador, porque capítulos podem ser
+  /// fechados fora de ordem quando a campanha crescer.
+  Future<Set<int>> readClaimedChests();
+  Future<void> writeClaimedChests(Set<int> chapters);
 }
 
 /// Persistência real, no armazenamento do dispositivo.
@@ -39,6 +54,8 @@ class PrefsGameStorage implements GameStorage {
   static const String _highScoreKey = 'endless_high_score';
   static const String _recordsKey = 'campaign_level_records';
   static const String _hammerKey = 'booster_hammer_count';
+  static const String _coinsKey = 'wallet_coins';
+  static const String _chestsKey = 'campaign_chests_claimed';
 
   @override
   Future<int> readCampaignProgress() async =>
@@ -63,6 +80,34 @@ class PrefsGameStorage implements GameStorage {
   @override
   Future<void> writeHammerCount(int count) async =>
       (await SharedPreferences.getInstance()).setInt(_hammerKey, count);
+
+  @override
+  Future<int> readCoins() async =>
+      (await SharedPreferences.getInstance()).getInt(_coinsKey) ?? 0;
+
+  @override
+  Future<void> writeCoins(int coins) async =>
+      (await SharedPreferences.getInstance()).setInt(_coinsKey, coins);
+
+  /// Os baús vão como lista de strings porque é o que o `SharedPreferences`
+  /// oferece de coleção. A conversão para `Set<int>` acontece aqui, para o
+  /// resto do app nunca ver o formato do disco.
+  @override
+  Future<Set<int>> readClaimedChests() async {
+    final raw = (await SharedPreferences.getInstance()).getStringList(
+      _chestsKey,
+    );
+    if (raw == null) return const {};
+
+    return raw.map(int.tryParse).whereType<int>().toSet();
+  }
+
+  @override
+  Future<void> writeClaimedChests(Set<int> chapters) async =>
+      (await SharedPreferences.getInstance()).setStringList(
+        _chestsKey,
+        chapters.map((chapter) => '$chapter').toList(),
+      );
 
   /// Os registros vão num único JSON, e não numa chave por fase.
   ///
@@ -111,12 +156,17 @@ class InMemoryGameStorage implements GameStorage {
     this.campaignProgress = 0,
     this.highScore = 0,
     this.hammerCount = 0,
+    this.coins = 0,
+    Set<int>? claimedChests,
     Map<int, LevelRecord>? levelRecords,
-  }) : levelRecords = levelRecords ?? {};
+  }) : claimedChests = claimedChests ?? {},
+       levelRecords = levelRecords ?? {};
 
   int campaignProgress;
   int highScore;
   int hammerCount;
+  int coins;
+  Set<int> claimedChests;
   Map<int, LevelRecord> levelRecords;
 
   @override
@@ -137,6 +187,19 @@ class InMemoryGameStorage implements GameStorage {
 
   @override
   Future<void> writeHammerCount(int count) async => hammerCount = count;
+
+  @override
+  Future<int> readCoins() async => coins;
+
+  @override
+  Future<void> writeCoins(int value) async => coins = value;
+
+  @override
+  Future<Set<int>> readClaimedChests() async => Set.of(claimedChests);
+
+  @override
+  Future<void> writeClaimedChests(Set<int> chapters) async =>
+      claimedChests = Set.of(chapters);
 
   @override
   Future<Map<int, LevelRecord>> readLevelRecords() async =>

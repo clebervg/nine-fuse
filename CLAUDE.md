@@ -293,6 +293,78 @@ peças escorriam para fora da própria moldura. Só não aparecia porque em celu
 `_originX` é zero. Corrigido, com teste de regressão em tela larga.
 
 
+### Economia de Moedas ✅ Concluída
+
+**Só estrela nova paga, e isso dispensa qualquer regra anti-farm.**
+`CampaignRecords.record()` já devolve o ganho com as estrelas que o jogador
+tinha descontadas — é a conta que decide se a fase progrediu, e ela já existia
+antes da moeda. Rejogar a fase 1 em looping rende zero porque não há estrela
+nova para render, não porque alguém escreveu uma trava contra isso. Inventar uma
+regra própria de anti-farm teria sido duplicar uma invariante que o jogo já
+garantia por outro motivo.
+
+**A carteira existe apesar de o martelo morar no `GameState`.** O mapa da saga
+roda fora de qualquer partida — não há `GameState` de onde ler saldo entre uma
+fase e outra, como há para o martelo. O disco continua sendo a autoridade
+única (o mesmo remédio de `EndlessHighScore.refresh`); o `Wallet` é só o rosto
+dele para as telas de fora da partida. Dentro da fase, nada mudou: o
+`GameNotifier` segue sendo quem decide o que a jogada vale.
+
+**O `refresh` conserta o martelo, não a moeda.** A moeda é creditada direto no
+`walletProvider`, que o mapa observa — chega em memória sozinha, sem
+intermediário. O martelo é gasto por `HammerBooster`, que escreve só no disco;
+por isso ele é quem precisa da releitura explícita ao voltar para uma tela viva.
+São dois caminhos diferentes porque são dois donos de estado diferentes, e
+tratar os dois com o mesmo remédio teria sido copiar a solução sem copiar o
+problema.
+
+**`spendCoins` não credita o item — quem credita é `grantHammer`.** A compra
+debita a carteira e dispara o mesmo `onGranted` que o anúncio recompensado já
+usa; é `HammerOfferDialog` quem chama `grantHammer` depois, no alvo já guardado
+pelo Modo Fantasma. Se `spendCoins` também creditasse o martelo, uma compra
+feita pelo caminho de anúncio-com-moeda-de-troco daria dois martelos por um
+pagamento só. Separar em "paga" e "credita" é o que deixa os dois funis —
+anúncio e moeda — convergirem no mesmo `onGranted` sem se pisarem.
+
+**O baú guarda quem já pagou** (`campaign_chests_claimed`), porque sem isso o
+mapa repagaria o mesmo baú a cada visita — abrir o mapa de novo não é reabrir o
+capítulo. É um baú por capítulo, e por decisão de sequenciamento a UI dele
+pertence à fase seguinte: mostrar o baú é trabalho de tela, e a Fase A entrega a
+regra, não o nó visual.
+
+**`GameButton.onPressed` virou anulável** para o botão de compra do
+`HammerOfferDialog` poder ficar desabilitado quando o saldo não cobre o preço.
+Só `onTapDown` checa o callback antes de animar (`if (!_enabled) return;`); com
+`_pressed` já falso nesse caminho, `onTapUp` e `onTapCancel` são no-op — não
+precisam da mesma checagem. Um botão que afunda ao toque promete uma ação que
+não vem quando falta moeda, e essa promessa quebrada é pior do que o botão
+simplesmente não reagir.
+
+**Os números são um piso a calibrar, não um veredito.** `kCoinsPerStar = 10`,
+`kHammerCoinPrice = 100` e `kChapterChestReward = 200` (`domain/economy.dart`)
+dão à campanha inteira em três estrelas 300 moedas, mais 200 por baú — o
+suficiente para comprar um martelo antes do fim, não para nadar neles. O
+anúncio recompensado segue como caminho principal de aquisição do martelo; a
+moeda é o consolo de quem prefere não assistir.
+
+**Ainda não implementado, e é decisão explícita:** a UI da economia — barra de
+recursos no mapa, pílula do Endless, nó do baú — é a Fase B, com plano próprio;
+a Fase A entrega a economia funcionando e testada, sem nada de novo na tela além
+do botão de compra. O cap de 3 martelos/dia da regra de AdMob continua fora,
+como já estava.
+
+**O spec pedia `refreshHammers` reconciliando contra o `Wallet`; ficou lendo o
+disco direto, e é desvio deliberado.** `HammerBooster.refreshHammers` continua
+chamando `readHammerCount()` na fonte, sem passar pelo provider. Não há como os
+dois divergirem: o disco é a autoridade única, e `HammerBooster` é o único
+escritor de martelo — reconciliar contra o `Wallet` seria comparar duas leituras
+do mesmo dado, nunca corrigir uma divergência real. Fazer o booster depender do
+`Wallet` acoplaria uma regra de partida (que roda em Dart puro, testável sem
+Riverpod) a um `StateNotifierProvider` só para reler um número que já lê direto
+— trocaria uma leitura simples por uma dependência circular de camada sem
+ganhar nada em troca.
+
+
 ### Regras de Monetização & Exibição de Anúncios (AdMob)
 1. **Preload Obrigatorio:** Anúncios Recompensados e Intersticiais devem ser carregados no início do nível (`LevelStart`).
 2. **Anti-Churn de Derrota:** Intersticiais são proibidos em telas de Game Over/Derrota. Permitidos apenas pós-vitória ou na saída para o Mapa (respeitando intervalo mínimo de 45s de jogo).

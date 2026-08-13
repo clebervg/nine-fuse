@@ -11,6 +11,7 @@ import 'package:nine_fuse/features/game/presentation/widgets/saga_map.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
+import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 /// Quanto tempo o caminho leva para se preencher até a fase recém-liberada.
@@ -49,6 +50,10 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
       // A sessão de Endless que acabou de terminar pode ter batido o recorde,
       // e quem gravou foi o outro notifier.
       ref.read(endlessHighScoreProvider.notifier).refresh();
+      // O mapa fica fora de cena enquanto a fase roda, e a fase gasta e ganha
+      // martelo escrevendo direto no disco. Sem reler, a barra de recursos
+      // mostraria o saldo de antes da partida.
+      ref.read(walletProvider.notifier).refresh();
       _centerOnCurrentLevel(animated: false);
     });
   }
@@ -181,6 +186,9 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
                             ref
                                 .read(endlessHighScoreProvider.notifier)
                                 .refresh();
+                            // A corrida do Endless também gasta e ganha
+                            // martelo, gravado direto no disco.
+                            ref.read(walletProvider.notifier).refresh();
                           }
                         }),
                   ),
@@ -251,7 +259,10 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
         .push(MaterialPageRoute(builder: (_) => GameScreen(level: level)))
         .then((_) {
           // Ao voltar, reposiciona o mapa na fase da vez — que pode ser outra.
-          if (mounted) _centerOnCurrentLevel();
+          if (!mounted) return;
+          _centerOnCurrentLevel();
+          // A fase pode ter gasto martelo e ganho moeda por estrela nova.
+          ref.read(walletProvider.notifier).refresh();
         });
   }
 }
