@@ -9,7 +9,7 @@ Baseline: 662 testes passando, analyze limpo.
 ## Tarefas
 - [x] 1 LevelGenerator — completa (commit 61f4d3a, revisão limpa, 669 testes)
 - [x] 2 levelAt + capítulos infinitos — completa (commit 67695a5, revisão limpa)
-- [ ] 3 A campanha deixa de ter fim
+- [x] 3 A campanha deixa de ter fim — completa (commits 0d33672..c886984, revisão limpa após 1 reparo)
 - [ ] 4 O mapa perde o "Em Breve"
 - [ ] 5 Janela deslizante + denominador do capítulo
 - [ ] 6 Poda dos registros de fase
@@ -37,6 +37,14 @@ Baseline: 662 testes passando, analyze limpo.
   quebra `level_select_screen.dart` até a Task 5). Previsto no plano.
 - Subagentes: trabalhar em primeiro plano; não disparar comandos em segundo
   plano nem criar subtarefas (lição da branch anterior).
+
+- A Task 3 deixou dois testes antigos de `game_notifier_test.dart` vermelhos (eles
+  afirmavam "nextLevel repete a última fase") e o relatório do implementador afirmou
+  que a árvore só estava vermelha pelo `kCampaignStarTotal` — não estava. Reparo em
+  c886984: um teste removido por redundância real com `infinite_campaign_test.dart`
+  (verificada por álgebra: `levelAt(10) == kCampaign.last`), o outro reescrito.
+  Lição: pedir ao implementador a lista de arquivos de teste que **mencionam** o
+  comportamento removido, não só os que ele tocou.
 
 ## Dívida registrada, fora desta branch
 - **Baú de capítulo vira torneira infinita.** `Wallet.claimChapterChest` paga
