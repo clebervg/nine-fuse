@@ -692,36 +692,102 @@ saldo já ter mudado em memória — adotar um `prunedBelow` mais antigo reabrir
 a mesma janela que acabou de ser fechada.
 
 **Calibragem por `--mode=generated`, com a mesma disciplina das Fases 4 e 13:
-nunca escolher limite de movimentos a olho.** Sete amostras (fases 11, 25, 50,
-100, 250, 500, 1000) — os pontos em que a curva muda de natureza: primeira
-fase gerada, troca de degrau de janela, saturação do dígito máximo e o longo
-prazo. `_targetOf`/`_gainOf`, já usados pelo modo `efficiency`, foram
-reaproveitados em vez de reescritos, para o novo modo medir exatamente a mesma
-coisa que os outros. Resultado, com o jogador guloso de sempre:
+nunca escolher limite de movimentos a olho.** Onze amostras cobrindo os **três**
+arquétipos de objetivo em bloco baixo, médio e alto. `_targetOf`/`_gainOf`, já
+usados pelo modo `efficiency`, foram reaproveitados em vez de reescritos, para o
+novo modo medir exatamente a mesma coisa que os outros — e a conferência contra
+`GameNotifier._gainedThisMove` confirmou que medem: dígito só conta se **nasceu
+de fusão**, cobertura só conta se **quebrou**. Resultado, com o jogador guloso de
+sempre, 200 partidas por linha:
 
 | fase | objetivo         | janela | mov | vitórias |
 |------|------------------|--------|-----|----------|
-| 11   | Crie um 7        | 3-6    | 1   | 80%      |
-| 25   | Crie 2 peças 8   | 4-7    | 2   | 80%      |
-| 50   | Limpe todo stone | 2-5    | 28  | 67%      |
-| 100  | Limpe todo stone | 3-6    | 25  | 40%      |
-| 250  | Limpe todo stone | 2-5    | 16  | 7%       |
-| 500  | Limpe todo stone | 3-6    | 1   | 0%       |
-| 1000 | Limpe todo stone | 5-8    | 1   | 0%       |
+| 14   | Crie um 8        | 3-6    | 10  | 84%      |
+| 22   | Crie 2 peças 9   | 4-7    | 10  | 40%      |
+| 103  | Crie 6 peças 8   | 4-7    | 10  | 93%      |
+| 253  | Crie 6 peças 7   | 3-6    | 10  | 90%      |
+| 1003 | Crie 6 peças 6   | 2-5    | 10  | 90%      |
+| 18   | Quebre 1 glass   | 3-6    | 12  | 66%      |
+| 108  | Quebre 2 stone   | 4-7    | 19  | 41%      |
+| 1008 | Quebre 2 stone   | 2-5    | 18  | 31%      |
+| 20   | Limpe todo glass | 3-6    | 30  | 83%      |
+| 100  | Limpe todo stone | 3-6    | 25  | 44%      |
+| 1000 | Limpe todo stone | 5-8    | 22  | 16%      |
 
-As duas fases de objetivo de dígito (as únicas do lote de sete) caem em 80%,
-dentro da meta de 70-90%. As cinco de "limpe todo(a) X" ficam abaixo — **e é
-esperado, não é defeito**: o jogador automático é guloso por fusão e nunca
-mira a cobertura de propósito, então o número que sai dali é um **piso**, a
-mesma leitura que a Fase 13 já registrou para as fases candidatas de limpeza.
-Um jogador de verdade, mirando a cobertura, bate acima do que o bot mede. A
-constante que mudou foi o multiplicador de `_movesFor` para `reachDigit` — de
-`15 * count` (provisório) para `1.45 * count` —, porque medir mostrou que
-formar um dígito por cima da janela de spawn custa muito menos que quebrar uma
-cobertura: a fusão que sobe até ele é direta, e a cobertura só cede a fusões
-encostadas, que o jogador não escolhe livremente. Manter os dois arquétipos no
-mesmo multiplicador fazia toda fase de dígito aprovar 100% das vezes — um
-limite que nunca pesa é uma fase que não pede nada.
+As de cobertura ficam abaixo da faixa, **e é esperado, não é defeito**: o
+jogador automático é guloso por fusão e nunca mira a cobertura de propósito,
+então o número que sai dali é um **piso**, a mesma leitura que a Fase 13 já
+registrou. Um jogador de verdade, mirando a cobertura, bate acima disso.
+
+**A amostra anterior era cega, e isso mascarou os dois defeitos abaixo.** As
+sete fases medidas (11, 25, 50, 100, 250, 500, 1000) tinham cinco caindo na
+posição 9 do bloco — o fecho "limpe tudo". Cinco das sete linhas mediam o mesmo
+arquétipo, nenhuma media "quebre N coberturas", e as fases de dígito apareciam
+só nos dois blocos mais baixos. Quem escolhe o arquétipo é a **posição dentro do
+bloco**, não o número da fase; amostrar por "números redondos" amostra a posição
+9 quase toda vez. A amostra nova é escolhida por posição.
+
+**O aperto por bloco não tinha teto, e um percentual aplicado para sempre não
+converge — cruza zero.** `1 - 0.02 * bloco` fica negativo por volta do bloco 50
+(fase ~510): as fases 500 e 1000 saíam com **um** movimento e 0% de vitória. Uma
+campanha infinita cujas fases distantes são matematicamente invencíveis é pior
+do que a tela "Em Breve" que este trabalho veio eliminar. O aperto passou a ter
+piso (`kTighteningFloor = 0.75`): ele **assintota** em um quarto a menos e nunca
+colapsa. Um quarto porque, do bloco 12 em diante, a dificuldade já tem outros
+eixos para crescer — a contagem do objetivo sobe até `kMaxObjectiveCount`, a
+cobertura endurece até a pedra, e a janela cicla. O limite de movimentos é o
+eixo que para; os outros continuam.
+
+**Deformar a fórmula até a métrica ceder não é calibrar.** A entrega anterior
+levou `reachDigit` de `15 * count` para `1.45 * count` e derrubou
+`kMinMoveLimit` de 8 para **1**, e com isso a tabela "passou": "crie um 7" com
+um movimento marcava 80%. O número era verdadeiro — e a fase, inexistente. Com
+um movimento o primeiro tabuleiro decide tudo e o jogador não chega a jogar.
+Repostos: `kDigitMovesPerPiece = 2.2` e `kMinMoveLimit = 10`, que é um piso de
+**projeto** e não uma válvula aritmética (quem impede o zero agora é o teto do
+aperto). Dez é a ordem das primeiras fases artesanais (6, 10, 10), as mais
+curtas que o jogo já se permitiu.
+
+**A medição estava certa, e foi preciso prová-lo antes de mexer em constante.**
+"Crie um 7 em 1 movimento = 80%" parecia erro de régua. Não era: em 27 de 30
+tabuleiros o guloso já forma o 7 na **primeira** troca. A causa é estrutural e
+vale registrar, porque governa toda a calibragem das fases de dígito — o gerador
+prende o alvo em `spawnMax + 1`, ou seja, sempre a **uma** fusão da janela, e a
+janela tem só quatro dígitos distintos, então uma combinação do topo quase
+sempre existe. É o oposto da campanha artesanal, em que a fase 8 pede um 7 sobre
+uma janela 1-4 (três fusões acima) e gasta 45 movimentos para chegar a 90%. A
+mesma frase de objetivo, dois jogos diferentes.
+
+**O `+2` das posições ímpares é o arquétipo fora de faixa, e é dívida de
+fórmula.** `digit = position.isOdd ? spawnMax + 2 : spawnMax + 1` faz o custo
+saltar cerca de 5x, e nenhum multiplicador linear em `count` cobre os dois: as
+fases `+1` saturam em 100% a partir de 12 movimentos, e as `+2` de contagem alta
+precisam de 40+ para sair de 2%. A fase 22 na tabela é essa metade dura (40%, o
+piso da regra); as fases `+2` de contagem 6 continuam abaixo dela. Consertar
+isso é mexer na **fórmula do objetivo**, que esta task não podia tocar — fica
+registrado como o próximo eixo a mexer, e não como calibragem pendente.
+
+**As fases de dígito `+1` com contagem baixa são 100% em qualquer limite
+jogável, e por isso não estão na amostra.** A fase 11 ("crie um 7", uma peça, uma
+fusão acima da janela) marca 87% com um movimento e 100% a partir de três.
+Nenhum limite defensável a tira de 100%. Ela é o degrau de entrada do bloco, o
+análogo das fases 1 e 2 artesanais — que também marcam 100% na tabela da
+campanha. Está fora da amostra porque uma linha em 100% não informa nada sobre
+o limite; está registrada aqui porque fingir que não existe informaria menos.
+
+**A onda de choque do dígito máximo destrói cobertura sem creditar o objetivo —
+e isso é bug do jogo, não do simulador.** `Resolution.countCleared` conta
+`ObstacleHit`, e `ObstacleHit` só nasce de `_damageObstacles`, o dano por fusão
+**adjacente**. O estouro do 9 varre a célula coberta por inteiro (é o que a Fase
+13 registrou como efeito colateral desejado), mas não emite hit nenhum: a pedra
+some da tela e o contador do objetivo não anda. O sintoma foi a janela 5-8, onde
+toda fusão de topo vira um 9 e estoura — "limpe todas as pedras" com três pedras
+media **0%** em qualquer limite de movimentos, inclusive 90. Como a fórmula do
+objetivo estava fora de escopo, o remédio possível foi baixar o teto da pedra de
+3 para 2 (`_obstaclesFor`), o que tira a fase de 0% e a põe em 16%. **O conserto
+de verdade é emitir `ObstacleHit` para a cobertura varrida pelo estouro**, e ele
+melhora o jogo inteiro, não só as fases geradas: hoje um jogador que planeja o
+clímax do 9 sobre a pedra é punido por isso.
 
 **Ainda não implementado, e é uma dívida real, não uma decisão:** a "janela
 deslizante" do mapa não desliza. `_visibleCount` é `progress + kLookahead`, um

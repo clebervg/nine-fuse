@@ -31,14 +31,61 @@ const int kMaxObstacles = 7;
 
 /// Piso do limite de movimentos.
 ///
-/// O aperto por bloco é percentual, e percentual aplicado para sempre chega a
-/// zero (e, em blocos bem distantes, a negativo). O piso é onde a curva para
-/// de apertar e a dificuldade passa a vir inteira dos outros eixos. Calibrado
-/// por `--mode=generated`: nas fases de dígito ele quase nunca pesa (o
-/// multiplicador de `_movesFor` já entrega um número baixo por si só), mas nas
-/// fases de "limpe tudo" de blocos muito altos (fase 500, 1000...) é ele quem
-/// impede o limite de virar zero ou negativo.
-const int kMinMoveLimit = 1;
+/// Não é uma válvula de segurança aritmética — quem impede o aperto de chegar
+/// a zero é [kTighteningFloor]. É um piso de **projeto**: abaixo de dez
+/// movimentos a fase deixa de ser um plano e vira um sorteio, porque o primeiro
+/// tabuleiro decide tudo. Uma fase de "crie um 7" com um movimento não é uma
+/// fase difícil, é uma fase que não existe — o jogador não chega a jogar.
+///
+/// Dez também é a ordem de grandeza das primeiras fases artesanais (6, 10, 10),
+/// que são as mais curtas que o jogo já se permitiu.
+const int kMinMoveLimit = 10;
+
+/// Quantos movimentos vale cada peça pedida num objetivo de dígito.
+///
+/// O jogador simulado (guloso, e que enumera todas as trocas) forma a peça-alvo
+/// em pouco mais de um movimento, porque o gerador prende o dígito-alvo logo
+/// acima da janela de sorteio: `spawnMax + 1` está sempre a **uma** fusão de
+/// distância. Três movimentos por peça é o dobro largo dessa mediana — a mesma
+/// folga que a campanha artesanal se deu (fase 1 pede uma fusão e dá seis
+/// movimentos) — e é o que `--mode=generated` mostra pousando na faixa nas
+/// fases de contagem alta, que são a esmagadora maioria de uma campanha
+/// infinita.
+const double kDigitMovesPerPiece = 2.2;
+
+/// Quantos movimentos vale cada cobertura pedida.
+///
+/// Muito maior que o de dígito porque o jogador não escolhe quebrar uma
+/// cobertura: ela só cede a fusões que nasçam encostadas nela, e o bot guloso
+/// nunca mira. É o mesmo motivo pelo qual a taxa de vitória dessas fases é lida
+/// como piso, e não como nota.
+const double kObstacleMovesPerUnit = 12.0;
+
+/// Movimentos de uma fase de "limpe tudo".
+///
+/// Fixo, e não proporcional, porque o alvo real sai do tabuleiro sorteado e não
+/// do pedido da fase — `placeObstacles` descarta a cobertura que não acha
+/// lugar, então multiplicar pelo pedido daria movimentos por uma cobertura que
+/// pode não estar lá.
+const double kClearAllMoves = 30.0;
+
+/// Quanto o limite de movimentos encolhe a cada bloco.
+const double kTighteningPerBlock = 0.02;
+
+/// Teto do aperto por bloco: o limite nunca cai abaixo desta fração da base.
+///
+/// Sem teto, `1 - 0.02 * bloco` cruza zero por volta do bloco 50 (fase ~510) e
+/// **vira negativo**: as fases distantes desabavam no piso e saíam com 0% de
+/// vitória. Uma campanha infinita cujas fases distantes são matematicamente
+/// invencíveis é pior do que não ter fase nenhuma ali.
+///
+/// 0,75 — um quarto a menos, e nada além disso — porque a partir do bloco 12 a
+/// dificuldade já tem para onde crescer sem o limite: a contagem do objetivo
+/// sobe até [kMaxObjectiveCount], a cobertura endurece até a pedra, e a janela
+/// cicla. O aperto do limite é o eixo que **assintota**; os outros continuam.
+/// Apertar mais do que isso só transferiria a dificuldade para o único lugar
+/// onde ela não é lida como desafio, e sim como bug: o tabuleiro inicial.
+const double kTighteningFloor = 0.75;
 
 /// A fase de número [number], calculada.
 ///
@@ -151,7 +198,15 @@ Objective _objectiveFor({
 ObstacleLayout _obstaclesFor(int block) {
   final ice = (2 + block % 3).clamp(1, 4);
   final glass = (1 + block ~/ 2).clamp(1, 3);
-  final stone = (block ~/ 3).clamp(0, 3);
+  // O teto da pedra é 2, e não 3, porque a pedra é a única cobertura cujo custo
+  // não escala com o limite de movimentos. Três pedras custam nove fusões
+  // nascidas encostadas nelas, e a saída rápida — a onda de choque do dígito
+  // máximo, que varre a célula coberta inteira — **não credita o objetivo**:
+  // `Resolution.countCleared` só conta `ObstacleHit`, que nasce do dano por
+  // fusão adjacente, nunca do estouro. Na janela 5-8, onde toda fusão de topo
+  // vira um 9 e estoura, "limpe todas as pedras" com três pedras media 0% de
+  // vitória em qualquer limite de movimentos — fase quebrada, não difícil.
+  final stone = (block ~/ 3).clamp(0, 2);
 
   // O teto é do tabuleiro, não do desenho: o excesso é aparado da cobertura
   // mais macia, que é a que menos muda o que a fase pede.
@@ -179,20 +234,25 @@ ObstacleType _hardestOf(ObstacleLayout layout) {
 /// cobertura só cede a fusões encostadas nela — que o jogador não escolhe
 /// diretamente, e por isso custam mais.
 ///
-/// Os números foram fixados por `tool/simulate_economy.dart --mode=generated`:
-/// o multiplicador de dígito ficou bem menor que o de cobertura porque o
-/// jogador simulado (guloso, sem mirar cobertura) forma um dígito só de subir
-/// a fusão adjacente — pedir o mesmo número de movimentos por peça nos dois
-/// arquétipos faria a fase de dígito nunca reprovar ninguém.
+/// Os três multiplicadores foram fixados por `tool/simulate_economy.dart
+/// --mode=generated`, e cada um tem o seu porquê registrado na sua própria
+/// constante. O que **não** se faz aqui é deformar a base para a métrica ceder:
+/// o eixo de calibragem é este limite, e ele tem um piso de projeto
+/// ([kMinMoveLimit]) abaixo do qual nenhum número é aceito, por melhor que a
+/// taxa de vitória fique.
 int _movesFor({required Objective objective, required int block}) {
   final double base = switch (objective.type) {
-    ObjectiveType.reachDigit => 1.45 * objective.count,
-    ObjectiveType.clearObstacles => 12.0 * objective.count,
-    ObjectiveType.clearAllObstacles => 30.0,
+    ObjectiveType.reachDigit => kDigitMovesPerPiece * objective.count,
+    ObjectiveType.clearObstacles => kObstacleMovesPerUnit * objective.count,
+    ObjectiveType.clearAllObstacles => kClearAllMoves,
   };
 
-  // Aperto de 2% por bloco: a fase encolhe devagar o bastante para o jogador
-  // sentir que melhorou, e não que o jogo o traiu.
-  final tightened = (base * (1 - 0.02 * block)).floor();
+  // Aperto de 2% por bloco, com teto: a fase encolhe devagar o bastante para o
+  // jogador sentir que melhorou, e para de encolher antes de a conta se virar
+  // contra ele. O `clamp` inferior é o conserto do defeito que fazia a fase 500
+  // sair com um movimento — um percentual aplicado para sempre não tende a um
+  // limite apertado, tende a nenhum limite.
+  final factor = (1 - kTighteningPerBlock * block).clamp(kTighteningFloor, 1.0);
+  final tightened = (base * factor).floor();
   return tightened < kMinMoveLimit ? kMinMoveLimit : tightened;
 }

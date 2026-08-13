@@ -765,11 +765,19 @@ void main(List<String> args) {
 
     _reportGeneratedLevels(
       games: games,
-      // Os pontos em que a curva muda de natureza: primeira fase gerada, troca
-      // de degrau de janela, saturação do dígito máximo, e o longo prazo.
-      // Sete amostras não provam mil fases; provam que a curva não descarrila
-      // onde ela muda.
-      numbers: const [11, 25, 50, 100, 250, 500, 1000],
+      // A amostra cobre os **três** arquétipos de objetivo em bloco baixo,
+      // médio e alto. A amostra anterior (11, 25, 50, 100, 250, 500, 1000)
+      // era cega: cinco das sete fases caíam na posição 9 do bloco, o fecho
+      // "limpe tudo", então cinco linhas mediam o mesmo arquétipo e nenhuma
+      // media as fases de "quebre N coberturas".
+      //
+      // As posições dentro do bloco são o que escolhe o arquétipo: 0-6 são
+      // dígito, 7-8 são "quebre N", 9 é "limpe tudo".
+      numbers: const [
+        14, 22, 103, 253, 1003, // dígito: blocos 0, 1, 9, 24 e 99
+        18, 108, 1008, // quebre N coberturas: blocos 0, 9 e 99
+        20, 100, 1000, // limpe tudo: blocos 0, 8 e 98
+      ],
     );
   }
 
