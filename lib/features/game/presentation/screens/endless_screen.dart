@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nine_fuse/core/ads/ad_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/apex_celebration.dart';
@@ -34,6 +35,9 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
     // `start` é assíncrono porque lê o recorde salvo em disco.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(endlessProvider.notifier).start();
+      // Mesmo motivo da campanha: o martelo vale nos dois modos, e o convite
+      // não pode ser a primeira vez que o jogo pede um anúncio à rede.
+      preloadRewardedAds(ref);
     });
   }
 
@@ -104,7 +108,7 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                             // e um estilhaço parado sobre um tabuleiro que anda
                             // denunciaria as duas camadas.
                             child: StrikeShake(
-                              serial: state.hammerStrikes,
+                              serial: state.shakeSerial,
                               child: Stack(
                                 key: _boardKey,
                                 children: [
@@ -145,7 +149,9 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
             // Acima do conteúdo: a área vazia da tela pertence à rolagem, que
             // consome o toque sem repassá-lo, então uma camada por baixo nunca
             // veria o toque de cancelamento.
-            if (state.isHammerTargeting)
+            // Sai de cena quando o convite de aquisição sobe: ver o item 3 das
+            // diretrizes, comentado no `game_screen.dart`.
+            if (state.isHammerTargeting && state.pendingHammerTarget == null)
               HammerTargetingLayer(
                 boardKey: _boardKey,
                 onCell: notifier.useHammer,

@@ -117,6 +117,26 @@ class JuiceOverlay extends StatelessWidget {
                     ),
                   ),
 
+                // Cada peça varrida pela onda de choque estilhaça na própria
+                // cor. Sob o clarão branco do centro elas apenas sumiriam, e o
+                // jogador veria o tabuleiro mudar sem ver o que a onda levou.
+                for (final MapEntry(key: at, value: digit)
+                    in current.clearedDigits.entries)
+                  Positioned(
+                    left: geometry.centerOf(at).dx - tileSize * 0.9,
+                    top: geometry.centerOf(at).dy - tileSize * 0.9,
+                    width: tileSize * 1.8,
+                    height: tileSize * 1.8,
+                    child: ShatterEffect(
+                      // A cascata entra na chave porque a mesma célula pode ser
+                      // varrida de novo num passo seguinte, e sem isso o segundo
+                      // estilhaço reaproveitaria o estado do primeiro — que já
+                      // terminou — em vez de reacender.
+                      key: ValueKey('blast_${current.cascade}_${at.row}_${at.col}'),
+                      color: AppColors.getColorByDigit(digit),
+                    ),
+                  ),
+
                 // A quebra da cobertura acontece na célula do obstáculo, não na
                 // da fusão: é ali que o jogador precisa olhar para entender que
                 // o golpe alcançou o que ele estava mirando.

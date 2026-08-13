@@ -213,7 +213,7 @@ void main() {
       explosionCentres: [
         for (int i = 0; i < count; i++) Position(row: 3, col: i),
       ],
-      clearedByExplosion: const {},
+      clearedDigits: const {},
       boardAfterFusion: Board.empty(),
       boardAfterSettle: Board.empty(),
       score: 0,

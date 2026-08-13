@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
@@ -16,12 +17,13 @@ ResolutionStep stepWith({
   int cascade = 1,
   List<FusionEvent> fusions = const [],
   List<Position> explosions = const [],
+  Map<Position, int> clearedDigits = const {},
   List<ObstacleHit> obstacleHits = const [],
 }) => ResolutionStep(
   cascade: cascade,
   fusions: fusions,
   explosionCentres: explosions,
-  clearedByExplosion: const {},
+  clearedDigits: clearedDigits,
   boardAfterFusion: Board.empty(),
   boardAfterSettle: Board.empty(),
   score: fusions.fold(0, (t, f) => t + f.score),
@@ -374,6 +376,56 @@ void main() {
       await tester.pump(const Duration(milliseconds: 60));
 
       expect(find.byType(ObstacleShatter), findsNothing);
+    });
+  });
+
+  group('estilhaço da onda de choque', () {
+    // A onda de choque do dígito máximo varre os vizinhos. Sem estilhaço na cor
+    // de cada um deles, as peças somem sob o clarão branco e o jogador não vê o
+    // que a explosão levou — só que o tabuleiro mudou.
+    testWidgets('cada peça varrida estilhaça na própria cor', (tester) async {
+      await tester.pumpWidget(
+        host(
+          JuiceOverlay(
+            step: stepWith(
+              explosions: const [Position(row: 3, col: 3)],
+              clearedDigits: {
+                const Position(row: 3, col: 3): kMaxDigit,
+                const Position(row: 3, col: 4): 2,
+                const Position(row: 4, col: 3): 7,
+              },
+            ),
+            comboCount: 1,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final shatters = tester
+          .widgetList<ShatterEffect>(find.byType(ShatterEffect))
+          .toList();
+
+      expect(shatters, hasLength(3));
+      expect(
+        shatters.map((s) => s.color).toSet(),
+        {
+          AppColors.getColorByDigit(kMaxDigit),
+          AppColors.getColorByDigit(2),
+          AppColors.getColorByDigit(7),
+        },
+        reason: 'o estilhaço não usa a cor da peça que foi varrida',
+      );
+
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('uma jogada sem explosão não estilhaça nada', (tester) async {
+      await tester.pumpWidget(
+        host(JuiceOverlay(step: stepWith(), comboCount: 1)),
+      );
+      await tester.pump();
+
+      expect(find.byType(ShatterEffect), findsNothing);
     });
   });
 }

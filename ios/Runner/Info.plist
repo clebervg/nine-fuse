@@ -66,5 +66,22 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- App ID do AdMob. É o ID de TESTE oficial do Google, par do que está no
+	     AndroidManifest.xml. Trocar pelo de produção é a última coisa antes de
+	     publicar; sem esta chave o SDK derruba o app na inicialização. -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<!-- Rede de atribuição do próprio AdMob (SKAdNetwork). Sem ela a Apple não
+	     reporta a conversão das instalações vindas de anúncio, e a receita fica
+	     invisível no painel. A lista completa das outras redes sai do
+	     https://developers.google.com/admob/ios/data-disclosure e cresce; esta
+	     é a mínima para o SDK do Google funcionar. -->
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+	</array>
 </dict>
 </plist>

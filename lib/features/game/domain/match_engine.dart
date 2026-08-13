@@ -217,7 +217,8 @@ class ResolutionStep {
     required this.cascade,
     required this.fusions,
     required this.explosionCentres,
-    required this.clearedByExplosion,
+    required this.clearedDigits,
+    this.clearedByExplosion = const {},
     required this.boardAfterFusion,
     required this.boardAfterSettle,
     required this.score,
@@ -232,7 +233,25 @@ class ResolutionStep {
   /// Peças que alcançaram o dígito máximo e explodiram.
   final List<Position> explosionCentres;
 
-  /// Células varridas pela explosão.
+  /// Peças que a explosão **destruiu**, e o dígito que cada uma tinha.
+  ///
+  /// Guarda o dígito de **antes** do estouro pelo mesmo motivo que `ObstacleHit`
+  /// guarda o tipo de antes do impacto: depois da explosão a célula está vazia,
+  /// e a UI não saberia de que cor pintar o estilhaço. Sem a cor, as peças
+  /// varridas somem sob o clarão branco e o jogador vê o tabuleiro mudar sem ver
+  /// o que a onda levou.
+  ///
+  /// É **subconjunto** de [clearedByExplosion], e a diferença é real: a fusão
+  /// que criou o dígito máximo já esvaziou as células das peças absorvidas, e a
+  /// onda passa por cima delas sem destruir nada. Um estilhaço ali mentiria
+  /// sobre o que a onda levou.
+  final Map<Position, int> clearedDigits;
+
+  /// Células **alcançadas** pela onda, com ou sem peça em cima.
+  ///
+  /// É o raio da explosão, e é o que a pontuação do clímax remunera: medir pelo
+  /// que havia de peça faria a mesma explosão render menos perto de uma borda
+  /// já vazia, punindo justamente quem montou o dígito máximo no canto.
   final Set<Position> clearedByExplosion;
 
   /// Tabuleiro logo após fundir, **antes** de cair. É o quadro em que as peças
@@ -536,7 +555,7 @@ class MatchEngine {
       cascade: 0,
       fusions: const [],
       explosionCentres: const [],
-      clearedByExplosion: const {},
+      clearedDigits: const {},
       boardAfterFusion: struck,
       boardAfterSettle: settled,
       score: 0,
@@ -591,7 +610,8 @@ class MatchEngine {
 
       // A explosão vem antes da queda: ela abre os vazios que a gravidade
       // então preenche, no mesmo passo da cascata.
-      var cleared = <Position>{};
+      var cleared = <Position, int>{};
+      var swept = <Position>{};
       // Só conta como explosão o que de fato estourou: com
       // ExplosionShape.none a peça alcança o topo mas permanece no tabuleiro.
       var detonated = const <Position>[];
@@ -601,6 +621,7 @@ class MatchEngine {
         current = blast.board;
         stepScore += blast.score;
         cleared = blast.cleared;
+        swept = blast.swept;
         detonated = fused.maxed;
       }
 
@@ -616,7 +637,8 @@ class MatchEngine {
           cascade: steps.length + 1,
           fusions: fused.events,
           explosionCentres: detonated,
-          clearedByExplosion: cleared,
+          clearedDigits: cleared,
+          clearedByExplosion: swept,
           boardAfterFusion: afterFusion,
           boardAfterSettle: current,
           score: stepScore,
@@ -682,23 +704,45 @@ class MatchEngine {
   /// Limpa a vizinhança de cada peça que alcançou o dígito máximo, e a própria
   /// peça. Explosões não encadeiam: uma peça destruída pelo estouro não
   /// dispara o seu.
-  ({Board board, int score, Set<Position> cleared}) _detonate(
+  ({
+    Board board,
+    int score,
+    Set<Position> swept,
+    Map<Position, int> cleared,
+  })
+  _detonate(
     Board board,
     List<Position> centres,
   ) {
-    final cleared = <Position>{};
+    final hit = <Position>{};
 
     for (final centre in centres) {
-      cleared.addAll(_blastRadius(centre));
+      hit.addAll(_blastRadius(centre));
     }
 
+    // O dígito é lido **antes** de a célula ser esvaziada: depois não há de onde
+    // tirar a cor do estilhaço. Célula já vazia fica de fora — não há peça
+    // varrida ali, e um estilhaço sobre o nada mentiria sobre o alcance da onda.
+    final cleared = <Position, int>{
+      for (final position in hit)
+        if (board.getTileAt(position) case final tile?)
+          position: tile.value,
+    };
+
     var result = board;
-    for (final position in cleared) {
+    for (final position in hit) {
       result = result.updateTile(position, null);
     }
 
-    // A explosão é o clímax do jogo: vale mais que uma fusão comum.
-    return (board: result, score: cleared.length * 50, cleared: cleared);
+    // A explosão é o clímax do jogo: vale mais que uma fusão comum. A conta
+    // segue sendo por **célula alcançada**, e não por peça varrida: mudar para
+    // o mapa faria a explosão render menos perto de uma borda já vazia.
+    return (
+      board: result,
+      score: hit.length * 50,
+      swept: hit,
+      cleared: cleared,
+    );
   }
 
   /// Células atingidas por uma explosão centrada em [centre], incluindo ela.

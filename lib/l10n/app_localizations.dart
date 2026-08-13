@@ -600,6 +600,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Fusion Hammer, {count} in stock. Smashes one cell without spending a move.'**
   String hammerSemantics(int count);
+
+  /// No description provided for @movesOfferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Almost there!'**
+  String get movesOfferTitle;
+
+  /// No description provided for @movesOfferBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 move left} other{{count} moves left}}. Watch a short ad and get {reward} more.'**
+  String movesOfferBody(int count, int reward);
+
+  /// No description provided for @movesOfferWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'GET +{reward} MOVES'**
+  String movesOfferWatch(int reward);
+
+  /// No description provided for @movesOfferDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'KEEP PLAYING'**
+  String get movesOfferDecline;
+
+  /// No description provided for @movesOfferFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'No ad available right now.'**
+  String get movesOfferFailed;
+
+  /// No description provided for @storeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Match 3, evolve the number, reach 9'**
+  String get storeSubtitle;
+
+  /// No description provided for @storeShortDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Number match-3: three of a kind become the next digit. Reach 9 and blow up the board.'**
+  String get storeShortDescription;
+
+  /// No description provided for @storeFullDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'NineFuse is a number puzzle where matching isn\'t just clearing.\n\nLine up three identical digits and the middle one EVOLVES into the next: three 4s become a 5. Repeat the fusion, plan the chain, and climb the scale to the game\'s climax — the digit 9, which detonates in a shockwave, clears the neighbourhood and pays back moves.\n\n• FUSION, NOT JUST CLEARING — match-3 mechanics with merge progression.\n• THE RITUAL OF 9 — the top digit explodes, breaks stone and grants bonus moves.\n• ICE, GLASS AND STONE — covers that yield to 1, 2 or 3 adjacent fusions.\n• OBJECTIVE-BASED CAMPAIGN — reach a digit, break covers, clear the board.\n• ENDLESS MODE — a run with no move limit, and your high score kept.\n• FUSION HAMMER — smash one stuck cell without spending a move.\n• NO LIVES TIMER — play as much as you want, whenever you want.\n\nDark visuals, vivid per-digit colours and fluid fusion animations.'**
+  String get storeFullDescription;
+
+  /// No description provided for @storeKeywords.
+  ///
+  /// In en, this message translates to:
+  /// **'number match 3,number puzzle,merge numbers,fusion puzzle,numeric puzzle,2048 match 3,offline puzzle,logic game'**
+  String get storeKeywords;
 }
 
 class _AppLocalizationsDelegate

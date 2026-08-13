@@ -136,6 +136,37 @@ class GameNotifier extends StateNotifier<GameState>
   /// Recomeça a fase atual.
   void restartLevel() => startLevel(state.level);
 
+  /// O convite de reforço de saldo subiu na tela.
+  ///
+  /// Quem marca é a **UI**, e não o notifier: a regra sabe dizer que a fase
+  /// está apertada ([GameState.shouldOfferMoves]), mas só a tela sabe se
+  /// chegou a mostrar o convite. Marcar aqui, na jogada que cruza o limiar,
+  /// gastaria a única oferta da fase mesmo que o modal nunca abrisse — por
+  /// exemplo, com o app em segundo plano.
+  void markMovesOfferShown() {
+    if (state.movesOfferShown) return;
+    state = state.copyWith(movesOfferShown: true);
+  }
+
+  /// Credita o prêmio do anúncio de reforço de saldo.
+  ///
+  /// Entra em [GameState.bonusMoves], e não descontando de `moves`, pela mesma
+  /// razão do bônus do dígito máximo: `moves` é "quantas jogadas o jogador
+  /// fez", e é isso que o cartão de fim de fase relata.
+  ///
+  /// A fase encerrada recusa. O cartão de desfecho já está no ar, e creditar
+  /// movimentos aqui deixaria o jogador com saldo numa fase que acabou — sem
+  /// contar que a regra anti-churn não vende nada na tela de derrota.
+  void grantBonusMoves([int amount = kPreChurnReward]) {
+    if (state.status != GameStatus.playing) return;
+    state = state.copyWith(
+      bonusMoves: state.bonusMoves + amount,
+      // O convite se fecha por ter sido pago, e não só por ter sido mostrado:
+      // sem isto ele reabriria assim que o saldo voltasse ao limiar.
+      movesOfferShown: true,
+    );
+  }
+
   /// Substitui o tabuleiro por um montado à mão.
   ///
   /// Só para teste: é o que permite exercitar uma jogada específica — criar o
@@ -275,6 +306,10 @@ class GameNotifier extends StateNotifier<GameState>
         // máxima da partida.
         apexCelebrated:
             state.apexCelebrated || step.explosionCentres.isNotEmpty,
+        // O tranco do tabuleiro nasce aqui, e não em `_finishMove`, pelo mesmo
+        // motivo da batida tátil: a sacudida tem de coincidir com o clarão, e
+        // não com o fim da cascata inteira.
+        explosions: state.explosions + step.explosionCentres.length,
         bigFusionTileIds: {
           for (final fusion in step.fusions)
             if (fusion.isBig) fusion.tileId,
@@ -289,8 +324,15 @@ class GameNotifier extends StateNotifier<GameState>
     }
 
     if (!mounted) return;
-    // A pontuação já subiu quadro a quadro durante a encenação.
-    _finishMove(engine, resolution, extraScore: 0, countsAsMove: countsAsMove);
+    // A pontuação e o contador de explosões já subiram quadro a quadro durante
+    // a encenação.
+    _finishMove(
+      engine,
+      resolution,
+      extraScore: 0,
+      extraExplosions: 0,
+      countsAsMove: countsAsMove,
+    );
   }
 
   /// Batida forte da explosão do dígito máximo.
@@ -312,10 +354,14 @@ class GameNotifier extends StateNotifier<GameState>
   /// justamente o que o jogador está comprando. O desfecho continua sendo
   /// reavaliado — uma cascata do golpe pode cumprir o objetivo, e a queda pode
   /// travar o tabuleiro.
+  /// [extraExplosions] segue a mesma regra de [extraScore]: nulo significa "o
+  /// caminho que me chamou ainda não contou", e a resolução instantânea — que
+  /// não tem encenação para contar quadro a quadro — cai nesse caso.
   void _finishMove(
     MatchEngine engine,
     Resolution resolution, {
     required int extraScore,
+    int? extraExplosions,
     bool countsAsMove = true,
   }) {
     final progress = state.objectiveProgress + _gainedThisMove(resolution);
@@ -365,6 +411,8 @@ class GameNotifier extends StateNotifier<GameState>
       // Na resolução instantânea não há encenação para ligar o sinal, e sem
       // isto a comemoração só existiria no caminho animado.
       apexCelebrated: state.apexCelebrated || resolution.explosions > 0,
+      explosions:
+          state.explosions + (extraExplosions ?? resolution.explosions),
     );
   }
 

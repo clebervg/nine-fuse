@@ -15,6 +15,9 @@ const Key endlessHammerButtonKey = Key('endless_hammer_button');
 /// Chave do badge de quantidade, no canto do botão.
 const Key hammerBadgeKey = Key('hammer_badge');
 
+/// Chave da pílula com a dica de mira.
+const Key hammerAimHintKey = Key('hammer_aim_hint');
+
 /// Diâmetro do botão. Acima do alvo mínimo de toque das duas plataformas, porque
 /// ele é redondo: o canto do quadrado de 44pt não existe aqui.
 const double kHammerButtonSize = 54;
@@ -190,6 +193,11 @@ class _Badge extends StatelessWidget {
 /// de mira ter onde aparecer. A dica é escrita porque o modo de mira muda o
 /// significado do toque no tabuleiro, e nada no tabuleiro diz isso; o scrim diz
 /// "o resto está fora", não "toque numa célula".
+///
+/// **A dica é uma pílula, e não texto solto.** Ela nasce exatamente quando o véu
+/// escurece o fundo: um cinza sobre preto desfocado é a única coisa da tela que o
+/// jogador *precisa* ler naquele instante e a que menos se destaca. A pílula lhe
+/// dá fundo próprio, então a legibilidade não depende do que ficou atrás.
 class HammerBar extends StatelessWidget {
   const HammerBar({
     super.key,
@@ -213,14 +221,9 @@ class HammerBar extends StatelessWidget {
       // botão para fora da direita em telas estreitas.
       Expanded(
         child: targeting
-            ? Text(
-                AppLocalizations.of(context).hammerAimHint,
-                maxLines: 2,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
+            ? const Align(
+                alignment: Alignment.center,
+                child: _AimHintPill(),
               )
             : const SizedBox.shrink(),
       ),
@@ -231,5 +234,41 @@ class HammerBar extends StatelessWidget {
         onPressed: onPressed,
       ),
     ],
+  );
+}
+
+/// A dica de mira, com fundo próprio.
+///
+/// Branco puro sobre pílula escura de borda acesa: as duas coisas juntas, porque
+/// nenhuma sozinha resolve — texto branco continuaria disputando com os dígitos
+/// coloridos que passam atrás, e a pílula sem contraste de texto só mudaria de
+/// cinza. Nada de `Opacity` aqui: a suíte usa esse tipo como marcador de outros
+/// efeitos dentro da peça, e a translucidez sai de cores com alfa.
+class _AimHintPill extends StatelessWidget {
+  const _AimHintPill();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: hammerAimHintKey,
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+    decoration: BoxDecoration(
+      color: const Color(0xE60E0E13),
+      borderRadius: BorderRadius.circular(999),
+      border: Border.all(
+        color: AppColors.digit0.withValues(alpha: 0.55),
+        width: 1.5,
+      ),
+      boxShadow: const [BoxShadow(color: Color(0x99000000), blurRadius: 8)],
+    ),
+    child: Text(
+      AppLocalizations.of(context).hammerAimHint,
+      maxLines: 2,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
   );
 }

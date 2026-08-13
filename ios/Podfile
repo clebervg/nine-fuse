@@ -1,5 +1,11 @@
-# Uncomment this line to define a global platform for your project
-# platform :ios, '13.0'
+# Plataforma explícita, e não o padrão implícito do CocoaPods.
+#
+# Sem esta linha o CocoaPods atribui a versão sozinho e avisa a cada `pod
+# install`; pior, a versão escolhida pode não bater com a do Xcode
+# (IPHONEOS_DEPLOYMENT_TARGET), e a divergência só aparece na hora de linkar.
+# 13.0 é o que o projeto já usa no Runner, e cobre o mínimo do
+# Google-Mobile-Ads-SDK 13.7 (iOS 12).
+platform :ios, '13.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -39,5 +45,6 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+
   end
 end

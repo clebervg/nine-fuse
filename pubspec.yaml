@@ -49,6 +49,7 @@ dependencies:
   # Renderiza o logo em SVG na UI: um só arquivo serve qualquer densidade de
   # tela, sem precisar de variantes @2x/@3x.
   flutter_svg: ^2.0.16
+  google_mobile_ads: 9.0.0
 
 dev_dependencies:
   flutter_test:

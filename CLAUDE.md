@@ -378,5 +378,175 @@ houver SFX de verdade. Sendo injetável, o gancho novo teve de ser dublado nos
 quatro arquivos de teste que já dublavam os outros dois — em teste puro, sem
 binding, o canal de plataforma estoura.
 
+**Rodada de red team sobre a UI do martelo — o que mudou e o que não.**
+
+*Não mudou:* o relatório apontou "células apagadas com um traço atravessado" no
+estado normal do tabuleiro como glitch de renderização, e pediu 100% de opacidade
+fora da mira. É o `ObstacleOverlay` funcionando: o gelo pinta um véu azul
+translúcido com uma **faixa clara diagonal**, e o vidro intacto pinta **uma
+faceta diagonal** — exatamente "opacidade baixa e linha atravessada". A
+translucidez é a razão de ser da cobertura (o dígito por baixo tem de continuar
+legível, senão o obstáculo é só um buraco no tabuleiro). Chapar aquelas células
+apagaria a mecânica dos obstáculos inteira. Se a leitura de "peça quebrada"
+persistir com jogadores reais, o remédio é reforçar o contorno da cobertura, não
+remover o alfa.
+
+*Mudou — a dica de mira virou pílula* (`hammerAimHintKey`). Branco puro sobre
+fundo escuro de aro vermelho, centralizada na faixa. O texto nasce no mesmo
+instante em que o véu escurece tudo: cinza sobre preto desfocado era a coisa que
+o jogador mais precisa ler e a que menos se destacava. A pílula lhe dá fundo
+próprio, então a legibilidade deixa de depender do que passa atrás.
+
+*Mudou — a mira sai de cena quando o convite de aquisição sobe.* A camada só é
+montada com `pendingHammerTarget == null`. O recorte do véu deixava a célula
+mirada sem desfoque e com o aro neon aceso **atrás** do modal, competindo com a
+única decisão que o jogador tem ali: o botão do anúncio. Com a camada fora, sobra
+o véu homogêneo do próprio modal, e o alvo continua guardado no estado — o Modo
+Fantasma não perde nada. Teste em ambas as telas.
+
 **As partículas da cor da peça já existiam** (`ShatterEffect` no `hammerStrike`),
 e continuam sendo o que a diretriz 5 pede.
+
+
+### Diretrizes de Produto, Monetização & Game Feel (NineFuse)
+
+1. **Estratégia de Monetização & Anti-Churn:**
+   - **Intersticiais:** NUNCA exibir intersticiais na tela de Game Over / Derrota. Cooldown mínimo de 45s entre exibições em momentos neutros de transição.
+   - **Rewarded Ads (Pre-Churn):** Oferecer a opção de ad recompensado antes da derrota (ex: quando restar 1 ou 2 movimentos) ou no modal de falta de boosters.
+   - **Estado Zero:** Se `hammerCount == 0`, o toque no booster abre diretamente o `NoHammersDialog` (Rewarded Ad / Store) sem entrar no modo de mira.
+
+2. **Game Feel & Padrões Visuais ("Juice"):**
+   - **Dark Mode / Neon:** Manter visual Cyberpunk com contraste limpo.
+   - **Clímax do Dígito 9:** Ao atingir '9', obrigatoriamente disparar haptic de grande impacto, tremor de câmera suave (100ms) e efeito de partículas da cor do dígito antes de explodir os vizinhos.
+   - **Feedback Tátil:** `HapticFeedback.selectionClick()` na seleção/mira e `HapticFeedback.heavyImpact()` em destruições/combos.
+
+3. **ASO & Posicionamento:**
+   - Categoria: **Puzzle / Quebra-cabeça**.
+   - Subtítulo Padrão: *"Combine números, evolua até o 9 e libere ondas de choque incríveis!"*
+#### Como estas diretrizes foram implementadas ✅
+
+**O SDK do AdMob entrou; o áudio, não.** `google_mobile_ads` está no `pubspec`,
+com os **IDs de teste oficiais do Google** em `core/ads/ad_ids.dart`, no
+`AndroidManifest.xml` e no `Info.plist`. São quatro lugares, e trocar pelos de
+produção é a última coisa antes de publicar — um esquecido não quebra o build, o
+anúncio só não vem. Os IDs de teste são deliberados: um build de
+desenvolvimento pedindo inventário real conta como tráfego inválido, e é o
+caminho mais curto para a conta ser suspensa antes de o jogo chegar à loja.
+O SFX de explosão da diretriz 2 **não foi feito**: continua não havendo motor de
+áudio nem arquivo de som no projeto, e o gancho tátil é o que existe.
+
+**O SDK fica atrás de uma porta, e a decisão fica fora dele.**
+`RewardedAdPort`/`RewardedAdHandle` são duas interfaces de dois métodos; o
+`RewardedAdService` é quem decide quando carregar, quando repor e o que fazer sem
+estoque — e é testável em Dart puro, com rede de mentira. O `AdMobRewardedPort`
+que fala com o `google_mobile_ads` é fino de propósito e **não tem teste**:
+testá-lo exigiria binding nativo e mediria o SDK, não o jogo. Nove testes cobrem
+a máquina de estoque, incluindo os dois que doem: o anúncio exibido é
+**devolvido e sai do estoque** (guardá-lo daria um segundo prêmio de graça) e
+**fechar antes do fim não paga** (pagar os dois casos transformaria o anúncio num
+botão).
+
+**O padrão dos providers segue pagando o jogador, e isso é o que mantém a suíte
+de pé.** `hammerAdProvider` e `movesAdProvider` continuam devolvendo `true` sem
+rede nenhuma; quem liga o AdMob é o `main`, por `admobOverrides()`. Fazer o
+AdMob ser o padrão obrigaria toda a suíte de widget a ter canal de plataforma.
+
+**O preload é a razão de o serviço existir.** Carregar no toque do botão põe a
+rede no caminho crítico da decisão: o jogador veria segundos de espera entre
+"quero" e "assisti". `preloadRewardedAds` roda no `initState` das duas telas.
+`MobileAds.instance.initialize()` **não é esperado** no `main` — segurar o
+`runApp` por ele trocaria a abertura do jogo por uma tela branca, e um anúncio
+pedido antes de ele terminar apenas falha em carregar, caso que o serviço já
+trata como "sem estoque".
+
+**O gatilho pre-churn tem cinco guardas, e a quinta foi achada por teste
+quebrado.** `shouldOfferMoves` exige fase em andamento, nada sendo encenado,
+objetivo em aberto, convite ainda não gasto — e **pelo menos uma jogada feita**.
+Sem a última, uma fase de `moveLimit: 1` abria o convite por cima do tabuleiro
+antes do primeiro toque: seis testes de `game_screen_test` passaram a falhar
+justamente aí, e o defeito era do código, não deles. "Pre-churn" tem de
+significar que o jogador se meteu em apuros, não que a fase é curta de projeto.
+
+**Quem marca a oferta como gasta é a tela, não a regra.** A regra sabe dizer que
+a fase está apertada; só a UI sabe se o cartão chegou a subir. Marcar no
+notifier, na jogada que cruza o limiar, gastaria a única oferta da fase mesmo que
+o modal nunca abrisse. Daí `markMovesOfferShown()` ser chamado do `ref.listen`, e
+daí `_movesOfferOpen` viver na tela: mostrar o convite torna `shouldOfferMoves`
+falso no mesmo quadro, então um cartão ligado direto ao getter fecharia sozinho
+no frame seguinte ao de abrir.
+
+**O prêmio entra em `bonusMoves`, não descontando de `moves`** — mesma razão do
+bônus do dígito máximo: `moves` é "quantas jogadas o jogador fez", e é isso que o
+cartão de fim de fase relata. Fase encerrada recusa o crédito.
+
+**A diretriz 1 pedia `NoHammersDialog`; ele não existe e continua não
+existindo.** O modal é o `HammerOfferDialog`, e o "Estado Zero" segue sendo o
+**Modo Fantasma** já decidido: estoque zero entra em mira, guarda o alvo e só
+então abre o convite. É decisão de produto registrada duas seções acima, e o
+SDK novo não a muda.
+
+**O tranco do 9 reusa o `StrikeShake`, e o sinal precisou virar soma.** Golpe de
+martelo e explosão são dois motivos para a mesma sacudida, e o widget só reage a
+um serial que **cresce** — dois contadores separados se cancelariam. `shakeSerial
+= hammerStrikes + explosions` nos dois estados. `explosions` é `int` e não
+`bool` porque `apexCelebrated` já ocupa o papel de sinal de uma vez só: o aviso
+de "FUSÃO MÁXIMA" é uma vez por partida, mas o tranco é de cada explosão. O
+contador sobe **no quadro do clarão** (dentro de `_playResolution`), não em
+`_finishMove`, pelo mesmo motivo da batida tátil — daí `extraExplosions`, que
+segue a mesma convenção de `extraScore` para a resolução instantânea não contar
+duas vezes.
+
+**As partículas da onda de choque saem na cor de cada peça varrida, e isso pediu
+um campo novo no domínio.** `ResolutionStep.clearedDigits` é `Map<Position,int>`
+e guarda o dígito de **antes** do estouro, pelo mesmo motivo que `ObstacleHit`
+guarda o tipo de antes do impacto: depois a célula está vazia e a UI não saberia
+de que cor pintar. `clearedByExplosion` **continua existindo como `Set` e continua
+sendo o raio da onda** — a primeira tentativa o derivou do mapa, e um teste do
+motor pegou a regressão na hora: o raio são 9 células, mas só 7 tinham peça (a
+fusão que criou o 9 já esvaziou duas). Os dois conceitos são distintos, e é o
+raio que a pontuação do clímax remunera — medir pelo que havia de peça faria a
+mesma explosão render menos perto de uma borda vazia, punindo quem montou o
+dígito máximo no canto.
+
+**Textos de loja moram no ARB** (`storeSubtitle`, `storeShortDescription`,
+`storeFullDescription`, `storeKeywords`), em pt e en. Não são lidos por nenhuma
+tela: ficam ali para a ficha da loja ter uma fonte da verdade versionada e
+traduzida junto com o resto, em vez de viver num documento solto que diverge do
+jogo na primeira mudança de mecânica.
+
+**Armadilha achada rodando no aparelho: plugin novo pede reinstalação, não hot
+restart.** Adicionar o `google_mobile_ads` com o app em execução e dar hot
+restart recarrega só o Dart — o lado nativo do app instalado não tem o plugin
+registrado, e tudo estoura com `MissingPluginException`. Isso expôs **dois bugs
+reais**, que existiriam em qualquer falha de canal e não só nesta:
+`RewardedAd.load` não era awaitada, então a exceção escapava como erro
+assíncrono não tratado e o `Completer` **nunca completava** — `preload` ficava
+pendurado, `_loading` não limpava e o serviço morria pelo resto da sessão; e
+`MobileAds.initialize()` subia sem `catchError`. O jogo pode ficar sem anúncio;
+o que ele não pode é abrir cuspindo pilha, nem se envenenar em definitivo por
+causa de uma carga que falhou. Dois testes novos travam o contrato do serviço
+contra uma porta que estoura.
+
+**A versão do `google_mobile_ads` é PINADA em `9.0.0`, sem `^`, e isso não é
+descuido.** A `9.1.0` declara `Google-Mobile-Ads-SDK '~> 13.7'` — faixa aberta —
+e resolve para a 13.7.0, em que `GoogleMobileAds_Beta.h` passou a viver em
+`PrivateHeaders/`. O plugin continua incluindo esse header como público, o Clang
+recusa header não-modular dentro de módulo de framework, e **o build do iOS
+quebra** em `FLTAd_Internal.h` e `FLTAdPreloader.h`. O Android compila normal, o
+que torna a falha fácil de não ver. A `9.0.0` fixa `'~> 13.3.0'`, série de patch
+fechada, e compila. `ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES` **não
+resolve** — foi tentado, chegou às três configurações do target e o erro
+permaneceu; o remédio é a versão, não a flag. Ao subir o plugin um dia, rodar
+`flutter build ios --debug --simulator` antes de confiar no `flutter analyze`.
+
+**No iOS o plugin também exige `pod repo update`.** O spec repo local costuma
+estar atrás, e o sintoma é `None of your spec sources contain a spec satisfying
+the dependency`. O `Podfile` ganhou `platform :ios, '13.0'` explícito: sem a
+linha o CocoaPods escolhe sozinho e avisa toda vez, e a versão escolhida pode
+divergir do `IPHONEOS_DEPLOYMENT_TARGET` do Xcode — divergência que só aparece
+na hora de linkar.
+
+**Ainda não implementado, e é decisão explícita:** intersticiais (com o cooldown
+de 45s e a proibição na derrota), o cap de 3 martelos/dia da regra 4, o No-Ads
+Pass e o Bônus Diário VIP. O `RewardedAdService` é por unidade de anúncio
+justamente para o cap caber depois sem reescrever o funil.

@@ -371,4 +371,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String hammerSemantics(int count) {
     return 'Fusion Hammer, $count in stock. Smashes one cell without spending a move.';
   }
+
+  @override
+  String get movesOfferTitle => 'Almost there!';
+
+  @override
+  String movesOfferBody(int count, int reward) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count moves left',
+      one: '1 move left',
+    );
+    return '$_temp0. Watch a short ad and get $reward more.';
+  }
+
+  @override
+  String movesOfferWatch(int reward) {
+    return 'GET +$reward MOVES';
+  }
+
+  @override
+  String get movesOfferDecline => 'KEEP PLAYING';
+
+  @override
+  String get movesOfferFailed => 'No ad available right now.';
+
+  @override
+  String get storeSubtitle => 'Match 3, evolve the number, reach 9';
+
+  @override
+  String get storeShortDescription =>
+      'Number match-3: three of a kind become the next digit. Reach 9 and blow up the board.';
+
+  @override
+  String get storeFullDescription =>
+      'NineFuse is a number puzzle where matching isn\'t just clearing.\n\nLine up three identical digits and the middle one EVOLVES into the next: three 4s become a 5. Repeat the fusion, plan the chain, and climb the scale to the game\'s climax — the digit 9, which detonates in a shockwave, clears the neighbourhood and pays back moves.\n\n• FUSION, NOT JUST CLEARING — match-3 mechanics with merge progression.\n• THE RITUAL OF 9 — the top digit explodes, breaks stone and grants bonus moves.\n• ICE, GLASS AND STONE — covers that yield to 1, 2 or 3 adjacent fusions.\n• OBJECTIVE-BASED CAMPAIGN — reach a digit, break covers, clear the board.\n• ENDLESS MODE — a run with no move limit, and your high score kept.\n• FUSION HAMMER — smash one stuck cell without spending a move.\n• NO LIVES TIMER — play as much as you want, whenever you want.\n\nDark visuals, vivid per-digit colours and fluid fusion animations.';
+
+  @override
+  String get storeKeywords =>
+      'number match 3,number puzzle,merge numbers,fusion puzzle,numeric puzzle,2048 match 3,offline puzzle,logic game';
 }

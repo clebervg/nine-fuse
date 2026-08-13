@@ -314,6 +314,31 @@ void main() {
       );
     });
 
+    testWidgets('a dica de mira tem fundo próprio e texto branco', (
+      tester,
+    ) async {
+      // Cinza sobre preto desfocado era a coisa que o jogador mais precisa ler e
+      // a que menos se destacava.
+      await pumpGame(tester);
+      expect(find.byKey(hammerAimHintKey), findsNothing);
+
+      await tester.tap(find.byKey(hammerButtonKey));
+      await tester.pumpAndSettle();
+
+      final pill = tester.widget<Container>(find.byKey(hammerAimHintKey));
+      final decoration = pill.decoration as BoxDecoration;
+      expect(decoration.color, isNotNull);
+      expect(decoration.border, isNotNull);
+
+      final text = tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(hammerAimHintKey),
+          matching: find.byType(Text),
+        ),
+      );
+      expect(text.style?.color, Colors.white);
+    });
+
     testWidgets('o golpe sai no levantar do dedo, não no encostar', (
       tester,
     ) async {
@@ -466,6 +491,21 @@ void main() {
       expect(find.byKey(hammerOfferKey), findsNothing);
       expect(notifier.state.pendingHammerTarget, isNull);
       expect(notifier.state.isHammerTargeting, isFalse);
+    });
+
+    testWidgets('com o convite aberto, a mira sai de cena', (tester) async {
+      // O recorte do véu deixava a célula mirada sem desfoque e com o aro neon
+      // aceso atrás do modal — dois focos de atenção disputando a decisão que é
+      // do botão do anúncio. O alvo continua guardado no estado.
+      await pumpGame(tester, hammers: 0);
+      await tester.tap(find.byKey(hammerButtonKey));
+      await tester.pumpAndSettle();
+      await tapTarget(tester);
+
+      expect(find.byKey(hammerOfferKey), findsOneWidget);
+      expect(find.byKey(hammerScrimKey), findsNothing);
+      expect(find.byKey(hammerAimKey), findsNothing);
+      expect(notifier.state.pendingHammerTarget, target);
     });
   });
 

@@ -13,6 +13,7 @@ import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.d
 import 'package:nine_fuse/features/game/presentation/widgets/level_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_outcome_card.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/moves_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/tile_widget.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/chapter_star_progress.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
@@ -75,10 +76,23 @@ void main() {
     return null;
   }
 
+  /// Fecha o convite de reforço de saldo, se estiver aberto.
+  ///
+  /// Ele sobe sozinho quando a fase entra no limiar de movimentos, e é
+  /// bloqueante de propósito. Os testes daqui existem para exercitar o
+  /// **desfecho** da fase, então recusam a oferta e seguem até o fim — vender
+  /// movimento não é o que eles estão medindo.
+  Future<void> dismissMovesOffer(WidgetTester tester) async {
+    if (find.byKey(movesOfferDeclineKey).evaluate().isEmpty) return;
+    await tester.tap(find.byKey(movesOfferDeclineKey));
+    await tester.pumpAndSettle();
+  }
+
   Future<void> playSwap(WidgetTester tester, (Position, Position) pair) async {
     // Jogar pressupõe a fase liberada. Os testes que montam a tela à mão, sem
     // `pumpGame`, cairiam num tabuleiro que não aceita toque.
     await startPlaying(tester);
+    await dismissMovesOffer(tester);
     await tester.tap(find.byKey(tileKey(pair.$1)));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(tileKey(pair.$2)));

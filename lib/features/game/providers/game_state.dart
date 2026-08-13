@@ -20,6 +20,21 @@ enum LossReason {
   boardStuck,
 }
 
+/// Com quantos movimentos restantes o jogo oferece o reforço de saldo.
+///
+/// Dois, e não zero: no zero a fase já acabou, e a tela que estaria no ar é a
+/// de derrota — onde a regra anti-churn proíbe monetizar. Oferecer com o
+/// jogador ainda jogando faz a proposta ser sobre **continuar**, e não sobre
+/// reviver; ele decide olhando para um tabuleiro vivo, não para um resultado.
+const int kPreChurnMovesLeft = 2;
+
+/// Movimentos pagos pelo anúncio do reforço de saldo.
+///
+/// Cinco é mais do que os dois que restavam: um prêmio menor que a aflição não
+/// muda o desfecho da fase, e o jogador que assistiu ao anúncio para perder
+/// mesmo assim aprende a não assistir ao próximo.
+const int kPreChurnReward = 5;
+
 /// Situação da fase em andamento.
 enum GameStatus {
   /// Nenhuma fase começou.
@@ -54,6 +69,8 @@ class GameState {
     this.bonusMoves = 0,
     this.runId = 0,
     this.apexCelebrated = false,
+    this.explosions = 0,
+    this.movesOfferShown = false,
     this.boardObstacleGoal,
     this.hammer = const HammerState(),
   });
@@ -141,6 +158,29 @@ class GameState {
   /// vê o tabuleiro antes e depois.
   final bool apexCelebrated;
 
+  /// Quantos dígitos máximos esta partida já detonou.
+  ///
+  /// Não se confunde com [apexCelebrated], que é um sinal de uma vez só: o
+  /// aviso de "FUSÃO MÁXIMA" aparece uma vez por partida, mas o **tranco** do
+  /// tabuleiro é de cada explosão. Um `bool` que nunca desliga não distingue a
+  /// segunda explosão da primeira, e a segunda não sacudiria nada.
+  ///
+  /// É contado por explosão, e não por jogada: uma cascata que detona dois
+  /// dígitos máximos soma dois — a mesma unidade que já paga o bônus de
+  /// movimentos em `kExplosionBonusMoves`.
+  final int explosions;
+
+  /// O convite de reforço de saldo já foi mostrado nesta partida.
+  ///
+  /// Uma vez por fase, e não uma vez por movimento: [shouldOfferMoves] continua
+  /// verdadeiro enquanto o saldo ficar no limiar, e sem esta trava o convite
+  /// voltaria a cada jogada. Um anúncio que se reoferece sozinho é exatamente o
+  /// churn que ele deveria estar evitando.
+  ///
+  /// Vive na partida, e não no jogador: recomeçar a fase devolve o convite,
+  /// porque a aflição também recomeça.
+  final bool movesOfferShown;
+
   /// O Martelo de Fusão: estoque, mira e último golpe.
   ///
   /// Num objeto só, e não em cinco campos soltos, porque o Endless carrega
@@ -154,6 +194,15 @@ class GameState {
   (Position, int)? get hammerStrike => hammer.strike;
   int get hammerStrikes => hammer.strikes;
   Position? get pendingHammerTarget => hammer.pendingTarget;
+
+  /// Quantos trancos o tabuleiro já levou nesta partida.
+  ///
+  /// Golpe de martelo e explosão do dígito máximo são dois motivos para a mesma
+  /// sacudida, e o `StrikeShake` só reage a um serial que **cresce**. Somar os
+  /// dois num número só mantém a garantia de monotonia — dois contadores
+  /// separados alimentando o mesmo widget fariam a explosão zerar o tranco do
+  /// martelo, e vice-versa.
+  int get shakeSerial => hammerStrikes + explosions;
 
   /// Tudo o que a fase ofereceu de movimento: o limite mais os bônus.
   int get movesAvailable => level.moveLimit + bonusMoves;
@@ -185,6 +234,28 @@ class GameState {
   /// A fase terminou, de qualquer forma?
   bool get isOver => status == GameStatus.won || status == GameStatus.lost;
 
+  /// A fase está apertada o bastante para valer o convite de reforço de saldo?
+  ///
+  /// As guardas são independentes e nenhuma é decorativa:
+  /// **fase em andamento** (na fase encerrada quem está no ar é o cartão de
+  /// desfecho, e a regra anti-churn proíbe o anúncio ali), **nada sendo
+  /// encenado** (o convite por cima da cascata esconderia justamente o quadro
+  /// que explica o saldo), **objetivo em aberto** (com a fase ganha na prática,
+  /// vender movimento é vender nada), **ainda não mostrado** e **pelo menos uma
+  /// jogada feita**.
+  ///
+  /// A última é a que separa aflição de desenho de fase: uma fase que já nasce
+  /// no limiar é apertada de projeto, e sem essa guarda o convite subiria por
+  /// cima do tabuleiro antes do primeiro toque — vendendo movimento a quem
+  /// ainda não gastou nenhum, com um "quase lá" que seria falso.
+  bool get shouldOfferMoves =>
+      status == GameStatus.playing &&
+      !isResolving &&
+      !objectiveMet &&
+      !movesOfferShown &&
+      moves > 0 &&
+      movesLeft <= kPreChurnMovesLeft;
+
   /// Cria um novo GameState com valores opcionalmente alterados.
   ///
   /// [selectedTile] e [rejectedSwap] precisam poder voltar a `null`, o que
@@ -212,6 +283,8 @@ class GameState {
     int? bonusMoves,
     int? runId,
     bool? apexCelebrated,
+    int? explosions,
+    bool? movesOfferShown,
     int? boardObstacleGoal,
     bool clearBoardObstacleGoal = false,
     HammerState? hammer,
@@ -237,6 +310,8 @@ class GameState {
     bonusMoves: bonusMoves ?? this.bonusMoves,
     runId: runId ?? this.runId,
     apexCelebrated: apexCelebrated ?? this.apexCelebrated,
+    explosions: explosions ?? this.explosions,
+    movesOfferShown: movesOfferShown ?? this.movesOfferShown,
     boardObstacleGoal: clearBoardObstacleGoal
         ? null
         : (boardObstacleGoal ?? this.boardObstacleGoal),
@@ -271,6 +346,8 @@ class GameState {
           bonusMoves == other.bonusMoves &&
           runId == other.runId &&
           apexCelebrated == other.apexCelebrated &&
+          explosions == other.explosions &&
+          movesOfferShown == other.movesOfferShown &&
           boardObstacleGoal == other.boardObstacleGoal &&
           hammer == other.hammer;
 
@@ -294,6 +371,8 @@ class GameState {
     bonusMoves,
     runId,
     apexCelebrated,
+    explosions,
+    movesOfferShown,
     boardObstacleGoal,
     hammer,
   ]);

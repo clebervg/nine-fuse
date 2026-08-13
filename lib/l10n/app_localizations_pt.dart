@@ -373,4 +373,44 @@ class AppLocalizationsPt extends AppLocalizations {
   String hammerSemantics(int count) {
     return 'Martelo de Fusão, $count em estoque. Quebra uma célula sem gastar movimento.';
   }
+
+  @override
+  String get movesOfferTitle => 'Quase lá!';
+
+  @override
+  String movesOfferBody(int count, int reward) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Restam $count movimentos',
+      one: 'Resta 1 movimento',
+    );
+    return '$_temp0. Assista a um anúncio curto e ganhe mais $reward.';
+  }
+
+  @override
+  String movesOfferWatch(int reward) {
+    return 'GANHAR +$reward MOVIMENTOS';
+  }
+
+  @override
+  String get movesOfferDecline => 'CONTINUAR ASSIM';
+
+  @override
+  String get movesOfferFailed => 'Nenhum anúncio disponível agora.';
+
+  @override
+  String get storeSubtitle => 'Combine 3, evolua o número, alcance o 9';
+
+  @override
+  String get storeShortDescription =>
+      'Match-3 de números: três iguais viram o próximo. Chegue ao 9 e detone o tabuleiro.';
+
+  @override
+  String get storeFullDescription =>
+      'NineFuse é um quebra-cabeça de números em que combinar não é só eliminar.\n\nAlinhe três dígitos iguais e o do meio EVOLUI para o próximo: três 4 viram um 5. Repita a fusão, planeje a cadeia e suba a escala até o clímax do jogo — o dígito 9, que detona numa onda de choque, limpa a vizinhança e devolve movimentos.\n\n• FUSÃO, NÃO SÓ ELIMINAÇÃO — a mecânica do Match-3 com a progressão do merge.\n• O RITUAL DO 9 — o dígito máximo explode, quebra pedras e paga movimentos bônus.\n• GELO, VIDRO E PEDRA — coberturas que cedem a 1, 2 ou 3 fusões encostadas.\n• CAMPANHA COM OBJETIVOS — alcance um dígito, quebre coberturas, limpe o tabuleiro.\n• MODO RECORDE — corrida sem limite de movimentos, com o seu recorde guardado.\n• MARTELO DE FUSÃO — quebre uma célula travada sem gastar jogada.\n• SEM TRAVA DE VIDAS — jogue quantas vezes quiser, na hora que quiser.\n\nVisual escuro, cores vibrantes por dígito e animações de fusão fluídas.';
+
+  @override
+  String get storeKeywords =>
+      'match 3 numeros,quebra cabeca numeros,jogo de fusao,puzzle numerico,merge numeros,jogo 2048 match 3,puzzle offline,jogo de logica';
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nine_fuse/core/ads/ad_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
@@ -11,6 +12,7 @@ import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.d
 import 'package:nine_fuse/features/game/presentation/widgets/combo_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_button.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/moves_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_targeting_layer.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/juice_overlay.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_banner.dart';
@@ -69,6 +71,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   /// estrelas. Só o notifier enxerga os dois lados.
   int _chapterStarsGained = 0;
 
+  /// O convite de reforço de saldo está aberto agora?
+  ///
+  /// Mora na tela pelo mesmo motivo que [_ready]: é estado de apresentação. E
+  /// precisa ser separado de `GameState.shouldOfferMoves` porque os dois se
+  /// contradizem de propósito — mostrar o convite **gasta** a oferta da fase, o
+  /// que torna `shouldOfferMoves` falso no mesmo quadro. Ligado direto ao
+  /// getter, o cartão fecharia sozinho no frame seguinte ao de abrir.
+  bool _movesOfferOpen = false;
+
   /// Onde o tabuleiro está na tela. A camada de mira do martelo precisa saber:
   /// é o que separa "bateu numa célula" de "tocou fora e desistiu".
   final GlobalKey _boardKey = GlobalKey();
@@ -80,6 +91,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     // frame, quando o ref já está disponível.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(gameProvider.notifier).startLevel(widget.level);
+      // Preload no início do nível: quando o convite abrir, o anúncio já está
+      // em estoque e o jogador não espera a rede entre "quero" e "assisti".
+      preloadRewardedAds(ref);
     });
   }
 
@@ -127,7 +141,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       // status: recomeçar uma fase em andamento é `playing → playing`, e uma
       // regra baseada em status não veria nada acontecer.
       if (previous != null && next.runId != previous.runId) {
-        setState(() => _ready = false);
+        setState(() {
+          _ready = false;
+          // A partida nova traz a oferta de volta (o notifier a devolve em
+          // `startLevel`); um convite aberto da partida anterior ficaria por
+          // cima do cartão de início da nova.
+          _movesOfferOpen = false;
+        });
+      }
+
+      // O convite abre no limiar, e quem o marca como gasto é a tela: a regra
+      // sabe dizer que a fase está apertada, mas só aqui se sabe se o cartão
+      // chegou a subir. `_ready` entra na conta porque o cartão de início ainda
+      // está no ar antes dele, e dois cartões empilhados escondem os dois.
+      if (!_movesOfferOpen && _ready && next.shouldOfferMoves) {
+        _movesOfferOpen = true;
+        ref.read(gameProvider.notifier).markMovesOfferShown();
       }
     });
 
@@ -193,7 +222,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                           // um estilhaço que ficasse parado enquanto o tabuleiro
                           // anda denunciaria as duas camadas.
                           child: StrikeShake(
-                            serial: state.hammerStrikes,
+                            serial: state.shakeSerial,
                             child: Stack(
                               key: _boardKey,
                               children: [
@@ -252,7 +281,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             // Acima do conteúdo, e é isso que a faz funcionar: a área vazia da
             // tela pertence à rolagem, que consome o toque sem repassá-lo — uma
             // camada por baixo nunca veria o toque de cancelamento.
-            if (state.isHammerTargeting)
+            // **A mira sai de cena quando o convite de aquisição sobe.** O alvo
+            // continua guardado no estado (é o que o Modo Fantasma promete), mas
+            // o recorte do véu deixava a célula mirada sem desfoque e com o aro
+            // neon aceso atrás do modal: dois focos de atenção competindo, e o
+            // que o jogador tem a decidir naquele instante é o botão do
+            // anúncio. Com a camada fora, sobra o véu homogêneo do próprio
+            // modal.
+            if (state.isHammerTargeting && state.pendingHammerTarget == null)
               HammerTargetingLayer(
                 boardKey: _boardKey,
                 onCell: notifier.useHammer,
@@ -282,6 +318,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 child: HammerOfferDialog(
                   onGranted: notifier.grantHammer,
                   onDecline: notifier.cancelHammerTargeting,
+                ),
+              ),
+            // Vem depois do funil do martelo e antes do desfecho: o jogador que
+            // está mirando já escolheu o que fazer com a jogada, e a fase
+            // encerrada não vende movimento nenhum (regra anti-churn).
+            if (_movesOfferOpen &&
+                !state.isOver &&
+                state.pendingHammerTarget == null)
+              _OutcomeOverlay(
+                child: MovesOfferDialog(
+                  movesLeft: state.movesLeft,
+                  onGranted: () {
+                    ref.read(gameProvider.notifier).grantBonusMoves();
+                    setState(() => _movesOfferOpen = false);
+                  },
+                  onDecline: () => setState(() => _movesOfferOpen = false),
                 ),
               ),
             if (state.isOver)

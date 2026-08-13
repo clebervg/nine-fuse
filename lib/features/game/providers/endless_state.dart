@@ -94,6 +94,13 @@ class EndlessState {
   int get hammerStrikes => hammer.strikes;
   Position? get pendingHammerTarget => hammer.pendingTarget;
 
+  /// Quantos trancos o tabuleiro já levou nesta corrida.
+  ///
+  /// Golpe de martelo e explosão do dígito máximo somam no mesmo número pelo
+  /// motivo explicado em `GameState.shakeSerial`: o `StrikeShake` só reage a um
+  /// serial que cresce, e dois contadores separados se cancelariam.
+  int get shakeSerial => hammerStrikes + explosions;
+
   bool get isOver => status == EndlessStatus.stuck;
 
   EndlessState copyWith({

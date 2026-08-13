@@ -30,6 +30,19 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- App ID do AdMob. É o ID de TESTE oficial do Google: um build de
+             desenvolvimento pedindo inventário real conta como tráfego
+             inválido, e é o caminho mais curto para a conta ser suspensa antes
+             de o jogo chegar à loja.
+
+             Trocar pelo ID de produção é a última coisa antes de publicar, e o
+             par dele fica no Info.plist do iOS (GADApplicationIdentifier).
+             Sem esta meta-data o SDK derruba o app na inicialização — não é
+             opcional. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

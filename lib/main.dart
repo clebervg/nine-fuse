@@ -1,13 +1,50 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:nine_fuse/core/ads/ad_providers.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 void main() {
+  // Obrigatório antes de falar com qualquer canal de plataforma, e o SDK de
+  // anúncio é exatamente isso.
+  WidgetsFlutterBinding.ensureInitialized();
   AppFonts.registerLicense();
-  runApp(const ProviderScope(child: NineFuseApp()));
+
+  // A inicialização do SDK é assíncrona e **não é esperada**: ela leva algumas
+  // centenas de milissegundos, e segurar o `runApp` até lá trocaria a abertura
+  // do jogo por uma tela branca. Um anúncio pedido antes de ela terminar
+  // apenas falha em carregar, que é um caso que o `RewardedAdService` já trata
+  // como "sem estoque".
+  //
+  // Só nas plataformas que têm o SDK: em desktop e web o plugin não existe, e
+  // a chamada estouraria no canal.
+  //
+  // O `catchError` também não é decorativo: se o plugin nativo não estiver
+  // registrado — o caso de adicionar a dependência e dar hot restart em vez de
+  // reinstalar o app —, a chamada estoura com `MissingPluginException` e sobe
+  // como erro não tratado no console. O jogo funciona sem anúncio; o que ele
+  // não pode é abrir cuspindo pilha.
+  if (defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS) {
+    MobileAds.instance.initialize().catchError((Object error) {
+      debugPrint('SDK de anúncio não inicializou: $error');
+      return InitializationStatus(const {});
+    });
+  }
+
+  runApp(
+    ProviderScope(
+      // Os funis só falam com o AdMob aqui. O padrão dos providers paga o
+      // jogador sem rede nenhuma, e é o que mantém a suíte de widget rodando
+      // sem canal de plataforma — ver `admobOverrides`.
+      overrides: admobOverrides(),
+      child: const NineFuseApp(),
+    ),
+  );
 }
 
 class NineFuseApp extends StatelessWidget {
