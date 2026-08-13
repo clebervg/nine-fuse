@@ -28,6 +28,15 @@ class _BrokenStorage implements GameStorage {
   @override
   Future<void> writeHammerCount(int count) async =>
       throw StateError('sem disco');
+  @override
+  Future<int> readCoins() async => throw StateError('sem disco');
+  @override
+  Future<void> writeCoins(int coins) async => throw StateError('sem disco');
+  @override
+  Future<Set<int>> readClaimedChests() async => throw StateError('sem disco');
+  @override
+  Future<void> writeClaimedChests(Set<int> chapters) async =>
+      throw StateError('sem disco');
 }
 
 void main() {
