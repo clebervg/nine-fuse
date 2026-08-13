@@ -31,6 +31,16 @@ abstract interface class GameStorage {
   Future<int> readArchivedStars();
   Future<void> writeArchivedStars(int stars);
 
+  /// A maior fase cujo detalhe já foi podado.
+  ///
+  /// A poda descarta sempre pelo **número da fase**, então toda fase igual ou
+  /// abaixo desta marca é uma fase já paga, sem detalhe para recalcular o
+  /// ganho — sem guardar isto à parte, `record()` não teria como distinguir
+  /// "fase nunca vencida" de "fase vencida e podada", e pagaria a segunda de
+  /// novo a cada rejogada (farm infinito de moedas).
+  Future<int> readPrunedBelow();
+  Future<void> writePrunedBelow(int levelNumber);
+
   /// Martelos de Fusão em estoque.
   ///
   /// É inventário do **jogador**, não da fase: sobrevive a começar, perder e
@@ -63,6 +73,7 @@ class PrefsGameStorage implements GameStorage {
   static const String _highScoreKey = 'endless_high_score';
   static const String _recordsKey = 'campaign_level_records';
   static const String _archivedStarsKey = 'campaign_archived_stars';
+  static const String _prunedBelowKey = 'campaign_pruned_below';
   static const String _hammerKey = 'booster_hammer_count';
   static const String _coinsKey = 'wallet_coins';
   static const String _chestsKey = 'campaign_chests_claimed';
@@ -169,6 +180,17 @@ class PrefsGameStorage implements GameStorage {
         _archivedStarsKey,
         stars,
       );
+
+  @override
+  Future<int> readPrunedBelow() async =>
+      (await SharedPreferences.getInstance()).getInt(_prunedBelowKey) ?? 0;
+
+  @override
+  Future<void> writePrunedBelow(int levelNumber) async =>
+      (await SharedPreferences.getInstance()).setInt(
+        _prunedBelowKey,
+        levelNumber,
+      );
 }
 
 /// Persistência só em memória, para testes.
@@ -179,6 +201,7 @@ class InMemoryGameStorage implements GameStorage {
     this.hammerCount = 0,
     this.coins = 0,
     this.archivedStars = 0,
+    this.prunedBelow = 0,
     Set<int>? claimedChests,
     Map<int, LevelRecord>? levelRecords,
   }) : claimedChests = claimedChests ?? {},
@@ -189,6 +212,7 @@ class InMemoryGameStorage implements GameStorage {
   int hammerCount;
   int coins;
   int archivedStars;
+  int prunedBelow;
   Set<int> claimedChests;
   Map<int, LevelRecord> levelRecords;
 
@@ -237,4 +261,11 @@ class InMemoryGameStorage implements GameStorage {
 
   @override
   Future<void> writeArchivedStars(int stars) async => archivedStars = stars;
+
+  @override
+  Future<int> readPrunedBelow() async => prunedBelow;
+
+  @override
+  Future<void> writePrunedBelow(int levelNumber) async =>
+      prunedBelow = levelNumber;
 }

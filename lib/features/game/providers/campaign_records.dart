@@ -33,19 +33,40 @@ class CampaignRecords extends StateNotifier<Map<int, LevelRecord>> {
   /// Estrelas de fases já podadas. Somadas ao total, nunca ao mapa.
   int archivedStars = 0;
 
+  /// A maior fase cujo detalhe já foi podado (0 = nenhuma).
+  ///
+  /// É a marca d'água que separa "fase nunca vencida" (rende estrelas cheias)
+  /// de "fase vencida e já paga, mas sem detalhe" (rende zero). Sem ela,
+  /// `record()` só teria `existing == null` para decidir, e um `null` de fase
+  /// podada é indistinguível de um `null` de fase inédita — farm infinito.
+  int prunedBelow = 0;
+
   /// A leitura é assíncrona: o mapa abre vazio e se preenche quando o disco
   /// responde. Falha de leitura vale como "nada salvo" — perder as estrelas é
   /// ruim, travar o mapa é pior.
   Future<void> _load() async {
     try {
       final saved = await _storage.readLevelRecords();
+      final loadedPrunedBelow = await _storage.readPrunedBelow();
       if (!mounted) return;
-      if (saved.isNotEmpty) {
+
+      // A marca some primeiro: descartar do detalhe fundido qualquer fase já
+      // paga reconcilia o caso de gravação parcial (agregado gravado, mapa
+      // detalhado não) — senão as mesmas estrelas contariam nas duas pontas
+      // para sempre, a cada abertura do jogo.
+      prunedBelow = loadedPrunedBelow;
+      final prunedSaved = saved.keys.any((n) => n <= prunedBelow)
+          ? Map.fromEntries(
+              saved.entries.where((entry) => entry.key > prunedBelow),
+            )
+          : saved;
+
+      if (prunedSaved.isNotEmpty) {
         // A leitura pode chegar **depois** de o jogador já ter vencido uma
         // fase nesta sessão. Fundir em vez de substituir preserva o resultado
         // mais recente, pela mesma razão do `if (saved > state)` em
         // CampaignProgress.
-        state = _merge(saved, state);
+        state = _merge(prunedSaved, state);
       }
       archivedStars = await _storage.readArchivedStars();
     } catch (error, stack) {
@@ -77,6 +98,14 @@ class CampaignRecords extends StateNotifier<Map<int, LevelRecord>> {
   /// guarda o melhor, então rejogar com nota igual ou pior rende zero mesmo
   /// tirando três estrelas. Só este método enxerga os dois lados da conta.
   int record(int levelNumber, {required int stars, required int score}) {
+    // Fase igual ou abaixo da marca: já foi vencida, já foi paga, e o detalhe
+    // que diria "quanto ela tinha antes" não existe mais. Devolver zero é a
+    // única resposta segura — sem o antes, qualquer outro número seria
+    // inventado, e inventar para cima é o erro que paga a mesma vitória de
+    // novo a cada rejogada (farm infinito). Não reentra no mapa nem soma ao
+    // agregado: o crédito de estrelas dela já está contado ali.
+    if (levelNumber <= prunedBelow) return 0;
+
     final fresh = LevelRecord(stars: stars, bestScore: score);
     final existing = state[levelNumber];
     final merged = existing == null ? fresh : existing.mergedWith(fresh);
@@ -121,8 +150,10 @@ class CampaignRecords extends StateNotifier<Map<int, LevelRecord>> {
   void reset() {
     state = const {};
     archivedStars = 0;
+    prunedBelow = 0;
     _persist();
-    unawaited(_storage.writeArchivedStars(0));
+    unawaited(_persistArchivedStars());
+    unawaited(_persistPrunedBelow());
   }
 
   Future<void> _persist() async {
@@ -130,6 +161,25 @@ class CampaignRecords extends StateNotifier<Map<int, LevelRecord>> {
       await _storage.writeLevelRecords(state);
     } catch (error, stack) {
       debugPrint('Falha ao gravar os registros das fases: $error\n$stack');
+    }
+  }
+
+  /// Mesma proteção de `_persist()`: um disco quebrado não pode escapar como
+  /// erro assíncrono não tratado na zona — é a mesma lição já registrada no
+  /// `RewardedAdService`.
+  Future<void> _persistArchivedStars() async {
+    try {
+      await _storage.writeArchivedStars(archivedStars);
+    } catch (error, stack) {
+      debugPrint('Falha ao gravar as estrelas arquivadas: $error\n$stack');
+    }
+  }
+
+  Future<void> _persistPrunedBelow() async {
+    try {
+      await _storage.writePrunedBelow(prunedBelow);
+    } catch (error, stack) {
+      debugPrint('Falha ao gravar a marca de poda: $error\n$stack');
     }
   }
 
@@ -148,9 +198,20 @@ class CampaignRecords extends StateNotifier<Map<int, LevelRecord>> {
     final kept = Map.of(records);
     for (final number in ordered.take(dropCount)) {
       archivedStars += kept.remove(number)!.stars;
+      // A poda sempre desce a partir do número mais baixo presente, então a
+      // marca só cresce — nunca precisa comparar, o próprio laço já entrega
+      // em ordem crescente.
+      prunedBelow = number;
     }
 
-    unawaited(_storage.writeArchivedStars(archivedStars));
+    // Marca e agregado primeiro, o mapa podado depois: se só uma gravação
+    // sobreviver a uma falha de disco, que seja a que impede repagamento —
+    // mesma regra que `Wallet.claimChapterChest` já aplica (baú antes da
+    // moeda). Um mapa gravado sem a marca correspondente é inofensivo (a
+    // releitura conta certo de qualquer jeito); uma marca sem o mapa
+    // atualizado é que seria perigosa, e essa ordem evita justamente isso.
+    unawaited(_persistArchivedStars());
+    unawaited(_persistPrunedBelow());
     return kept;
   }
 }

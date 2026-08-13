@@ -42,6 +42,11 @@ class _BrokenStorage implements GameStorage {
   @override
   Future<void> writeArchivedStars(int stars) async =>
       throw StateError('sem disco');
+  @override
+  Future<int> readPrunedBelow() async => throw StateError('sem disco');
+  @override
+  Future<void> writePrunedBelow(int levelNumber) async =>
+      throw StateError('sem disco');
 }
 
 void main() {
