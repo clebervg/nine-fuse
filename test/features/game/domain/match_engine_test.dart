@@ -1416,6 +1416,89 @@ void main() {
         isFalse,
       );
     });
+
+    group('onda de choque do dígito máximo', () {
+      // ExplosionShape.cross varre a linha e a coluna inteiras, bem além da
+      // vizinhança que `_damageObstacles` já cobriu — é o que expõe a lacuna:
+      // a onda alcança uma cobertura distante da combinação, longe de qualquer
+      // impacto de fusão.
+      Board boardWithFarStone({required ObstacleType type}) {
+        final values = baseGrid();
+        values[3][2] = 8;
+        values[3][3] = 8;
+        values[3][4] = 8;
+        var board = boardFromValues(values);
+        // Fica na mesma linha da explosão (centro em (3,3)), mas fora da
+        // vizinhança ortogonal que a fusão já tocou.
+        board = cover(board, const Position(row: 3, col: 7), type);
+        return board;
+      }
+
+      test(
+        'o estouro varre uma cobertura distante e emite o impacto (era o bug)',
+        () {
+          final step = MatchEngine(
+            random: Random(1),
+            explosionShape: ExplosionShape.cross,
+          ).resolve(boardWithFarStone(type: ObstacleType.stone)).steps.first;
+
+          // A peça sumiu do tabuleiro — a onda varreu a célula inteira.
+          expect(
+            step.boardAfterFusion
+                .getTileAt(const Position(row: 3, col: 7))
+                ?.isBlocked,
+            isNot(isTrue),
+          );
+
+          // E o objetivo tem de saber disso: sem o hit, "limpe toda a pedra"
+          // ficaria impossível de vencer nessa jogada.
+          final hit = hitAt(step, const Position(row: 3, col: 7));
+          expect(hit, isNotNull);
+          expect(hit!.cleared, isTrue);
+        },
+      );
+
+      test('o hit do estouro traz o tipo de antes da destruição', () {
+        final step = MatchEngine(
+          random: Random(1),
+          explosionShape: ExplosionShape.cross,
+        ).resolve(boardWithFarStone(type: ObstacleType.glass)).steps.first;
+
+        final hit = hitAt(step, const Position(row: 3, col: 7))!;
+        expect(hit.type, ObstacleType.glass);
+        expect(hit.remainingHp, 0);
+      });
+
+      test(
+        'cobertura atingida por fusão e pelo estouro no mesmo passo recebe '
+        'um impacto só',
+        () {
+          // (3,5) encosta na combinação (leva dano de fusão) e também está na
+          // mesma linha do centro da explosão (leva a varredura). As duas
+          // fontes não podem virar dois impactos.
+          final board = cover(
+            boardWithFarStone(type: ObstacleType.ice),
+            const Position(row: 3, col: 5),
+            ObstacleType.stone,
+          );
+
+          final step = MatchEngine(
+            random: Random(1),
+            explosionShape: ExplosionShape.cross,
+          ).resolve(board).steps.first;
+
+          final hitsAt5 = step.obstacleHits.where(
+            (h) => h.position == const Position(row: 3, col: 5),
+          );
+          expect(hitsAt5, hasLength(1));
+          // A onda destrói por inteiro: o impacto único tem de refletir isso,
+          // e não a vida parcial que a fusão sozinha deixaria — senão a mesma
+          // cobertura some do tabuleiro sem o objetivo contar, que é
+          // exatamente o bug que esta correção fecha.
+          expect(hitsAt5.first.cleared, isTrue);
+        },
+      );
+    });
   });
 
   group('smash (Martelo de Fusão)', () {

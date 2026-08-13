@@ -247,6 +247,53 @@ void main() {
       expect(notifier.state.objectiveFraction, 0.5);
       expect(notifier.state.objectiveMet, isFalse);
     });
+
+    test(
+      'a onda de choque do dígito máximo também vence "limpe toda a pedra"',
+      () {
+        // Um T de cinco `8`s: braço horizontal em (1,2)-(1,4) e braço vertical
+        // descendo por (2,3)-(3,3). A jogada troca (3,2) por (3,3), fechando o
+        // braço vertical com a âncora no fundo do T — é ali que a peça
+        // evoluída nasce (8+2 = 10, arredondado para o dígito máximo).
+        //
+        // A pedra fica em (4,4): dentro do raio 3x3 da explosão centrada em
+        // (3,3), mas fora da vizinhança que o dano de fusão já alcançou (essa
+        // vizinhança para de crescer uma linha antes). Só a onda de choque a
+        // atinge — é exatamente o caminho que o bug deixava sem `ObstacleHit`.
+        final grid = _baseGrid();
+        grid[1][2] = 8;
+        grid[1][3] = 8;
+        grid[1][4] = 8;
+        grid[2][3] = 8;
+        // (3,3) começa com outro valor; o swap é que traz o 8 para lá.
+        grid[3][2] = 8;
+
+        var board = _boardFromValues(grid);
+        board = board.updateTile(
+          const Position(row: 4, col: 4),
+          board.getTileAt(const Position(row: 4, col: 4))!.withObstacle(
+            ObstacleType.stone,
+          ),
+        );
+
+        notifier.startLevel(
+          const GameLevel(
+            number: 99,
+            objective: Objective.clearAllObstacles(ObstacleType.stone),
+            moveLimit: 50,
+          ),
+        );
+        notifier.debugSetBoard(board);
+        notifier.swapTiles(
+          const Position(row: 3, col: 2),
+          const Position(row: 3, col: 3),
+        );
+
+        expect(notifier.state.objectiveTarget, 1);
+        expect(notifier.state.objectiveProgress, 1);
+        expect(notifier.state.status, GameStatus.won);
+      },
+    );
   });
 
   group('objetivo de dígito segue intacto', () {

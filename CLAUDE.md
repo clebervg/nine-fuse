@@ -101,7 +101,20 @@ Há teste para cada uma das duas regras.
 **O dano roda antes da explosão e da queda**, para a cobertura liberada cair no
 mesmo passo em vez de esperar o movimento seguinte. Como efeito colateral
 desejado, a onda de choque do `9` varre a célula coberta por inteiro — a pedra
-cede ao clímax sem código dedicado.
+cede ao clímax fisicamente sem código dedicado, mas contabilmente ela precisou
+de um: `_detonate` também lê o `ObstacleType` de cada célula que a onda alcança
+antes de esvaziá-la, e `_mergeObstacleHits` funde esse resultado com os
+impactos que a fusão já tinha registrado no mesmo passo — sem duplicar hit numa
+cobertura que as duas fontes tocaram. **Isto foi bug, não decisão**: até a
+calibragem de fases procedurais expor o caso (janela de sorteio alta, quase
+todo topo virando `9`, 0% de vitória em fases de "limpe toda a pedra" mesmo com
+90 movimentos), a explosão limpava a cobertura da tela sem emitir `ObstacleHit`
+nenhum — o pior tipo de bug de regra, porque o jogador *vê* a pedra sumir e o
+jogo *discorda* dele, negando o progresso do objetivo por uma ação que acabou
+de acontecer diante dos seus olhos. A correção manteve a assimetria de sempre:
+o hit da onda é sempre destruição total (`remainingHp: 0`), independente de
+quanta vida a cobertura ainda tivesse — é o que já valia fisicamente, e agora
+vale também no que o objetivo conta.
 
 **`ObstacleHit` guarda o tipo de *antes* do impacto.** Numa quebra o tipo de
 depois é sempre `none`, e a UI não saberia que partícula desenhar. A posição é a

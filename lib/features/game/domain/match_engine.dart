@@ -615,6 +615,9 @@ class MatchEngine {
       // Só conta como explosão o que de fato estourou: com
       // ExplosionShape.none a peça alcança o topo mas permanece no tabuleiro.
       var detonated = const <Position>[];
+      // Todo passo começa só com os impactos da fusão; a explosão, quando
+      // existir, se junta a eles em vez de substituí-los.
+      var obstacleHits = damage.hits;
 
       if (fused.maxed.isNotEmpty && explosionShape != ExplosionShape.none) {
         final blast = _detonate(current, fused.maxed);
@@ -623,6 +626,11 @@ class MatchEngine {
         cleared = blast.cleared;
         swept = blast.swept;
         detonated = fused.maxed;
+        // A onda varre a célula inteira, cobertura incluída — e quem paga
+        // por "limpe toda a pedra" é o `ObstacleHit`, não o sumiço silencioso
+        // da peça. Era exatamente essa emissão que faltava: a pedra cedia na
+        // tela e o objetivo não via nada acontecer.
+        obstacleHits = _mergeObstacleHits(damage.hits, blast.sweptObstacles);
       }
 
       // Guardado antes da queda: é o quadro em que as peças absorvidas ainda
@@ -642,12 +650,45 @@ class MatchEngine {
           boardAfterFusion: afterFusion,
           boardAfterSettle: current,
           score: stepScore,
-          obstacleHits: damage.hits,
+          obstacleHits: obstacleHits,
         ),
       );
     }
 
     return Resolution(board: current, steps: steps);
+  }
+
+  /// Junta os impactos da fusão com os da onda de choque no mesmo passo, sem
+  /// duplicar impacto em cobertura que as duas alcançaram.
+  ///
+  /// A regra do obstáculo é **um impacto por passo**, e a onda não é exceção
+  /// — mas ela destrói por inteiro, sempre. Uma cobertura já danificada pela
+  /// fusão e depois varrida pela explosão não pode continuar aparecendo como
+  /// "só trincada": ela sumiu do tabuleiro, e um hit que ainda diga
+  /// `cleared: false` é o mesmo bug de origem, só que disfarçado — o
+  /// objetivo ficaria devendo essa cobertura para sempre.
+  List<ObstacleHit> _mergeObstacleHits(
+    List<ObstacleHit> fusionHits,
+    Map<Position, ObstacleType> sweptObstacles,
+  ) {
+    if (sweptObstacles.isEmpty) return fusionHits;
+
+    final merged = [
+      for (final hit in fusionHits)
+        sweptObstacles.containsKey(hit.position)
+            ? ObstacleHit(position: hit.position, type: hit.type, remainingHp: 0)
+            : hit,
+    ];
+
+    final alreadyHit = fusionHits.map((h) => h.position).toSet();
+    for (final entry in sweptObstacles.entries) {
+      if (alreadyHit.contains(entry.key)) continue;
+      merged.add(
+        ObstacleHit(position: entry.key, type: entry.value, remainingHp: 0),
+      );
+    }
+
+    return merged;
   }
 
   /// Bate uma vez em cada cobertura encostada nas combinações de [events].
@@ -709,6 +750,7 @@ class MatchEngine {
     int score,
     Set<Position> swept,
     Map<Position, int> cleared,
+    Map<Position, ObstacleType> sweptObstacles,
   })
   _detonate(
     Board board,
@@ -729,6 +771,16 @@ class MatchEngine {
           position: tile.value,
     };
 
+    // O tipo é o de **antes** da destruição, pela mesma razão do dígito acima:
+    // depois de nula a célula não guarda mais o que havia ali. É o que falta
+    // para o `_mergeObstacleHits` poder emitir o `ObstacleHit` que a onda
+    // sempre devia ter gerado — a pedra cedia na tela sem o objetivo saber.
+    final sweptObstacles = <Position, ObstacleType>{
+      for (final position in hit)
+        if (board.getTileAt(position) case final tile? when tile.isBlocked)
+          position: tile.obstacle,
+    };
+
     var result = board;
     for (final position in hit) {
       result = result.updateTile(position, null);
@@ -742,6 +794,7 @@ class MatchEngine {
       score: hit.length * 50,
       swept: hit,
       cleared: cleared,
+      sweptObstacles: sweptObstacles,
     );
   }
 
