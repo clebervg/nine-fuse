@@ -10,7 +10,7 @@ Base: c446730 (camada de monetização com AdMob)
 - [x] 2 Wallet (estado + notifier + provider) — completa (commit b2d7878, revisão limpa)
 - [x] 3 Torneira: estrelas novas creditam moedas — completa (commit fd0bf24, revisão: 1 achado Menor)
 - [x] 4 Ralo: comprar martelo com moedas — completa (commit 6ff28a1, revisão: 2 achados Menores)
-- [ ] 5 Reconciliar a carteira ao voltar ao mapa
+- [x] 5 Reconciliar a carteira ao voltar ao mapa — completa (commit 1b20dad, revisão limpa)
 - [ ] 6 Fechamento (analyze, suíte, CLAUDE.md)
 
 ## Achados menores (para a revisão final triar)
