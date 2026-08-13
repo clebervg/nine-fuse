@@ -11,7 +11,7 @@ Base: c446730 (camada de monetização com AdMob)
 - [x] 3 Torneira: estrelas novas creditam moedas — completa (commit fd0bf24, revisão: 1 achado Menor)
 - [x] 4 Ralo: comprar martelo com moedas — completa (commit 6ff28a1, revisão: 2 achados Menores)
 - [x] 5 Reconciliar a carteira ao voltar ao mapa — completa (commit 1b20dad, revisão limpa)
-- [ ] 6 Fechamento (analyze, suíte, CLAUDE.md)
+- [x] 6 Fechamento (analyze, suíte, CLAUDE.md) — completa (commit c3faf2a, revisão limpa)
 
 ## Achados menores (para a revisão final triar)
 - Menor (rev. T3): nenhum teste exercita a **fiação** em `game_screen.dart` — os
@@ -38,3 +38,40 @@ Base: c446730 (camada de monetização com AdMob)
 - Menor (rev. T4): não há teste isolado do `GameButton` desabilitado (que ele não
   afunda ao toque). O efeito que importa está coberto de fora, pelo teste de
   saldo curto.
+
+## Revisão final (opus): PRONTO PARA INTEGRAR
+Nenhum achado Crítico ou Importante. Reparos aplicados em b5afc81:
+- Reentrância na compra: `_buy()` checava `_waiting` mas nunca o ligava. O dano
+  real não era saldo negativo (o revisor corrigiu a caracterização deste ledger):
+  `spendCoins` checa `canAfford` contra o estado já debitado. Era cobrar 200 por
+  2 martelos quando o jogador pediu 1 — e o segundo nem tem alvo, porque o
+  primeiro golpe já limpou o `pendingTarget`. Vira estoque pago que ninguém quis.
+- Ordem de gravação de `claimChapterChest`: baú antes da moeda. Se só uma
+  gravação sobrevive a uma falha, o pior caso passa a ser "perdeu o prêmio" em
+  vez de "o baú repaga toda sessão".
+- CLAUDE.md: a frase dos "três gestos" descrevia o que o código não faz (só
+  `onTapDown` checa; com `_pressed` já falso, up e cancel são no-op).
+- CLAUDE.md: registrado que `refreshHammers` continua lendo o disco em vez de
+  reconciliar contra o Wallet, contrariando o spec — e por que está certo.
+
+E um defeito introduzido pelo próprio reparo, corrigido em ebedd1e:
+- `_buy()` retornava com `_waiting` ligado quando `spendCoins` falhava. Como
+  `_watch()` também começa com `if (_waiting) return;`, o convite inteiro
+  congelava: nem comprar, nem assistir, só recusar.
+
+Estado verificado pelo controlador: flutter analyze limpo, 662/662 testes
+(eram 641 quando a branch começou).
+
+## Dívida registrada, fora desta branch
+- **Obrigatório antes da UI do baú (Fase B):** nada mais — a ordem de gravação
+  já foi corrigida aqui.
+- Sem teste da fiação da torneira em `game_screen.dart` (a regra tem 4 testes, e
+  a guarda de transição `!won -> won` é a mesma que já protegia `record()`).
+- Sem teste isolado do `GameButton` desabilitado; o efeito está coberto de fora.
+- Os quatro `_BrokenStorage` duplicados pelos arquivos de teste — padrão
+  pré-existente, agravado por esta branch. Um fake compartilhado pagaria no
+  próximo método de `GameStorage`.
+- Corrida teórica: `CampaignRecords._load()` é assíncrono, e uma vitória
+  registrada antes de o disco responder pagaria estrelas já conquistadas. Exige
+  vencer uma fase antes do SharedPreferences responder — inalcançável na
+  prática, mas agora tem consequência monetária, e antes não tinha.
