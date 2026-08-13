@@ -1,5 +1,5 @@
 import 'package:nine_fuse/features/game/domain/board.dart';
-import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
@@ -321,7 +321,7 @@ class GameState {
   /// Estado antes de qualquer fase começar.
   factory GameState.initial() => GameState(
     board: Board.empty(),
-    level: kCampaign.first,
+    level: levelAt(1),
     status: GameStatus.idle,
   );
 

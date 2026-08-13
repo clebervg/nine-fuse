@@ -22,8 +22,15 @@ const Duration kPathRevealDuration = Duration(milliseconds: 900);
 ///
 /// Mais de uma tela de pins, para a trilha nunca terminar dentro do campo de
 /// visão: o jogador precisa ver que há continuação sem precisar rolar para
-/// descobrir. Uma lista infinita não existe em memória e não precisa existir —
-/// alocar mil fases para mostrar oito seria pagar por nada.
+/// descobrir.
+///
+/// **Atenção — isto não é uma janela deslizante, é um prefixo que cresce.** A
+/// lista vai sempre da fase 1 até `progress + kLookahead`, então na fase 500 o
+/// `build` monta 508 pins. É consequência direta de `_currentIndex` depender de
+/// a janela **começar** na fase 1; fazê-la deslizar de verdade exige mudar essa
+/// conta para um início móvel. Aceitável hoje (centenas de pins ainda
+/// renderizam), e registrado como dívida no `CLAUDE.md` — deixa de ser
+/// aceitável na casa dos milhares.
 const int kLookahead = 8;
 
 /// Mapa da campanha: trilha de pins, cabeçalho de progresso e a ilha do
