@@ -7,7 +7,7 @@ Base: 9ef8b4f (plano de implementação)
 Baseline: 662 testes passando, analyze limpo.
 
 ## Tarefas
-- [ ] 1 LevelGenerator
+- [x] 1 LevelGenerator — completa (commit 61f4d3a, revisão limpa, 669 testes)
 - [ ] 2 levelAt + capítulos infinitos
 - [ ] 3 A campanha deixa de ter fim
 - [ ] 4 O mapa perde o "Em Breve"
@@ -16,7 +16,13 @@ Baseline: 662 testes passando, analyze limpo.
 - [ ] 7 Calibragem por simulação
 
 ## Achados menores (para a revisão final triar)
-(nenhum ainda)
+- Menor (rev. T1): `ice = (2 + block % 3).clamp(1, 4)` — o `clamp` é código morto,
+  `2 + block%3` já vive em [2,4]. Os clamps de `glass`/`stone` são necessários.
+- Menor (rev. T1): `generateLevel` recusa fase artesanal por `assert`, que some em
+  release — lá rodaria com `block`/`position` negativos. É o padrão do resto do
+  projeto (`Objective`, `GameLevel`), não regressão. A Task 2 decide se a guarda
+  de entrada fica antes da chamada.
+- Menor (rev. T1): o teste de recusa só cobre `n=10`; não cobre 0 nem negativo.
 
 ## Notas de execução
 - Tasks 2 e 5 deixam a árvore sem compilar entre si (remover `kCampaignStarTotal`
