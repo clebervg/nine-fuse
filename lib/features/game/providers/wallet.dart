@@ -108,8 +108,12 @@ class WalletNotifier extends StateNotifier<Wallet> {
       coins: state.coins + kChapterChestReward,
       claimedChests: chests,
     );
-    _persistCoins();
+    // Baú primeiro, moeda depois: se só uma gravação for a sobreviver de uma
+    // falha de disco, que seja a marca de "já reclamado" — assim o pior caso é
+    // o jogador perder a moeda desta vez, não o baú repagar toda sessão que
+    // reabrir o mapa (torneira infinita).
     _persistChests(chests);
+    _persistCoins();
     return true;
   }
 

@@ -93,6 +93,12 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
   /// também renderia dois martelos por uma compra.
   void _buy() {
     if (_waiting) return;
+    // Mesma trava do anúncio, pela mesma razão: um item pago não pode ser
+    // cobrado duas vezes por um deslize de dedo. Sem ligar `_waiting` aqui,
+    // dois toques processados antes do rebuild que reavalia `canAfford`
+    // debitam duas vezes — e o segundo martelo nem tem alvo, porque o
+    // primeiro golpe já limpou o `pendingHammerTarget`.
+    setState(() => _waiting = true);
     if (!ref.read(walletProvider.notifier).spendCoins(kHammerCoinPrice)) return;
 
     widget.onGranted();

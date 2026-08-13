@@ -74,6 +74,30 @@ void main() {
     expect(granted, 0);
   });
 
+  testWidgets('dois toques na compra antes do rebuild só debitam uma vez', (
+    tester,
+  ) async {
+    var granted = 0;
+    // Saldo para DUAS compras: é o caso em que `spendCoins` sozinho não barra
+    // o segundo toque, porque o saldo continua cobrindo o preço depois do
+    // primeiro débito. Só a trava de `_waiting` em `_buy` impede o segundo.
+    final wallet = await pumpOffer(
+      tester,
+      coins: kHammerCoinPrice * 2 + 30,
+      onGranted: () => granted++,
+    );
+
+    // Sem `pump` entre os dois toques: é a janela em que `canAfford` ainda
+    // não foi reavaliado pelo rebuild do primeiro débito. Se `_buy` não travar
+    // sozinho, os dois toques processam antes de o botão desabilitar.
+    await tester.tap(find.byKey(hammerOfferBuyKey));
+    await tester.tap(find.byKey(hammerOfferBuyKey));
+    await tester.pumpAndSettle();
+
+    expect(wallet.state.coins, kHammerCoinPrice + 30);
+    expect(granted, 1);
+  });
+
   testWidgets('o botão de anúncio continua funcionando sem moeda nenhuma', (
     tester,
   ) async {

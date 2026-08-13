@@ -334,9 +334,11 @@ regra, não o nó visual.
 
 **`GameButton.onPressed` virou anulável** para o botão de compra do
 `HammerOfferDialog` poder ficar desabilitado quando o saldo não cobre o preço.
-Os três gestos de toque (down/up/cancel) passaram a checar o callback antes de
-animar: um botão que afunda ao toque promete uma ação que não vem quando falta
-moeda, e essa promessa quebrada é pior do que o botão simplesmente não reagir.
+Só `onTapDown` checa o callback antes de animar (`if (!_enabled) return;`); com
+`_pressed` já falso nesse caminho, `onTapUp` e `onTapCancel` são no-op — não
+precisam da mesma checagem. Um botão que afunda ao toque promete uma ação que
+não vem quando falta moeda, e essa promessa quebrada é pior do que o botão
+simplesmente não reagir.
 
 **Os números são um piso a calibrar, não um veredito.** `kCoinsPerStar = 10`,
 `kHammerCoinPrice = 100` e `kChapterChestReward = 200` (`domain/economy.dart`)
@@ -350,6 +352,17 @@ recursos no mapa, pílula do Endless, nó do baú — é a Fase B, com plano pr�
 a Fase A entrega a economia funcionando e testada, sem nada de novo na tela além
 do botão de compra. O cap de 3 martelos/dia da regra de AdMob continua fora,
 como já estava.
+
+**O spec pedia `refreshHammers` reconciliando contra o `Wallet`; ficou lendo o
+disco direto, e é desvio deliberado.** `HammerBooster.refreshHammers` continua
+chamando `readHammerCount()` na fonte, sem passar pelo provider. Não há como os
+dois divergirem: o disco é a autoridade única, e `HammerBooster` é o único
+escritor de martelo — reconciliar contra o `Wallet` seria comparar duas leituras
+do mesmo dado, nunca corrigir uma divergência real. Fazer o booster depender do
+`Wallet` acoplaria uma regra de partida (que roda em Dart puro, testável sem
+Riverpod) a um `StateNotifierProvider` só para reler um número que já lê direto
+— trocaria uma leitura simples por uma dependência circular de camada sem
+ganhar nada em troca.
 
 
 ### Regras de Monetização & Exibição de Anúncios (AdMob)
