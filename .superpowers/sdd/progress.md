@@ -12,10 +12,17 @@ Baseline: 662 testes passando, analyze limpo.
 - [x] 3 A campanha deixa de ter fim — completa (commits 0d33672..c886984, revisão limpa após 1 reparo)
 - [x] 4 O mapa perde o "Em Breve" — completa (commit e600e8b, revisão aprovada, 1 achado Menor)
 - [x] 5 Janela deslizante + denominador do capítulo — completa (commits bd23b0d..1d886ca, revisão limpa após 1 reparo). Árvore verde de novo: 680 testes.
-- [ ] 6 Poda dos registros de fase
+- [x] 6 Poda dos registros de fase — completa (commits cb2bd9b..aae3fb2, revisão limpa após 2 reparos). 689 testes.
 - [ ] 7 Calibragem por simulação
 
 ## Achados menores (para a revisão final triar)
+- Menor (re-rev. T6): `reset()` ainda dispara `_persistArchivedStars()` e
+  `_persistPrunedBelow()` como dois `unawaited` independentes, sem o encadeamento
+  que `_pruned()` passou a ter. Hoje `reset()` não tem chamador em `lib/` — é só
+  teste. Vale corrigir quando ganhar um caminho de UI.
+- Menor (re-rev. T6): fase abaixo da marca d'água fica congelada em zero estrelas
+  no mapa e não recupera `bestScore`. É o preço aceito da poda, documentado em
+  comentário, mas é visível ao jogador.
 - Menor (rev. T5): a "janela deslizante" **não desliza** — `_visibleCount` é
   `progress + kLookahead`, um prefixo que cresce sem teto: na fase 500 o `build`
   monta 508 pins. É o que o plano especificou (a aritmética de `_currentIndex`
@@ -65,6 +72,14 @@ Baseline: 662 testes passando, analyze limpo.
   (verificada por álgebra: `levelAt(10) == kCampaign.last`), o outro reescrito.
   Lição: pedir ao implementador a lista de arquivos de teste que **mencionam** o
   comportamento removido, não só os que ele tocou.
+
+- **A poda quase virou farm de moedas.** `record()` calcula o ganho como
+  `merged.stars - existing.stars`, e a torneira paga por esse retorno. Com o
+  detalhe podado, `existing` é nulo: rejogar a fase pagava tudo de novo, e a
+  repoda devolvia o estado ao anterior — ciclo infinito. Fechado por marca d'água
+  (`prunedBelow`, a maior fase já podada; abaixo dela rende zero), mais a guarda
+  de que a marca nunca regride na carga assíncrona. A revisão em opus achou;
+  a auto-revisão do implementador não.
 
 ## Dívida registrada, fora desta branch
 - **Baú de capítulo vira torneira infinita.** `Wallet.claimChapterChest` paga
