@@ -97,8 +97,6 @@
   "chapterPrimaryFusions": "Fusões Primárias",
   "chapterTowardNine": "Rumo ao Nove",
 
-  "chapterComingSoon": "Capítulo {number}: Em Breve!",
-
   "semanticsLevelCleared": "Fase {number}, concluída com {stars} de {total} estrelas. {objective}.",
 
   "semanticsLevelCurrent": "Fase {number}, liberada. {objective}.",

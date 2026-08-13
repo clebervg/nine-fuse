@@ -280,11 +280,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chapterTowardNine => 'Toward the Nine';
 
   @override
-  String chapterComingSoon(int number) {
-    return 'Chapter $number: Coming Soon!';
-  }
-
-  @override
   String semanticsLevelCleared(
     int number,
     int stars,

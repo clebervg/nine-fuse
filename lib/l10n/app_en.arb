@@ -183,12 +183,6 @@
   "chapterPrimaryFusions": "Primary Fusions",
   "chapterTowardNine": "Toward the Nine",
 
-  "chapterComingSoon": "Chapter {number}: Coming Soon!",
-  "@chapterComingSoon": {
-    "description": "Rótulo sobre os nós projetados do mapa: a trilha nunca termina em corte seco.",
-    "placeholders": { "number": { "type": "int" } }
-  },
-
   "semanticsLevelCleared": "Level {number}, completed with {stars} of {total} stars. {objective}.",
   "@semanticsLevelCleared": {
     "placeholders": {

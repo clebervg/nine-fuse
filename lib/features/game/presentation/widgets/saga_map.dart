@@ -187,48 +187,10 @@ class SagaMapWidget extends StatelessWidget {
               // de que a trilha continua.
               for (int i = levels.length; i <= geometry.lastIndex; i++)
                 _positionedPin(geometry, i, child: const _FuturePin()),
-              // Os cadeados sozinhos diziam "travado", não "vem mais por aí".
-              // O rótulo fica **acima** do último nó projetado, no topo da
-              // rolagem, que é onde o olho chega depois de subir a trilha.
-              _comingSoonLabel(context, geometry),
             ],
           ),
         );
       },
-    );
-  }
-
-  /// "Capítulo N: Em Breve!", ancorado acima do último nó projetado.
-  ///
-  /// Os nós projetados sozinhos só diziam "travado" — três cadeados iguais aos
-  /// das fases que ainda vão abrir. O rótulo é o que transforma o fim da
-  /// trilha em promessa de continuação em vez de parede.
-  ///
-  /// Fica fora de [_FuturePin] de propósito: os pins são [ExcludeSemantics],
-  /// porque anunciar um nó projetado como fase daria a entender que existe algo
-  /// para abrir. O rótulo, ao contrário, é informação legítima e vale para um
-  /// leitor de tela.
-  Widget _comingSoonLabel(BuildContext context, SagaGeometry geometry) {
-    final top = geometry.centerOf(geometry.lastIndex);
-
-    return Positioned(
-      left: 0,
-      right: 0,
-      // Acima do nó, com folga suficiente para não encostar no círculo.
-      top: top.dy - SagaGeometry.pinSize,
-      child: Text(
-        AppLocalizations.of(
-          context,
-        ).chapterComingSoon(kChapters.last.number + 1),
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontFamily: AppFonts.display,
-          color: Colors.white.withValues(alpha: 0.38),
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.5,
-        ),
-      ),
     );
   }
 

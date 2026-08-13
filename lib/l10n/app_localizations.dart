@@ -470,12 +470,6 @@ abstract class AppLocalizations {
   /// **'Toward the Nine'**
   String get chapterTowardNine;
 
-  /// Rótulo sobre os nós projetados do mapa: a trilha nunca termina em corte seco.
-  ///
-  /// In en, this message translates to:
-  /// **'Chapter {number}: Coming Soon!'**
-  String chapterComingSoon(int number);
-
   /// No description provided for @semanticsLevelCleared.
   ///
   /// In en, this message translates to:
