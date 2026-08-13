@@ -99,7 +99,15 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
     // debitam duas vezes — e o segundo martelo nem tem alvo, porque o
     // primeiro golpe já limpou o `pendingHammerTarget`.
     setState(() => _waiting = true);
-    if (!ref.read(walletProvider.notifier).spendCoins(kHammerCoinPrice)) return;
+    if (!ref.read(walletProvider.notifier).spendCoins(kHammerCoinPrice)) {
+      // A trava vale só enquanto a compra está em curso. Aqui ela não
+      // aconteceu (saldo insuficiente no instante do débito, ainda que o
+      // botão tivesse nascido habilitado), então a caixa tem de voltar ao
+      // estado utilizável — senão o botão do anúncio, que também começa com
+      // `if (_waiting) return;`, morre travado junto, e sobra só a recusa.
+      setState(() => _waiting = false);
+      return;
+    }
 
     widget.onGranted();
   }

@@ -113,4 +113,32 @@ void main() {
 
     expect(granted, 1);
   });
+
+  testWidgets(
+    'saldo esvaziado por trás da UI deixa o botão de anúncio vivo depois da recusa',
+    (tester) async {
+      // Monta com saldo suficiente: o botão de compra nasce habilitado.
+      var granted = 0;
+      final wallet = await pumpOffer(
+        tester,
+        coins: kHammerCoinPrice,
+        onGranted: () => granted++,
+      );
+
+      // Esvazia o saldo direto no notifier, sem deixar a UI rebuildar — é a
+      // janela em que `canAfford` (calculado no último build) ainda diz que dá,
+      // mas `spendCoins` (que lê o estado atual) vai recusar.
+      wallet.spendCoins(kHammerCoinPrice);
+
+      await tester.tap(find.byKey(hammerOfferBuyKey));
+      await tester.pump();
+
+      // A compra falhou (saldo já zerado por fora), mas a caixa não pode
+      // travar: o botão do anúncio ainda tem de funcionar.
+      await tester.tap(find.byKey(hammerOfferWatchKey));
+      await tester.pumpAndSettle();
+
+      expect(granted, 1);
+    },
+  );
 }
