@@ -43,14 +43,15 @@ const int kMinMoveLimit = 10;
 
 /// Quantos movimentos vale cada peça pedida num objetivo de dígito.
 ///
-/// O jogador simulado (guloso, e que enumera todas as trocas) forma a peça-alvo
-/// em pouco mais de um movimento, porque o gerador prende o dígito-alvo logo
-/// acima da janela de sorteio: `spawnMax + 1` está sempre a **uma** fusão de
-/// distância. Três movimentos por peça é o dobro largo dessa mediana — a mesma
-/// folga que a campanha artesanal se deu (fase 1 pede uma fusão e dá seis
-/// movimentos) — e é o que `--mode=generated` mostra pousando na faixa nas
-/// fases de contagem alta, que são a esmagadora maioria de uma campanha
-/// infinita.
+/// O nome sugere que este número governa o limite das fases de dígito, mas na
+/// prática ele quase não participa: com `count` de 1 a 4 a base
+/// (`2.2 * count`) fica entre 2,2 e 8,8, sempre abaixo de [kMinMoveLimit] — o
+/// piso decide sozinho, e só as contagens 5-6 em blocos baixos chegam a
+/// escapar dele. [kTighteningFloor] também não morde nessas fases (13,2 × 0,75
+/// = 9,9 < 10). Quem de fato calibra o limite das fases de dígito é o piso de
+/// dez movimentos, não este multiplicador — o valor aqui só evita que a base
+/// fique **acima** do piso nas contagens altas, o que voltaria a inflar o
+/// limite sem necessidade.
 const double kDigitMovesPerPiece = 2.2;
 
 /// Quantos movimentos vale cada cobertura pedida.
@@ -198,15 +199,18 @@ Objective _objectiveFor({
 ObstacleLayout _obstaclesFor(int block) {
   final ice = (2 + block % 3).clamp(1, 4);
   final glass = (1 + block ~/ 2).clamp(1, 3);
-  // O teto da pedra é 2, e não 3, porque a pedra é a única cobertura cujo custo
-  // não escala com o limite de movimentos. Três pedras custam nove fusões
-  // nascidas encostadas nelas, e a saída rápida — a onda de choque do dígito
-  // máximo, que varre a célula coberta inteira — **não credita o objetivo**:
-  // `Resolution.countCleared` só conta `ObstacleHit`, que nasce do dano por
-  // fusão adjacente, nunca do estouro. Na janela 5-8, onde toda fusão de topo
-  // vira um 9 e estoura, "limpe todas as pedras" com três pedras media 0% de
-  // vitória em qualquer limite de movimentos — fase quebrada, não difícil.
-  final stone = (block ~/ 3).clamp(0, 2);
+  // O teto da pedra voltou a 3. O motivo do teto reduzido a 2 era um bug do
+  // motor — a onda de choque do dígito máximo varria a cobertura da tela sem
+  // emitir `ObstacleHit`, então "limpe todas as pedras" não tinha como fechar
+  // por explosão — e esse bug **foi corrigido** em `MatchEngine._detonate`
+  // (`_mergeObstacleHits`): o estouro agora credita a cobertura que varre.
+  // Remedido com `--mode=generated`, o teto 3 não faz a fase 1000 ("limpe todo
+  // stone", janela 5-8) despencar: 56%, contra 16% com o bug ativo. O teto 2
+  // mede alguns pontos acima, e os dois números são piso — o bot guloso nunca
+  // mira a cobertura de propósito. A variedade de
+  // três pedras no fecho de bloco vale mais do que os poucos pontos percentuais
+  // de folga que o teto 2 comprava.
+  final stone = (block ~/ 3).clamp(0, 3);
 
   // O teto é do tabuleiro, não do desenho: o excesso é aparado da cobertura
   // mais macia, que é a que menos muda o que a fase pede.

@@ -717,17 +717,30 @@ sempre, 200 partidas por linha:
 |------|------------------|--------|-----|----------|
 | 14   | Crie um 8        | 3-6    | 10  | 84%      |
 | 22   | Crie 2 peças 9   | 4-7    | 10  | 40%      |
-| 103  | Crie 6 peças 8   | 4-7    | 10  | 93%      |
-| 253  | Crie 6 peças 7   | 3-6    | 10  | 90%      |
-| 1003 | Crie 6 peças 6   | 2-5    | 10  | 90%      |
+| 103  | Crie 6 peças 8   | 4-7    | 10  | 91%      |
+| 253  | Crie 6 peças 7   | 3-6    | 10  | 88%      |
+| 1003 | Crie 6 peças 6   | 2-5    | 10  | 88%      |
 | 18   | Quebre 1 glass   | 3-6    | 12  | 66%      |
-| 108  | Quebre 2 stone   | 4-7    | 19  | 41%      |
-| 1008 | Quebre 2 stone   | 2-5    | 18  | 31%      |
+| 108  | Quebre 3 stone   | 4-7    | 29  | 45%      |
+| 1008 | Quebre 3 stone   | 2-5    | 27  | 33%      |
 | 20   | Limpe todo glass | 3-6    | 30  | 83%      |
 | 100  | Limpe todo stone | 3-6    | 25  | 44%      |
-| 1000 | Limpe todo stone | 5-8    | 22  | 16%      |
+| 1000 | Limpe todo stone | 5-8    | 22  | 56%      |
 
-As de cobertura ficam abaixo da faixa, **e é esperado, não é defeito**: o
+Tabela remedida (`--games=200`, mesma disciplina da tabela anterior) depois de
+dois eventos: a correção do bug da onda de choque (abaixo) e a restauração do
+teto da pedra para 3. A tabela publicada originalmente foi medida com o bug
+**ativo** — o teto de pedra já estava em 2 como paliativo, mas o resto da
+economia rodava sem o estouro creditar cobertura nenhuma. A linha que mais
+muda é a 1000 ("limpe todo stone", janela 5-8, o pior caso do bug): saltou de
+16% para 56% só com a correção do motor, e continua acima mesmo depois de o
+teto voltar a 3 (mais uma pedra para quebrar). As fases "quebre N" também
+mudam de enunciado (3 pedras em vez de 2, refletindo o teto restaurado) e
+custam mais movimentos (`kObstacleMovesPerUnit` escala com a contagem pedida).
+As linhas de dígito e de "limpe todo glass" ficam essencialmente onde estavam
+— o bug e o teto da pedra não as tocam.
+
+As de cobertura seguem abaixo da faixa, **e é esperado, não é defeito**: o
 jogador automático é guloso por fusão e nunca mira a cobertura de propósito,
 então o número que sai dali é um **piso**, a mesma leitura que a Fase 13 já
 registrou. Um jogador de verdade, mirando a cobertura, bate acima disso.
@@ -788,19 +801,33 @@ análogo das fases 1 e 2 artesanais — que também marcam 100% na tabela da
 campanha. Está fora da amostra porque uma linha em 100% não informa nada sobre
 o limite; está registrada aqui porque fingir que não existe informaria menos.
 
-**A onda de choque do dígito máximo destrói cobertura sem creditar o objetivo —
-e isso é bug do jogo, não do simulador.** `Resolution.countCleared` conta
-`ObstacleHit`, e `ObstacleHit` só nasce de `_damageObstacles`, o dano por fusão
-**adjacente**. O estouro do 9 varre a célula coberta por inteiro (é o que a Fase
-13 registrou como efeito colateral desejado), mas não emite hit nenhum: a pedra
-some da tela e o contador do objetivo não anda. O sintoma foi a janela 5-8, onde
-toda fusão de topo vira um 9 e estoura — "limpe todas as pedras" com três pedras
-media **0%** em qualquer limite de movimentos, inclusive 90. Como a fórmula do
-objetivo estava fora de escopo, o remédio possível foi baixar o teto da pedra de
-3 para 2 (`_obstaclesFor`), o que tira a fase de 0% e a põe em 16%. **O conserto
-de verdade é emitir `ObstacleHit` para a cobertura varrida pelo estouro**, e ele
-melhora o jogo inteiro, não só as fases geradas: hoje um jogador que planeja o
-clímax do 9 sobre a pedra é punido por isso.
+**A calibragem achou um bug de regra que nenhum teste tinha pego: a onda de
+choque do dígito máximo destruía cobertura sem creditar o objetivo.**
+`Resolution.countCleared` conta `ObstacleHit`, e `ObstacleHit` só nascia de
+`_damageObstacles`, o dano por fusão **adjacente**. O estouro do 9 varre a
+célula coberta por inteiro (é o que a Fase 13 registrou como efeito colateral
+desejado), mas não emitia hit nenhum: a pedra sumia da tela e o contador do
+objetivo não andava. O sintoma foi a janela 5-8, onde toda fusão de topo vira um
+9 e estoura — "limpe todas as pedras" com três pedras mediu **0%** de vitória em
+qualquer limite de movimentos, inclusive 90. Como a fórmula do objetivo estava
+fora de escopo desta task, o remédio imediato foi baixar o teto da pedra de 3
+para 2 (`_obstaclesFor`), o que tirou a fase de 0% e a pôs em 16% — um paliativo
+sobre uma constante, não o conserto.
+
+**O conserto de verdade veio logo em seguida**, numa task própria:
+`MatchEngine._detonate` passou a ler o `ObstacleType` de cada célula do raio
+antes de esvaziá-la, e `_mergeObstacleHits` funde esse resultado com os
+impactos que a fusão adjacente já tinha registrado no mesmo passo, sem
+duplicar hit numa cobertura que as duas fontes tocaram. Remedido depois da
+correção, o teto da pedra voltou a 3: a fase 1000 ("limpe todo stone", janela
+5-8) passou a marcar 56% (ver tabela acima), contra 16% com o bug ativo. O teto
+2 mede alguns pontos acima disso, e a diferença não paga a variedade perdida no
+fecho de bloco — os dois números são piso, porque o bot nunca mira a cobertura. A lição fica registrada porque é o tipo de bug que teste
+unitário não pega sozinho: cada teste de obstáculo olhava `_damageObstacles`
+isolado, e cada teste de explosão olhava `clearedByExplosion`/`clearedDigits`,
+nunca os dois num objetivo de cobertura ao mesmo tempo. Foi medir a economia de
+verdade — vitória por limite de movimentos, na fase que o jogo entrega — que
+expôs a lacuna.
 
 **Ainda não implementado, e é uma dívida real, não uma decisão:** a "janela
 deslizante" do mapa não desliza. `_visibleCount` é `progress + kLookahead`, um
