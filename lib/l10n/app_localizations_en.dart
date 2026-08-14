@@ -227,10 +227,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get endlessRecordTitle => 'New record!';
 
   @override
-  String get endlessOverTitle => 'Run over';
+  String get endlessOverTitle => 'Out of Moves!';
 
   @override
-  String get endlessOverMessage => 'There were no swaps left to make.';
+  String get endlessOverMessage => 'You\'ve run out of moves. Keep going?';
 
   @override
   String get endlessMoves => 'Moves';

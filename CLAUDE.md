@@ -847,3 +847,50 @@ capítulo, para sempre) sobre um `Set` que também não tem teto. Hoje o método
 não está ligado a nenhuma tela — não é bug em produção —, mas precisa ganhar
 um teto ou um valor decrescente por capítulo antes de a Fase B do baú (ainda
 não construída) o conectar a um botão.
+
+
+### Ajustes de HUD, geometria e copywriting ✅
+
+**O contador de estrelas do capítulo já estava certo, e agora tem teste.** O
+pedido era `total = fases_do_capítulo * 3`, e é exatamente o que
+`CampaignChapter.starTotal` calcula: `chapterOf(21)` devolve o capítulo 4,
+fases 21-30, 30 estrelas, e o `CampaignHeader` divide
+`records.starsInChapter(chapter)` por esse total. Nada foi corrigido porque não
+havia divergência — o que faltava era a **invariante travada**
+(`campaign_chapter_test`): a conta vale para os capítulos artesanais (6 e 4
+fases) e para os gerados (`kBlockSize` fases), toda fase do bloco devolve o
+mesmo capítulo, e o degrau seguinte é outro número. Sem o teste, a próxima
+mudança em `chapterOf` mexeria no denominador da barra sem ninguém notar.
+
+**A folga do martelo veio de cima, não é altura nova — e isso não é
+economia de pixel.** O disco projeta brilho com `blurRadius` 14 para fora de
+uma caixa que só reserva 5pt abaixo dele, então os 12pt de folga deixavam o
+brilho encostar na primeira linha de células, onde ele lê como célula acesa. A
+primeira tentativa somou 10pt à coluna e **quebrou a suíte do martelo na hora**:
+o tabuleiro saiu da área visível da janela de teste e o toque na célula-alvo
+não chegou a ninguém. O remédio foi mover a folga (padding de topo da faixa de
+10 para 2, `SizedBox` de 12 para 22): a altura total é a mesma, o card de
+métricas já separa a faixa visualmente por conta própria, e o tabuleiro não
+desce. Vale nas duas telas, porque a faixa é a mesma.
+
+**A Top Bar já estava dentro de área segura, e o teste é o que prova.** O
+`AppBar` do `Scaffold` reserva o entalhe sozinho e o `body` das duas telas já
+abre com `SafeArea` — não havia nada a envolver. `hud_layout_test` monta a fase
+21 com `FakeViewPadding(top: 88)` e afirma as duas geometrias que o pedido
+pede: o texto "Fase 21" nasce abaixo do entalhe, e o botão do martelo termina
+acima do tabuleiro com folga maior que o raio do brilho. **Não há banner de
+anúncio no projeto** (só recompensado, e ele é tela cheia), então "não
+sobrepor o banner" não tinha o que medir — quando o banner entrar, é este
+arquivo que ganha o caso.
+
+**"Fim da corrida" virou "Sem Movimentos!".** Título e subtítulo do cartão de
+fim de partida do Modo Recorde, nos dois idiomas: `endlessOverTitle` →
+"Sem Movimentos!" / "Out of Moves!", `endlessOverMessage` → "Suas jogadas
+acabaram. Deseja continuar?" / "You've run out of moves. Keep going?". "Nova
+corrida" (o botão) continua dizendo corrida de propósito: ali a palavra nomeia
+o modo, não o desfecho. Fica registrado o atrito: o Endless **não tem limite de
+movimentos** — o que acaba ali são as trocas possíveis, não um saldo —, então o
+texto novo descreve a causa com menos precisão que o antigo
+("Não havia mais nenhuma troca possível"). Foi pedido explicitamente, e a
+pergunta "Deseja continuar?" combina com os dois botões que o cartão já
+oferece.

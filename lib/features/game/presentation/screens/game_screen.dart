@@ -207,7 +207,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                         // derrota promete o que já não pode cumprir.
                         if (!state.isOver)
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                            padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
                             child: HammerBar(
                               buttonKey: hammerButtonKey,
                               targeting: state.isHammerTargeting,
@@ -215,7 +215,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                               onPressed: notifier.toggleHammerTargeting,
                             ),
                           ),
-                        const SizedBox(height: 12),
+                        // O disco do martelo projeta brilho (`blurRadius` 14)
+                        // para fora da própria caixa, que só reserva 5pt abaixo
+                        // dele. Com 12pt de folga esse brilho encostava na
+                        // primeira linha do tabuleiro e lia como célula acesa.
+                        //
+                        // A folga **veio de cima**, não é altura nova: o card de
+                        // métricas já separa visualmente a faixa, e crescer a
+                        // coluna empurraria o tabuleiro para fora da dobra em
+                        // telas curtas.
+                        const SizedBox(height: 22),
                         // Margem menor que a do resto da tela, mas não zero:
                         // colado na borda o tabuleiro parece cortado. Os 8pt
                         // de cada lado são os mesmos assumidos no cálculo de

@@ -74,8 +74,8 @@
   "endlessNextBand": "Próxima faixa: crie um",
 
   "endlessRecordTitle": "Novo recorde!",
-  "endlessOverTitle": "Fim da corrida",
-  "endlessOverMessage": "Não havia mais nenhuma troca possível.",
+  "endlessOverTitle": "Sem Movimentos!",
+  "endlessOverMessage": "Suas jogadas acabaram. Deseja continuar?",
   "endlessMoves": "Movimentos",
   "endlessHighestDigit": "Maior dígito",
   "endlessExplosions": "Explosões",

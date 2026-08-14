@@ -139,8 +139,8 @@
   "endlessNextBand": "Next band: create a",
 
   "endlessRecordTitle": "New record!",
-  "endlessOverTitle": "Run over",
-  "endlessOverMessage": "There were no swaps left to make.",
+  "endlessOverTitle": "Out of Moves!",
+  "endlessOverMessage": "You've run out of moves. Keep going?",
   "endlessMoves": "Moves",
   "endlessHighestDigit": "Highest tile",
   "endlessExplosions": "Explosions",

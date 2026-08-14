@@ -229,10 +229,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get endlessRecordTitle => 'Novo recorde!';
 
   @override
-  String get endlessOverTitle => 'Fim da corrida';
+  String get endlessOverTitle => 'Sem Movimentos!';
 
   @override
-  String get endlessOverMessage => 'Não havia mais nenhuma troca possível.';
+  String get endlessOverMessage => 'Suas jogadas acabaram. Deseja continuar?';
 
   @override
   String get endlessMoves => 'Movimentos';

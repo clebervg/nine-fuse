@@ -82,7 +82,7 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                         // uma partida encerrada.
                         if (!state.isOver)
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                            padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
                             child: HammerBar(
                               buttonKey: endlessHammerButtonKey,
                               targeting: state.isHammerTargeting,
@@ -90,7 +90,10 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                               onPressed: notifier.toggleHammerTargeting,
                             ),
                           ),
-                        const SizedBox(height: 12),
+                        // Mesma folga da campanha: o brilho do disco do martelo
+                        // vaza para fora da caixa e encostava na primeira linha
+                        // do tabuleiro.
+                        const SizedBox(height: 22),
                         if (state.status == EndlessStatus.idle)
                           const SizedBox(
                             height: 200,

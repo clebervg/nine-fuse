@@ -383,13 +383,13 @@ abstract class AppLocalizations {
   /// No description provided for @endlessOverTitle.
   ///
   /// In en, this message translates to:
-  /// **'Run over'**
+  /// **'Out of Moves!'**
   String get endlessOverTitle;
 
   /// No description provided for @endlessOverMessage.
   ///
   /// In en, this message translates to:
-  /// **'There were no swaps left to make.'**
+  /// **'You\'ve run out of moves. Keep going?'**
   String get endlessOverMessage;
 
   /// No description provided for @endlessMoves.

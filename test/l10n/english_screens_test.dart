@@ -190,7 +190,7 @@ void main() {
       expect(find.text('Maior Bloco'), findsNothing);
     });
 
-    testWidgets('o cartão de fim de corrida sai em inglês', (tester) async {
+    testWidgets('o cartão de fim de jogo sai em inglês', (tester) async {
       await pumpEn(
         tester,
         EndlessOutcomeCard(
@@ -201,11 +201,11 @@ void main() {
         ),
       );
 
-      expect(find.text('Run over'), findsOneWidget);
-      expect(find.text('There were no swaps left to make.'), findsOneWidget);
+      expect(find.text('Out of Moves!'), findsOneWidget);
+      expect(find.text("You've run out of moves. Keep going?"), findsOneWidget);
       expect(find.text('New run'), findsOneWidget);
       expect(find.text('Back to menu'), findsOneWidget);
-      expect(find.text('Fim da corrida'), findsNothing);
+      expect(find.text('Sem Movimentos!'), findsNothing);
     });
 
     // "Endless" é termo de código e não pode vazar para a tela em nenhum dos
