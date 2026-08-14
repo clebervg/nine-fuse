@@ -269,6 +269,11 @@ class _TileWidgetState extends State<TileWidget>
               type: widget.tile.obstacle,
               cracked: widget.tile.isDamaged,
               radius: radius,
+              // Derivado da posição, não sorteado: coberturas vizinhas não
+              // repetem a mesma estampa, e cada uma delas é idêntica em todo
+              // quadro reconstruído.
+              cellIndex:
+                  widget.tile.position.row * 31 + widget.tile.position.col,
             ),
         ],
       ),
