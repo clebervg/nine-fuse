@@ -944,3 +944,100 @@ texto novo descreve a causa com menos precisão que o antigo
 ("Não havia mais nenhuma troca possível"). Foi pedido explicitamente, e a
 pergunta "Deseja continuar?" combina com os dois botões que o cartão já
 oferece.
+### AppIcon: peça 3D com o `9`, e o encolhimento duplo do adaptativo ✅
+
+**O ícone anterior era um anel de energia com o dígito no meio; agora é uma
+peça do próprio jogo.** Um quebra-cabeça de números tem um objeto óbvio para
+pôr no ícone — o bloco que o jogador toca —, e o anel virou arco de energia por
+trás dele. O que não mudou foi o problema: **o glifo do `9` já falhou duas
+vezes seguidas, de dois jeitos diferentes**, e as duas vezes o defeito só
+apareceu renderizado.
+
+- A primeira versão tinha a perna varrendo para a **esquerda** por baixo da
+  barriga: a cauda de um `g` cursivo.
+- A segunda parou a haste em `y=312` com a barriga descendo até `320` — sem
+  descendente nenhum, lia como um **`a` minúsculo**. Pior que a primeira, porque
+  `a` não é sequer um dígito.
+
+A régua que ficou, e que vale para a próxima tentativa: **barriga compacta,
+haste reta descendo pela borda direita, e descendente longo o bastante para a
+barriga não passar de ~60% da altura**. Hoje: barriga r=56 em (256,216),
+contra-forma r=23, haste de 40 de largura em x 272..312 até y=352 — caixa em
+(256,256), barriga em 58%. Bowl grande com descendente curto lê `q`; descendente
+flexionado para a esquerda no pé lê `g`; haste que não passa da barriga lê `a`.
+Três becos sem saída já mapeados.
+
+**O glifo é definido uma vez e reusado três vezes.** As três camadas (aura
+ciano, entalhe deslocado, forma branca nítida) usavam o mesmo path **copiado**,
+e foi assim que o defeito do `a` passou: corrigir o dígito exigia editar três
+lugares idênticos, e bastava esquecer um para as camadas desalinharem. Virou
+`<g id="nine">` em `defs` com três `<use>`. A forma branca é a última e é a
+única **sem desfoque** — é ela que o olho usa para ler o dígito.
+
+**Barriga e haste continuam sendo dois `<path>` irmãos.** Fundidos num só com
+`fill-rule="evenodd"`, a área em que a haste encosta na barriga viraria buraco.
+
+**A frente do ícone adaptativo sai sem o fundo, e isso exigiu um grupo no
+SVG.** Tudo menos o retângulo de fundo vive dentro de `<g id="mark">`, e o
+`prepare_icons` deriva a frente recortando esse grupo. Encolher o logo inteiro
+— com o fundo escuro arredondado junto — é o que produzia a marca minúscula
+numa ilha preta dentro da máscara; o escuro tem de vir do
+`adaptive_icon_background`, não da arte. A derivação é feita pela ferramenta, e
+**não** à mão num segundo SVG: dois arquivos divergiriam no primeiro ajuste.
+`rsvg-convert -i mark` faria isso numa linha e **não serve** — esta versão do
+librsvg recorta pela bounding box do elemento, deforma a proporção e perde o
+arco de energia. Foi tentado, e está registrado no cabeçalho da ferramenta para
+não ser tentado de novo.
+
+**O encolhimento duplo tinha uma segunda metade, do lado da ferramenta.**
+`_insetForAdaptive` escalava o **canvas inteiro** para 66%, então a margem
+transparente que a arte já tinha encolhia junto: 66% de uma arte que ocupava
+55% do quadro dá 36% da máscara. Agora ele **recorta pela caixa do conteúdo
+antes de escalar** — o que tem de medir 66% é o desenho, não o quadro em volta.
+
+**E a escala é medida pelo raio, não pelo lado da caixa.** A máscara é redonda:
+arte que preenche um quadrado de 66% tem os cantos fora do círculo de 66%, e o
+recorte os come. Ajustar pelo lado deixou as duas pontas do arco decepadas —
+visível no render, invisível na aritmética. Como a arte é aproximadamente
+circular, ajustar pelo raio cabe inteira e ainda preenche mais.
+
+**O `rsvg-convert` foi absorvido pela ferramenta.** O pipeline caiu de três
+comandos para dois, e `logo.png` deixou de ser um passo manual: ele sai do mesmo
+render que alimenta os mestres, então não tem como ficar velho em relação ao
+SVG. A ferramenta agora **exige** o `rsvg-convert` no PATH (`brew install
+librsvg`) e falha explicitamente sem ele.
+
+```bash
+dart run tool/prepare_icons.dart   # SVG -> logo.png, mestres e fichas de loja
+dart run flutter_launcher_icons    # mestres -> Android, iOS e web
+```
+
+**A configuração de ícone estava duplicada, e a cópia morta era a errada.**
+`flutter_launcher_icons.yaml` é o arquivo padrão do pacote e vence sobre o bloco
+do `pubspec` quando os dois existem (`main.dart:23`,
+`Config.loadConfigFromPath(defaultConfigFile)` antes do fallback). O bloco do
+`pubspec` apontava `adaptive_icon_foreground` para o logo inteiro, com o fundo
+dentro — exatamente o defeito acima. Não estava em vigor, mas configuração morta
+e **contraditória** é pior do que configuração ausente: quem a lesse debugaria o
+sintoma no arquivo errado. Foi removida, com um comentário apontando para o
+arquivo que manda.
+
+**A cor de fundo é escolhida, não detectada.** `_dominantOpaqueColor` sugere
+`#080818` (a cor mais frequente do campo), mas a configuração usa `#090514` — o
+*stop* externo do gradiente, que é o que encosta na borda do ícone. São o mesmo
+quase-preto; a diferença importa no dia em que o gradiente mudar, e por isso o
+`flutter_launcher_icons.yaml` registra que esse valor tem de acompanhar o stop.
+
+**A verificação é visual e é obrigatória — "regerei os ícones" não é
+verificação.** Os três pontos, conferidos nesta rodada: o glifo lê como `9`; sob
+a máscara circular de 66% nada é decepado, arco incluído, e a peça preenche o
+círculo; e o ícone se separa tanto sobre fundo claro quanto escuro. O 1024 do
+iOS sai **RGB sem canal alfa** (`color_type=2`), senão a App Store recusa o
+envio.
+
+**Não há teste automatizado, e é decisão.** `logo.svg` não é renderizado em
+lugar nenhum do app — nenhum widget em `lib/` o carrega —, e ele é
+exclusivamente a origem do ícone. Nenhum golden depende dele, e um teste de
+imagem de ícone mediria o `rsvg-convert`, não o jogo. A verificação é o render
+sob máscara, feita à mão a cada mudança de arte.
+

@@ -68,26 +68,14 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   image: ^4.9.1
 
-# Ícones das plataformas, gerados de assets/images/logo.png.
-# O PNG é derivado de logo.svg (`rsvg-convert -w 1024 -h 1024`) porque o
-# flutter_launcher_icons não lê SVG — o SVG segue como fonte da verdade.
-flutter_launcher_icons:
-  android: true
-  ios: true
-  image_path: "assets/images/logo.png"
-  min_sdk_android: 21
-  # O logo já tem fundo escuro próprio; o ícone adaptativo do Android precisa
-  # da cor de fundo separada do desenho, senão a máscara corta o degradê.
-  adaptive_icon_background: "#0A0910"
-  adaptive_icon_foreground: "assets/images/logo.png"
-  # iOS não aceita canal alfa no ícone: o pacote achata sobre esta cor.
-  remove_alpha_ios: true
-  background_color_ios: "#0A0910"
-  web:
-    generate: true
-    image_path: "assets/images/logo.png"
-    background_color: "#0A0910"
-    theme_color: "#8E24AA"
+# A configuração dos ícones NÃO mora aqui — mora em `flutter_launcher_icons.yaml`,
+# que é o arquivo padrão do pacote e vence sobre este bloco quando os dois
+# existem (`Config.loadConfigFromPath(defaultConfigFile)` antes do fallback para
+# o pubspec). Havia um bloco duplicado aqui apontando `adaptive_icon_foreground`
+# para o logo INTEIRO — com o fundo escuro arredondado dentro dele —, o que o
+# Android encolheria de novo para a zona segura, deixando a marca minúscula numa
+# ilha preta. Era configuração morta, mas morta e contraditória: quem a lesse
+# acreditaria estar olhando a config em vigor.
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

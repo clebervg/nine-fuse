@@ -1726,6 +1726,14 @@ git commit -m "feat: baú de fim de capítulo no lugar do rótulo Em Breve"
 
 ### Task 7: AppIcon — corrigir o `9`, promover o anel e adicionar glow
 
+> **SUPERADA depois de executada.** Os steps abaixo foram cumpridos e a arte
+> resultante (anel como moldura, `9` geométrico, halo ciano) foi **substituída
+> em seguida** por um conceito novo: uma peça 3D do jogo com o dígito, decidido
+> pelo dono do produto. O que sobrevive desta task é o diagnóstico do glifo —
+> a régua de anatomia e os becos sem saída (`g`, `q`, `a`) estão consolidados
+> no `CLAUDE.md`, seção "AppIcon: peça 3D com o `9`". Não reexecute os steps:
+> eles descrevem uma arte que não existe mais.
+
 **Files:**
 - Modify: `assets/images/logo.svg`
 - Regenerate: `assets/images/logo.png`, `assets/icon/*`, ícones nativos de Android e iOS
@@ -1737,7 +1745,7 @@ git commit -m "feat: baú de fim de capítulo no lugar do rótulo Em Breve"
 
 **Por que não há teste:** `logo.svg` não é renderizado em lugar nenhum do app (`grep` por `SvgPicture` em `lib/` volta vazio) — é exclusivamente a origem do ícone. Nenhum golden depende dele, e um teste de imagem de ícone mediria o `rsvg-convert`, não o jogo. A verificação é visual e está no Step 5.
 
-- [ ] **Step 1: Corrigir a forma do `9`**
+- [x] **Step 1: Corrigir a forma do `9`**
 
 O glifo atual (`logo.svg`, os dois `<path>` dentro do `<g filter="url(#drop-shadow)">`) tem uma perna que varre de cima-direita para baixo-**esquerda**, terminando em `M 175 376`. Essa é a cauda de um `g`, não o descendente de um `9`. No tamanho atual passa como ambiguidade; ampliado 160% o erro fica inequívoco.
 
@@ -1749,13 +1757,13 @@ Duas alternativas foram descartadas, e vale não repeti-las:
 
 O que resolve é bowl compacto com descendente proporcionalmente longo, e contra-forma pequena o bastante para o traço do bowl ter peso.
 
-- [ ] **Step 2: Promover o anel a moldura**
+- [x] **Step 2: Promover o anel a moldura**
 
 Escalar só o símbolo era geometricamente impossível: o `9` a 160% mede 352px de altura e o anel tem 290px de diâmetro (`r=145`) — o símbolo transbordaria o anel e desfaria a composição. As duas mudanças são uma decisão só.
 
 O `<circle>` do anel passa a `r="212"` com `stroke-width="18"`, junto à borda, funcionando como moldura em vez de contorno do símbolo. As quatro partículas se reposicionam nos cantos que a moldura deixa livres.
 
-- [ ] **Step 3: Adicionar o filtro de glow**
+- [x] **Step 3: Adicionar o filtro de glow**
 
 Um filtro novo, `nine-glow`, aplicado ao grupo do `9`, empilhando três efeitos:
 
@@ -1778,7 +1786,7 @@ Um filtro novo, `nine-glow`, aplicado ao grupo do `9`, empilhando três efeitos:
 
 Os dois últimos efeitos são complementares e **nenhum é dispensável**: o halo ciano é o que salva o ícone em papel de parede **escuro** — o caso que o `drop-shadow` atual não cobre, porque sombra sobre fundo escuro é invisível — e a sombra é o que salva em papel de parede **claro**. Um só dos dois falharia em metade dos aparelhos.
 
-- [ ] **Step 4: Regenerar**
+- [x] **Step 4: Regenerar**
 
 ```bash
 cd /Users/cleber/projects/nine_fuse
@@ -1788,7 +1796,7 @@ dart run flutter_launcher_icons
 
 O `pubspec` **não muda**: `image_path` e `adaptive_icon_foreground` continuam apontando para `assets/images/logo.png`, porque a composição foi escolhida contra a máscara circular do ícone adaptativo.
 
-- [ ] **Step 5: Verificar visualmente, e é obrigatório**
+- [x] **Step 5: Verificar visualmente, e é obrigatório**
 
 Abra `assets/images/logo.png` e confira, nesta ordem:
 
@@ -1798,7 +1806,7 @@ Abra `assets/images/logo.png` e confira, nesta ordem:
 
 Diga no relatório o que você viu em cada um dos três. "Regenerei os ícones" não é verificação.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add assets/images/logo.svg assets/images/logo.png assets/icon android/app/src/main/res ios/Runner/Assets.xcassets

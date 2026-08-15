@@ -1,96 +1,128 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
-    <!-- Fundo Dark Profundo e Vibrante -->
-    <radialGradient id="bg-grad" cx="50%" cy="50%" r="70%">
-      <stop offset="0%" stop-color="#1A1829"/>
-      <stop offset="100%" stop-color="#0A0910"/>
+    <!-- Fundo Roxo Profundo -->
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#1D133B" />
+      <stop offset="100%" stop-color="#090514" />
     </radialGradient>
 
-    <!-- Gradiente de Energia Limpo (Sem tons marrons/barrentos) -->
-    <linearGradient id="fuse-ring" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FF2A85"/>   <!-- Magenta Vibrante -->
-      <stop offset="50%" stop-color="#8E24AA"/>  <!-- Roxo Imperial -->
-      <stop offset="100%" stop-color="#00E5FF"/> <!-- Ciano Elétrico -->
-    </linearGradient>
-
-    <!-- Gradiente do 9 com Alto Contraste -->
-    <linearGradient id="nine-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="60%" stop-color="#F0F4F8"/>
-      <stop offset="100%" stop-color="#90A4AE"/>
-    </linearGradient>
-
-    <!-- Sombra e Brilho Tratados -->
-    <filter id="glow-clean" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="10" result="blur" />
-      <feComponentTransfer in="blur" result="glow-bright">
-        <feFuncA type="linear" slope="0.6"/>
-      </feComponentTransfer>
-      <feMerge>
-        <feMergeNode in="glow-bright" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
+    <!-- Sombra Projetada do Bloco 3D -->
+    <filter id="tileShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="14" flood-color="#000000" flood-opacity="0.65"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="12" flood-color="#FF0080" flood-opacity="0.25"/>
     </filter>
 
-    <!-- Brilho das partículas.
-         Precisa de filtro próprio: a região de um filtro é relativa ao
-         tamanho do elemento, e numa partícula de 12px de raio os 160% do
-         glow-clean cortam o desfoque antes de ele desvanecer — a borda dura
-         do corte aparece como um quadrado ao redor do ponto. Região larga e
-         desfoque menor mantêm o brilho inteiro dentro dela. -->
-    <filter id="glow-particle" x="-200%" y="-200%" width="500%" height="500%">
+    <!-- Brilho Neon (Apenas para elementos de fundo/energia) -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur stdDeviation="7" result="blur" />
-      <feComponentTransfer in="blur" result="glow-bright">
-        <feFuncA type="linear" slope="0.6"/>
-      </feComponentTransfer>
-      <feMerge>
-        <feMergeNode in="glow-bright" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
 
-    <filter id="drop-shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#000000" flood-opacity="0.75"/>
-    </filter>
+    <!-- Gradiente do Bloco (Ciano -> Azul Profundo) -->
+    <linearGradient id="tileGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F0FF" />
+      <stop offset="45%" stop-color="#0077FF" />
+      <stop offset="100%" stop-color="#002699" />
+    </linearGradient>
+
+    <!-- Borda Chanfrada (Bevel 3D) -->
+    <linearGradient id="bevelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.75" />
+      <stop offset="100%" stop-color="#001140" stop-opacity="0.6" />
+    </linearGradient>
+
+    <!-- Gradiente de Energia Harmonizado (Magenta -> Dourado) -->
+    <linearGradient id="energyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF0080" />
+      <stop offset="60%" stop-color="#FF5500" />
+      <stop offset="100%" stop-color="#FFC800" />
+    </linearGradient>
+    <!-- O glifo, definido UMA vez e reusado pelas três camadas (aura, entalhe
+         e forma branca). Antes o mesmo path aparecia copiado três vezes, e foi
+         assim que um defeito de anatomia passou: corrigir o dígito exigia
+         editar três lugares idênticos, e bastava esquecer um para as camadas
+         desalinharem. Com <use>, a forma tem uma fonte só.
+
+         Bowl e haste são dois <path> irmãos de propósito: fundidos num único
+         path com fill-rule="evenodd", a área em que a haste encosta na barriga
+         viraria buraco.
+
+         Geometria: bowl r=56 centrado em (256,216) com contra-forma r=23, e
+         haste reta de 40 de largura descendo pela BORDA DIREITA do bowl
+         (x 272..312) até y=352. A caixa do glifo fica em x 200..312,
+         y 160..352 — centro (256,256), praticamente o centro do bloco (251).
+         A barriga ocupa 58% da altura total, que é proporção de dígito. -->
+    <g id="nine">
+      <path fill-rule="evenodd"
+            d="M 256 160 a 56 56 0 1 0 0.1 0 Z
+               M 256 193 a 23 23 0 1 0 0.1 0 Z" />
+      <path d="M 272 216
+               L 312 216
+               L 312 344
+               A 8 8 0 0 1 304 352
+               L 280 352
+               A 8 8 0 0 1 272 344
+               Z" />
+    </g>
   </defs>
 
-  <!-- Fundo Arredondado (App Icon Base) -->
-  <rect width="512" height="512" rx="112" fill="url(#bg-grad)"/>
+  <!-- Fundo -->
+  <rect width="512" height="512" rx="115" fill="url(#bgGrad)" />
 
-  <!-- Anel de Fusão Energizado (Centralizado no Y=256) -->
-  <circle cx="256" cy="256" r="145" fill="none" stroke="url(#fuse-ring)" stroke-width="20" stroke-dasharray="650" stroke-dashoffset="40" stroke-linecap="round" filter="url(#glow-clean)"/>
+  <!-- Tudo menos o fundo vive dentro de #mark, e não é organização: é o que
+       permite `rsvg-convert -i mark` (export-id) renderizar a marca SOZINHA, com
+       transparência em volta, a partir deste mesmo arquivo. O foreground do
+       ícone adaptativo do Android precisa disso — encolher o logo inteiro,
+       com o retângulo de fundo escuro junto, é o que produz a marca minúscula
+       numa ilha preta dentro da máscara. Uma fonte da verdade, dois recortes. -->
+  <g id="mark">
 
-  <!-- Partículas de Fusão em Impacto -->
-  <circle cx="125" cy="210" r="12" fill="#FF2A85" filter="url(#glow-particle)"/>
-  <circle cx="385" cy="190" r="14" fill="#00E5FF" filter="url(#glow-particle)"/>
-  <circle cx="365" cy="330" r="10" fill="#FFD600" filter="url(#glow-particle)"/>
-  <circle cx="150" cy="340" r="12" fill="#8E24AA" filter="url(#glow-particle)"/>
+  <!-- Anel de Energia (Fuse Arc) -->
+  <path d="M 125 385 A 180 180 0 1 1 420 256" 
+        fill="none" 
+        stroke="url(#energyGrad)" 
+        stroke-width="16" 
+        stroke-linecap="round" 
+        filter="url(#glow)"
+        opacity="0.85" />
 
-  <!-- Número 9 em Destaque (Com fill-rule="evenodd" e Centralizado em Y=256) -->
-  <g filter="url(#drop-shadow)">
-    <!-- Cabeça e corpo do 9 com fechamento correto -->
-    <path fill-rule="evenodd" d="M 280 166
-             C 210 166, 180 206, 180 256
-             C 180 306, 210 336, 270 336
-             C 320 336, 335 306, 335 266
-             L 335 166
-             Z
-             M 275 211
-             C 290 211, 295 226, 295 251
-             C 295 276, 290 291, 275 291
-             C 255 291, 220 281, 220 251
-             C 220 226, 255 211, 275 211
-             Z"
-          fill="url(#nine-grad)"/>
+  <!-- Partículas Energéticas -->
+  <circle cx="420" cy="256" r="9" fill="#FFC800" filter="url(#glow)" />
+  <circle cx="125" cy="385" r="7" fill="#FF0080" filter="url(#glow)" />
 
-    <!-- Perna do 9 com curva de impacto -->
-    <path d="M 335 266
-             C 335 356, 280 386, 220 386
-             C 190 386, 175 376, 175 376
-             L 185 341
-             C 185 341, 200 351, 220 351
-             C 260 351, 290 326, 295 276
-             Z"
-          fill="url(#nine-grad)"/>
+  <!-- Sombra de Profundidade do Bloco Central -->
+  <rect x="116" y="131" width="280" height="270" rx="60" fill="#000000" opacity="0.35" />
+
+  <!-- Base 3D do Bloco -->
+  <rect x="116" y="126" width="280" height="270" rx="60" fill="#001866" filter="url(#tileShadow)" />
+
+  <!-- Bloco Frontal (Centro Y=251/256) -->
+  <rect x="116" y="116" width="280" height="270" rx="58" fill="url(#tileGrad)" />
+
+  <!-- Borda Chanfrada Interna -->
+  <rect x="118" y="118" width="276" height="266" rx="56" 
+        fill="none" 
+        stroke="url(#bevelGrad)" 
+        stroke-width="3.5" />
+
+  <!-- Reflexo de Vidro Curvo (Top Cap) -->
+  <path d="M 120 170 Q 256 205 392 170 L 392 166 A 56 56 0 0 0 336 118 L 176 118 A 56 56 0 0 0 120 166 Z" 
+        fill="#FFFFFF" 
+        opacity="0.22" />
+
+  <!-- O número 9, em três camadas sobre a mesma forma (ver <g id="nine">).
+       A ordem importa: aura embaixo, entalhe no meio, forma branca por cima
+       e SEM desfoque — é ela que o olho usa para ler o dígito, e borrá-la
+       devolveria a ambiguidade que a correção de anatomia veio eliminar. -->
+
+  <!-- 1. Aura ciano, que descola o dígito do azul do bloco -->
+  <use href="#nine" fill="#00F0FF" filter="url(#glow)" opacity="0.6" />
+
+  <!-- 2. Entalhe: a mesma forma deslocada 4 para baixo, dando espessura -->
+  <use href="#nine" fill="#001040" opacity="0.65" transform="translate(0, 4)" />
+
+  <!-- 3. Glifo em branco puro, nítido -->
+  <use href="#nine" fill="#FFFFFF" />
+
   </g>
 </svg>
