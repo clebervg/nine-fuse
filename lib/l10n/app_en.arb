@@ -244,6 +244,7 @@
   },
 
   "hammerCancel": "CANCEL",
+  "boostersLabel": "Boosters",
   "hammerAimHint": "Tap a cell to smash it",
 
   "hammerOfferTitle": "Out of hammers",

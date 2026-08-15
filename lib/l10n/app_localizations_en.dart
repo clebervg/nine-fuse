@@ -346,6 +346,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hammerCancel => 'CANCEL';
 
   @override
+  String get boostersLabel => 'Boosters';
+
+  @override
   String get hammerAimHint => 'Tap a cell to smash it';
 
   @override

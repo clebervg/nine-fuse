@@ -27,6 +27,8 @@ class GameMetricCard extends StatelessWidget {
     this.urgent = false,
     this.pulseSeed,
     this.compact = false,
+    this.hero = false,
+    this.valueFontSize,
   }) : assert(
          value != null || valueWidget != null,
          'a pílula precisa de um valor para mostrar',
@@ -55,30 +57,43 @@ class GameMetricCard extends StatelessWidget {
   /// Aperta o espaçamento, para quando três pílulas dividem uma tela de 375pt.
   final bool compact;
 
+  /// Promove a pílula a cartão principal do HUD.
+  ///
+  /// Três caixas do mesmo tamanho, com a mesma borda e o mesmo peso, dizem que
+  /// as três informações valem o mesmo — e não valem: os pontos são placar, o
+  /// objetivo é consulta, e o **saldo de movimentos** é o relógio que decide a
+  /// fase. O destaque é o que dá hierarquia sem precisar de um rótulo dizendo
+  /// "olhe aqui": aro em degradê quente, base mais funda e número maior.
+  final bool hero;
+
+  /// Corpo do número, quando o padrão da pílula não serve.
+  final double? valueFontSize;
+
   @override
   Widget build(BuildContext context) {
     final ring = urgent ? AppColors.digit0 : accent;
 
+    // A borda é um degradê, e por isso é uma **caixa por fora** e não um
+    // `Border.all`: `BoxBorder` só aceita cor chapada. O aro claro em cima
+    // descendo para escuro embaixo é o que faz a peça parecer iluminada de
+    // cima, como as do tabuleiro — um contorno de cor única lê como contorno
+    // de formulário.
     final pill = Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 10 : 14,
-        vertical: compact ? 8 : 10,
-      ),
+      padding: EdgeInsets.all(urgent || hero ? 2 : 1.4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        // Escuro translúcido com um fio da cor no topo: é o "brilho interno"
-        // que separa a pílula do fundo sem clarear a caixa inteira.
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Color.lerp(const Color(0xFF23232B), ring, 0.16)!,
-            const Color(0xFF141419),
-          ],
-        ),
-        border: Border.all(
-          color: ring.withValues(alpha: urgent ? 0.95 : 0.45),
-          width: urgent ? 2 : 1.4,
+          colors: hero && !urgent
+              ? [
+                  AppColors.lighten(AppColors.digit3, 0.35),
+                  AppColors.digit4.withValues(alpha: 0.75),
+                ]
+              : [
+                  ring.withValues(alpha: urgent ? 1 : 0.72),
+                  ring.withValues(alpha: urgent ? 0.7 : 0.18),
+                ],
         ),
         boxShadow: [
           if (urgent)
@@ -88,59 +103,95 @@ class GameMetricCard extends StatelessWidget {
               color: AppColors.digit0.withValues(alpha: 0.5),
               blurRadius: 16,
               spreadRadius: 1,
+            )
+          else if (hero)
+            BoxShadow(
+              color: AppColors.digit3.withValues(alpha: 0.32),
+              blurRadius: 14,
             ),
-          const BoxShadow(
-            color: Color(0x80000000),
-            blurRadius: 8,
-            offset: Offset(0, 3),
+          // A base projetada é o que dá os três de "3D": a caixa passa a ter
+          // um lado de baixo, em vez de estar colada no fundo. Mais funda no
+          // cartão principal, porque quem está mais à frente projeta mais
+          // longe.
+          BoxShadow(
+            color: const Color(0xB3000000),
+            blurRadius: hero ? 14 : 10,
+            offset: Offset(0, hero ? 6 : 4),
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Encolhe em vez de cortar. "Maior Blo…" não diz de que "maior" se
-          // trata — que é exatamente o problema que o rótulo longo veio
-          // resolver —, então aqui reticência é pior que letra menor.
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: compact ? 13 : 14, color: ring),
-                const SizedBox(width: 5),
-                Text(
-                  label,
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.62),
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.7,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 10 : 14,
+          vertical: compact ? 8 : 10,
+        ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14.5),
+          // Escuro translúcido com um fio da cor no topo: é o "brilho interno"
+          // que separa a pílula do fundo sem clarear a caixa inteira. No cartão
+          // principal o fundo puxa para o quente, para ele se distinguir dos
+          // irmãos mesmo em foto sem cor de aro visível.
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color.lerp(
+                const Color(0xFF23232B),
+                hero && !urgent ? AppColors.digit4 : ring,
+                hero ? 0.22 : 0.16,
+              )!,
+              hero && !urgent
+                  ? const Color(0xFF1A1512)
+                  : const Color(0xFF141419),
+            ],
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Encolhe em vez de cortar. "Maior Blo…" não diz de que "maior" se
+            // trata — que é exatamente o problema que o rótulo longo veio
+            // resolver —, então aqui reticência é pior que letra menor.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: compact ? 13 : 14, color: ring),
+                  const SizedBox(width: 5),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.62),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.7,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 3),
-          // Encolhe em vez de cortar: um placar com reticências não é placar.
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child:
-                valueWidget ??
-                Text(
-                  value!,
-                  maxLines: 1,
-                  style: TextStyle(
-                    fontFamily: AppFonts.display,
-                    color: urgent ? AppColors.digit0 : Colors.white,
-                    fontSize: compact ? 20 : 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.2,
+            const SizedBox(height: 3),
+            // Encolhe em vez de cortar: um placar com reticências não é placar.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child:
+                  valueWidget ??
+                  Text(
+                    value!,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontFamily: AppFonts.display,
+                      color: urgent ? AppColors.digit0 : Colors.white,
+                      fontSize: valueFontSize ?? (compact ? 20 : 22),
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.2,
+                    ),
                   ),
-                ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
 

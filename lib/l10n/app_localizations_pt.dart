@@ -348,6 +348,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get hammerCancel => 'CANCELAR';
 
   @override
+  String get boostersLabel => 'Boosters';
+
+  @override
   String get hammerAimHint => 'Toque na célula para quebrar';
 
   @override

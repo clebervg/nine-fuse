@@ -15,22 +15,31 @@ const Key endlessHammerButtonKey = Key('endless_hammer_button');
 /// Chave do badge de quantidade, no canto do botão.
 const Key hammerBadgeKey = Key('hammer_badge');
 
+/// Chave do dock de boosters.
+const Key boosterDockKey = Key('booster_dock');
+
 /// Chave da pílula com a dica de mira.
 const Key hammerAimHintKey = Key('hammer_aim_hint');
 
-/// Diâmetro do botão. Acima do alvo mínimo de toque das duas plataformas, porque
-/// ele é redondo: o canto do quadrado de 44pt não existe aqui.
+/// Lado do slot do booster dentro do dock. Acima do alvo mínimo de toque das
+/// duas plataformas.
 const double kHammerButtonSize = 54;
 
-/// Botão do Martelo de Fusão: círculo compacto com o estoque no canto.
+/// Raio dos cantos do slot e do próprio dock.
+const double kBoosterDockRadius = 18;
+
+/// O slot do Martelo de Fusão dentro do dock: quadrado arredondado com o
+/// estoque em badge no canto.
 ///
-/// **Por que redondo, e fora do card de métricas.** Dentro da moldura das
-/// métricas ele lia como um quarto indicador — mais uma coisa a *saber*, quando é
-/// a única coisa ali a *fazer*. O círculo é a forma que o resto do HUD não usa:
-/// nenhuma métrica, nenhuma pílula e nenhuma barra é redonda, então o olho acha o
-/// botão sem procurar rótulo.
+/// **Era um disco roxo flutuando solto sobre o fundo da tela**, e o problema
+/// não era a cor: um controle sem chão não pertence a lugar nenhum da
+/// interface, então o olho o lia como sobreposição do sistema — algo que caiu
+/// por cima do jogo — em vez de como parte do equipamento do jogador. Dentro do
+/// dock ele passa a ser um item guardado numa prateleira, que é exatamente o
+/// que um booster é, e ganha vizinhos: o dia em que houver um segundo booster,
+/// ele entra ao lado sem redesenhar nada.
 ///
-/// O mesmo botão é a saída: em mira ele vira um X vermelho. Um botão de cancelar
+/// O mesmo slot é a saída: em mira ele vira um X vermelho. Um botão de cancelar
 /// em outro canto da tela obrigaria o jogador a procurar como desistir de uma
 /// ação que ele começou aqui — e, num tabuleiro em modo de mira, o próximo toque
 /// erra caro.
@@ -61,8 +70,8 @@ class HammerButton extends StatelessWidget {
       label: targeting ? l10n.hammerCancel : l10n.hammerSemantics(count),
       excludeSemantics: true,
       child: SizedBox(
-        // A caixa é maior que o círculo para o badge caber sem ser recortado —
-        // ele avança sobre a borda de propósito, senão parece um segundo botão.
+        // A caixa é maior que o slot para o badge caber sem ser recortado — ele
+        // avança sobre a borda de propósito, senão parece um segundo botão.
         width: kHammerButtonSize + 10,
         height: kHammerButtonSize + 10,
         child: Stack(
@@ -71,7 +80,7 @@ class HammerButton extends StatelessWidget {
             Positioned(
               left: 0,
               top: 5,
-              child: _Disc(
+              child: _Slot(
                 color: color,
                 icon: targeting ? Icons.close_rounded : Icons.gavel_rounded,
                 onPressed: onPressed,
@@ -91,12 +100,14 @@ class HammerButton extends StatelessWidget {
   }
 }
 
-/// O círculo em si: degradê, aro claro no topo e brilho da própria cor.
+/// O slot em si: degradê, aro claro no topo e brilho da própria cor.
 ///
-/// Mesmo material das peças do tabuleiro — um botão chapado num jogo de peças
-/// com volume parece um controle de sistema operacional.
-class _Disc extends StatelessWidget {
-  const _Disc({
+/// Mesmo material — e agora o mesmo **formato** — das peças do tabuleiro: um
+/// quadrado arredondado do tamanho de uma célula. É o que faz o booster ler
+/// como algo que age sobre as peças, e não como um controle de sistema
+/// operacional pousado sobre o jogo.
+class _Slot extends StatelessWidget {
+  const _Slot({
     required this.color,
     required this.icon,
     required this.onPressed,
@@ -109,7 +120,7 @@ class _Disc extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      shape: BoxShape.circle,
+      borderRadius: BorderRadius.circular(kBoosterDockRadius),
       gradient: LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
@@ -117,7 +128,10 @@ class _Disc extends StatelessWidget {
       ),
       border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 2),
       boxShadow: [
-        BoxShadow(color: color.withValues(alpha: 0.55), blurRadius: 14),
+        // O halo encolheu junto com a mudança de casa: dentro do dock o slot
+        // já tem contraste contra a barra, e o brilho que antes o separava do
+        // fundo da tela agora só sangraria para fora da prateleira.
+        BoxShadow(color: color.withValues(alpha: 0.40), blurRadius: 10),
         const BoxShadow(
           color: Color(0x99000000),
           blurRadius: 8,
@@ -127,16 +141,14 @@ class _Disc extends StatelessWidget {
     ),
     child: SizedBox.square(
       dimension: kHammerButtonSize,
-      // `InkResponse` circular em vez de `InkWell`: o respingo de um retângulo
-      // vazaria para fora do disco.
+      // O respingo é recortado no mesmo raio do slot: um `InkWell` retangular
+      // vazaria pelos cantos arredondados.
       child: Material(
         color: Colors.transparent,
-        shape: const CircleBorder(),
-        child: InkResponse(
+        borderRadius: BorderRadius.circular(kBoosterDockRadius),
+        child: InkWell(
           onTap: onPressed,
-          radius: kHammerButtonSize / 2,
-          containedInkWell: true,
-          customBorder: const CircleBorder(),
+          borderRadius: BorderRadius.circular(kBoosterDockRadius),
           child: Center(child: Icon(icon, color: Colors.white, size: 26)),
         ),
       ),
@@ -187,12 +199,17 @@ class _Badge extends StatelessWidget {
   }
 }
 
-/// A faixa onde o botão mora: fora do card de métricas, alinhada à direita.
+/// O dock de boosters: a prateleira onde os itens do jogador moram.
 ///
-/// Existe como widget para as duas telas montarem a mesma faixa — e para a dica
-/// de mira ter onde aparecer. A dica é escrita porque o modo de mira muda o
-/// significado do toque no tabuleiro, e nada no tabuleiro diz isso; o scrim diz
-/// "o resto está fora", não "toque numa célula".
+/// Fica **entre** o card de métricas e o tabuleiro, e fora dos dois: o card
+/// informa, o dock age. Dentro da moldura das métricas o booster lia como uma
+/// quarta métrica — mais uma coisa a *saber*, quando é a única coisa ali a
+/// *fazer* —, e solto sobre o fundo lia como sobreposição de sistema. A barra
+/// com cantos arredondados e chão próprio é o que o faz pertencer ao jogo.
+///
+/// Também é onde a dica de mira cabe. O véu diz "o resto da tela está fora";
+/// ele não diz "toque numa célula". Sem a frase, o modo de mira mudava o
+/// significado do toque no tabuleiro sem nada na tela dizer isso.
 ///
 /// **A dica é uma pílula, e não texto solto.** Ela nasce exatamente quando o véu
 /// escurece o fundo: um cinza sobre preto desfocado é a única coisa da tela que o
@@ -215,25 +232,66 @@ class HammerBar extends StatelessWidget {
   final Key buttonKey;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      // A dica ocupa a sobra à esquerda: sem o `Expanded` o texto empurraria o
-      // botão para fora da direita em telas estreitas.
-      Expanded(
-        child: targeting
-            ? const Align(
-                alignment: Alignment.center,
-                child: _AimHintPill(),
-              )
-            : const SizedBox.shrink(),
+  Widget build(BuildContext context) => Container(
+    key: boosterDockKey,
+    padding: const EdgeInsets.fromLTRB(14, 6, 8, 6),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(kBoosterDockRadius + 4),
+      // Um degrau mais escuro que o card de métricas: a prateleira fica atrás
+      // do que ela guarda, senão disputa com o próprio item.
+      gradient: const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF20202A), Color(0xFF141419)],
       ),
-      HammerButton(
-        key: buttonKey,
-        targeting: targeting,
-        count: count,
-        onPressed: onPressed,
-      ),
-    ],
+      border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x99000000),
+          blurRadius: 12,
+          offset: Offset(0, 5),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        // A sobra à esquerda é da dica em mira, e do rótulo fora dela: sem o
+        // `Expanded` o texto empurraria o slot para fora da direita em telas
+        // estreitas.
+        Expanded(
+          child: targeting
+              ? const Align(alignment: Alignment.center, child: _AimHintPill())
+              : const _DockLabel(),
+        ),
+        HammerButton(
+          key: buttonKey,
+          targeting: targeting,
+          count: count,
+          onPressed: onPressed,
+        ),
+      ],
+    ),
+  );
+}
+
+/// O que a prateleira é, dito uma vez e em voz baixa.
+///
+/// Um dock com um item só e nenhuma legenda pode ser lido como um botão avulso
+/// com moldura — que é justamente o que ele deixou de ser. O rótulo é discreto
+/// porque não é informação de jogo: ele nomeia a área, e sai de cena assim que
+/// a mira começa e a dica assume o espaço.
+class _DockLabel extends StatelessWidget {
+  const _DockLabel();
+
+  @override
+  Widget build(BuildContext context) => Text(
+    AppLocalizations.of(context).boostersLabel.toUpperCase(),
+    style: TextStyle(
+      color: Colors.white.withValues(alpha: 0.45),
+      fontSize: 11,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 1.2,
+    ),
   );
 }
 
