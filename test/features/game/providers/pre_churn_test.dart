@@ -140,14 +140,34 @@ void main() {
       _playTrio(notifier.swapTiles);
 
       final movesBefore = notifier.state.moves;
+      final reward = notifier.state.rewardedMoves;
       notifier.grantBonusMoves();
 
-      expect(notifier.state.movesLeft, kPreChurnMovesLeft + kPreChurnReward);
+      expect(notifier.state.movesLeft, kPreChurnMovesLeft + reward);
       expect(
         notifier.state.moves,
         movesBefore,
         reason: 'o prêmio apagou jogadas feitas em vez de somar ao limite',
       );
+    });
+
+    test('o prêmio creditado é o que o estado anunciava', () {
+      // A garantia que o getter existe para dar: o número que o cartão mostra
+      // e o número que entra em `bonusMoves` são o mesmo.
+      // objective: 3, não 2 — a jogada produz um `6` e avança o progresso em
+      // 1, então o que sobra depois dela é 3 - 1 = 2 alvos, o caso que
+      // rende 6 (ver 'dois alvos restantes pagam seis' abaixo). Com
+      // objective: 2 o restante pós-jogada seria 1, não 2.
+      final notifier = notifierWith(moveLimit: 20, objective: 3);
+      notifier.debugSetBoard(_boardWithTrio(5));
+      _playTrio(notifier.swapTiles);
+
+      final announced = notifier.state.rewardedMoves;
+      final bonusBefore = notifier.state.bonusMoves;
+      notifier.grantBonusMoves();
+
+      expect(announced, 6);
+      expect(notifier.state.bonusMoves, bonusBefore + announced);
     });
 
     test('o prêmio tira a fase do limiar e fecha o convite', () {
