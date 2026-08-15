@@ -31,14 +31,20 @@ void main() {
     ),
   );
 
+  /// A caixa de fora, que é onde mora o aro em degradê.
+  ///
+  /// `first` e não `single`: a pílula passou a ser duas caixas encaixadas — a
+  /// de fora desenha o contorno e a base projetada, a de dentro o fundo. Pedir
+  /// "o único `Container`" quebraria a cada camada nova de material.
   BoxDecoration decorationOf(WidgetTester tester) =>
       tester
-              .widget<Container>(
+              .widgetList<Container>(
                 find.descendant(
                   of: find.byKey(const Key('metric')),
                   matching: find.byType(Container),
                 ),
               )
+              .first
               .decoration!
           as BoxDecoration;
 
@@ -57,9 +63,13 @@ void main() {
     await pumpCard(tester, urgent: true);
     final alerta = decorationOf(tester);
 
+    // O aro é um degradê desenhado como caixa por fora, e não um `Border`:
+    // `BoxBorder` só aceita cor chapada, e o contorno claro em cima descendo
+    // para escuro embaixo é o que dá volume à pílula. A asserção segue medindo
+    // a mesma coisa — a cor com que o aro começa.
     expect(
-      (alerta.border! as Border).top.color.toARGB32(),
-      AppColors.digit0.withValues(alpha: 0.95).toARGB32(),
+      (alerta.gradient! as LinearGradient).colors.first.toARGB32(),
+      AppColors.digit0.toARGB32(),
     );
     expect(
       alerta.boxShadow!.length,

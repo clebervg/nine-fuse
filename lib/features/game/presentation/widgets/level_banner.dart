@@ -108,10 +108,12 @@ class LevelBanner extends StatelessWidget {
                     valueWidget: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (objective.isObstacleGoal)
-                          ObstacleBadge(type: objective.obstacle)
-                        else
-                          _TargetChip(digit: objective.digit!),
+                        _TargetShowcase(
+                          color: targetColor,
+                          child: objective.isObstacleGoal
+                              ? ObstacleBadge(type: objective.obstacle)
+                              : _TargetChip(digit: objective.digit!),
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           l10n.objectiveProgress(
@@ -141,7 +143,35 @@ class LevelBanner extends StatelessWidget {
                     compact: true,
                     // O placar morava sozinho no rodapé, abaixo do tabuleiro,
                     // fora do campo de visão de quem está jogando.
-                    value: l10n.hudScoreValue(state.score),
+                    //
+                    // As estrelas moram **aqui dentro**, e não numa linha
+                    // própria abaixo do cabeçalho: nota parcial e pontos
+                    // respondem à mesma pergunta ("como estou indo?"), e
+                    // separá-las obrigava o olho a juntar duas coisas que o
+                    // jogo já tratava como uma.
+                    valueWidget: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          l10n.hudScoreValue(state.score),
+                          maxLines: 1,
+                          style: const TextStyle(
+                            fontFamily: AppFonts.display,
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        _StarMeter(
+                          stars: starRating(
+                            movesLeft: state.movesLeft,
+                            movesAvailable: state.movesAvailable,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -151,6 +181,10 @@ class LevelBanner extends StatelessWidget {
                     icon: Icons.bolt,
                     accent: AppColors.digit3,
                     compact: true,
+                    // O saldo de movimentos é o relógio da fase: é o único dos
+                    // três números que **decide** o desfecho, e por isso é o
+                    // único que sai do empate visual com os irmãos.
+                    hero: true,
                     urgent: urgent,
                     // A batida vem do próprio saldo: cada movimento gasto monta
                     // um builder novo, que anima uma vez e para.
@@ -164,8 +198,13 @@ class LevelBanner extends StatelessWidget {
                       style: TextStyle(
                         fontFamily: AppFonts.display,
                         color: urgent ? AppColors.digit0 : Colors.white,
-                        fontSize: 22,
+                        // Maior que os irmãos, e por isso legível de canto de
+                        // olho: em reta final o jogador confere este número
+                        // entre uma jogada e outra, sem tirar a atenção do
+                        // tabuleiro.
+                        fontSize: 30,
                         fontWeight: FontWeight.w900,
+                        height: 1,
                       ),
                     ),
                   ),
@@ -187,16 +226,6 @@ class LevelBanner extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _ObjectiveBar(fraction: state.objectiveFraction, color: targetColor),
-          const SizedBox(height: 10),
-          // A nota parcial no lugar do texto fixo: é o dado que muda a cada
-          // jogada, e mostra o custo de enrolar antes de o jogador chegar ao
-          // cartão de fim de fase e descobrir que perdeu uma estrela.
-          _StarBar(
-            stars: starRating(
-              movesLeft: state.movesLeft,
-              movesAvailable: state.movesAvailable,
-            ),
-          ),
           // O booster **não** mora aqui. Dentro desta moldura ele lia como uma
           // quarta métrica — mais uma coisa a saber, quando é a única coisa ali
           // a fazer. Ele agora é a [HammerBar], numa faixa própria abaixo do
@@ -307,38 +336,115 @@ class _ObjectiveBar extends StatelessWidget {
   );
 }
 
-/// Nota que a fase valeria se fosse vencida agora.
+/// Nota que a fase valeria se fosse vencida agora, com o trilho preenchido.
 ///
 /// Usa a mesma [starRating] do cartão de fim de fase — duplicar a fórmula faria
 /// o HUD prometer três estrelas e a vitória entregar duas.
-class _StarBar extends StatelessWidget {
-  const _StarBar({required this.stars});
+///
+/// **O preenchimento é proporcional, e existe porque três ícones sozinhos são
+/// um estado, não um progresso.** Apagar a terceira estrela diz que ela se
+/// perdeu; a barra atrás delas diz *quanto* do caminho ainda está de pé, que é
+/// a informação que muda o que o jogador faz no movimento seguinte.
+class _StarMeter extends StatelessWidget {
+  const _StarMeter({required this.stars});
 
   final int stars;
 
   @override
-  Widget build(BuildContext context) => Row(
-    key: starBarKey,
-    mainAxisSize: MainAxisSize.min,
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      for (int i = 1; i <= 3; i++)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 3),
-          child: Icon(
-            i <= stars ? Icons.star_rounded : Icons.star_outline_rounded,
-            size: 20,
-            color: i <= stars ? AppColors.digit3 : Colors.white24,
-            shadows: i <= stars
-                ? [
-                    BoxShadow(
-                      color: AppColors.digit3.withValues(alpha: 0.7),
-                      blurRadius: 10,
+  Widget build(BuildContext context) {
+    final fraction = (stars / 3).clamp(0.0, 1.0);
+
+    return Container(
+      key: starBarKey,
+      height: 20,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D0D11),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // O trilho cheio fica **atrás** dos ícones, recortado no mesmo raio:
+          // sem o `ClipRRect` o degradê vaza pelos cantos da pílula e a barra
+          // deixa de parecer um trilho para parecer um retângulo por cima.
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              // `heightFactor: 1` não é enfeite: sem ele o `DecoratedBox` fica
+              // sem filho **e** sem altura imposta e colapsa para zero.
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                heightFactor: 1,
+                widthFactor: fraction,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.digit3.withValues(alpha: 0.55),
+                        AppColors.digit4.withValues(alpha: 0.30),
+                      ],
                     ),
-                  ]
-                : null,
+                  ),
+                ),
+              ),
+            ),
           ),
-        ),
-    ],
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (int i = 1; i <= 3; i++)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                  child: Icon(
+                    i <= stars
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
+                    size: 14,
+                    color: i <= stars ? Colors.white : Colors.white24,
+                    // Sem sombra na estrela acesa: ela agora vive sobre o
+                    // trilho preenchido, e o halo dourado sobre fundo dourado
+                    // borra a silhueta em vez de destacá-la.
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A vitrine do alvo: a peça (ou a cobertura) dentro de uma caixinha acesa.
+///
+/// O alvo estava solto ao lado do contador, do mesmo tamanho e com o mesmo peso
+/// de qualquer outro pedaço da pílula — era a coisa que a fase inteira pede, e
+/// lia como enfeite do número. A caixa com fundo da própria cor e contorno neon
+/// diz "isto aqui é o objeto", e o faz com a mesma cor que a peça tem no
+/// tabuleiro, para o reconhecimento ser imediato quando ela aparecer na grade.
+class _TargetShowcase extends StatelessWidget {
+  const _TargetShowcase({required this.color, required this.child});
+
+  final Color color;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(3),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(10),
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [color.withValues(alpha: 0.30), color.withValues(alpha: 0.08)],
+      ),
+      border: Border.all(color: color.withValues(alpha: 0.85), width: 1.2),
+      boxShadow: [
+        BoxShadow(color: color.withValues(alpha: 0.45), blurRadius: 10),
+      ],
+    ),
+    child: child,
   );
 }

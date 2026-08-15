@@ -553,6 +553,12 @@ abstract class AppLocalizations {
   /// **'CANCEL'**
   String get hammerCancel;
 
+  /// No description provided for @boostersLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Boosters'**
+  String get boostersLabel;
+
   /// No description provided for @hammerAimHint.
   ///
   /// In en, this message translates to:

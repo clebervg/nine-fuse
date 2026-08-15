@@ -120,6 +120,7 @@
   "hammerButton": "MARTELO ({count})",
 
   "hammerCancel": "CANCELAR",
+  "boostersLabel": "Boosters",
   "hammerAimHint": "Toque na célula para quebrar",
 
   "hammerOfferTitle": "Sem martelos",
