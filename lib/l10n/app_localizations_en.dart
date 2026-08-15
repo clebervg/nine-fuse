@@ -188,6 +188,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String outcomeCoins(int coins) {
+    return '+$coins 🪙';
+  }
+
+  @override
+  String get outcomeCoinsLabel => 'COINS EARNED';
+
+  @override
   String get nextLevelButton => 'NEXT LEVEL';
 
   @override
@@ -363,6 +371,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hammerOfferNoCoins => 'Not enough coins';
+
+  @override
+  String hammerOfferBalance(int coins) {
+    return 'You have $coins 🪙';
+  }
+
+  @override
+  String hammerOfferEarnCoins(int reward) {
+    return 'Earn +$reward 🪙 (Watch video)';
+  }
+
+  @override
+  String hammerOfferEarnedCoins(int reward) {
+    return '+$reward 🪙 added to your balance!';
+  }
+
+  @override
+  String get coinSourcesTitle => 'How to earn coins';
+
+  @override
+  String get coinSourcesStars => 'Beat levels with 3 stars';
+
+  @override
+  String get coinSourcesAds => 'Watch rewarded videos';
+
+  @override
+  String get coinSourcesChests => 'Complete the chapters on the map';
 
   @override
   String hammerSemantics(int count) {

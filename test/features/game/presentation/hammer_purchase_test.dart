@@ -14,6 +14,13 @@ void main() {
     required int coins,
     required VoidCallback onGranted,
   }) async {
+    // O convite cresceu com o funil de moedas; na tela do jogo ele já vive
+    // dentro de um `SingleChildScrollView` (ver `_OutcomeOverlay`), e é essa
+    // montagem que o teste reproduz.
+    tester.view.physicalSize = const Size(750, 1800);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+
     final wallet = WalletNotifier(
       storage: InMemoryGameStorage(coins: coins),
     );
@@ -26,9 +33,11 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
-            body: HammerOfferDialog(
-              onGranted: onGranted,
-              onDecline: () {},
+            body: SingleChildScrollView(
+              child: HammerOfferDialog(
+                onGranted: onGranted,
+                onDecline: () {},
+              ),
             ),
           ),
         ),

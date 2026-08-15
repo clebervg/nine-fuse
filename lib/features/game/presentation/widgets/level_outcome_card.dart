@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/features/game/domain/star_rating.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/chapter_star_progress.dart';
@@ -11,6 +12,9 @@ import 'package:nine_fuse/l10n/app_localizations.dart';
 
 /// Chave da fileira de estrelas.
 const Key starsKey = Key('level_stars');
+
+/// Chave do selo de moedas ganhas na partida.
+const Key coinRewardKey = Key('level_coin_reward');
 
 /// Quantas estrelas a fileira sempre desenha. As não conquistadas ficam
 /// apagadas em vez de sumir: o jogador precisa ver o que deixou na mesa.
@@ -133,6 +137,14 @@ class LevelOutcomeCard extends StatelessWidget {
               starsGained: starsGained!,
             ),
           ],
+          // O prêmio em moeda vem logo abaixo das estrelas que o pagaram: é a
+          // única coisa da tela que liga a nota da partida ao inventário, e
+          // separá-la do placar (cinza, pequeno) é o que a faz ler como
+          // recompensa em vez de mais uma métrica.
+          if (_won && (starsGained ?? 0) > 0) ...[
+            const SizedBox(height: 12),
+            _CoinReward(coins: starsGained! * kCoinsPerStar),
+          ],
           const SizedBox(height: 6),
           Text(
             l10n.outcomeScore(state.score),
@@ -176,6 +188,54 @@ class LevelOutcomeCard extends StatelessWidget {
         const Positioned.fill(child: IgnorePointer(child: _Confetti())),
         card,
       ],
+    );
+  }
+}
+
+/// Selo do que a partida rendeu em moedas.
+///
+/// Só aparece quando houve **estrela nova**: rejogar uma fase já dominada rende
+/// zero (é a regra anti-farm que `CampaignRecords.record()` já garantia), e um
+/// selo escrito "+0 🪙" anunciaria que o jogo esqueceu de pagar.
+class _CoinReward extends StatelessWidget {
+  const _CoinReward({required this.coins});
+
+  final int coins;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Container(
+      key: coinRewardKey,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.digit3.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.digit3.withValues(alpha: 0.55)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l10n.outcomeCoins(coins),
+            style: const TextStyle(
+              color: AppColors.digit3,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(
+            l10n.outcomeCoinsLabel,
+            style: const TextStyle(
+              color: Colors.white54,
+              fontSize: 10,
+              letterSpacing: 1.2,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

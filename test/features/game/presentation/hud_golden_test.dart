@@ -141,7 +141,9 @@ void main() {
         starsInChapter: 12,
         starsGained: 3,
       ),
-      const Size(420, 620),
+      // Mais alto desde que o selo de moedas entrou entre as estrelas e o
+      // placar: o golden precisa caber o cartão inteiro.
+      const Size(420, 700),
     );
 
     await expectLater(

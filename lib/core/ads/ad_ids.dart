@@ -33,6 +33,12 @@ abstract final class AdIds {
   /// Unidade do anúncio que paga o reforço de saldo (gatilho pre-churn).
   static String get movesRewarded => _rewarded;
 
+  /// Unidade do anúncio que paga **moedas** dentro do modal de compra.
+  ///
+  /// Separada pela mesma razão das outras duas: é por unidade que a receita é
+  /// reportada, e as três funis pagam coisas diferentes.
+  static String get coinsRewarded => _rewarded;
+
   /// Fora de Android e iOS não há SDK de anúncio, e a string vazia é o que faz
   /// a carga falhar de forma limpa em vez de estourar no canal de plataforma.
   static String get _rewarded {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_outcome_card.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/chapter_star_progress.dart';
@@ -77,6 +78,33 @@ void main() {
       expect(find.text('FASE CONCLUÍDA!'), findsOneWidget);
       expect(find.byKey(const Key('next_level')), findsOneWidget);
       expect(find.text('PRÓXIMA FASE'), findsOneWidget);
+    });
+
+    testWidgets('o selo mostra as moedas das estrelas novas', (tester) async {
+      await pumpCard(
+        tester,
+        status: GameStatus.won,
+        moves: 10,
+        starsInChapter: 9,
+        starsGained: 3,
+      );
+
+      expect(find.byKey(coinRewardKey), findsOneWidget);
+      expect(find.text('+${3 * kCoinsPerStar} 🪙'), findsOneWidget);
+    });
+
+    testWidgets('sem estrela nova não há selo de moedas', (tester) async {
+      // Rejogar uma fase já dominada não paga: um selo "+0 🪙" anunciaria que
+      // o jogo esqueceu de pagar.
+      await pumpCard(
+        tester,
+        status: GameStatus.won,
+        moves: 10,
+        starsInChapter: 9,
+        starsGained: 0,
+      );
+
+      expect(find.byKey(coinRewardKey), findsNothing);
     });
 
     testWidgets('sobrando 30% ou mais do saldo, três estrelas', (tester) async {

@@ -57,6 +57,9 @@
 
   "outcomeScore": "Pontos: {score}",
 
+  "outcomeCoins": "+{coins} 🪙",
+  "outcomeCoinsLabel": "MOEDAS GANHAS",
+
   "nextLevelButton": "PRÓXIMA FASE",
   "playAgainButton": "JOGAR DE NOVO",
   "tryAgainButton": "TENTAR NOVAMENTE",
@@ -129,6 +132,14 @@
     "description": "Botão que troca moedas por um Martelo de Fusão.",
     "placeholders": { "price": { "type": "int" } }
   },
+  "hammerOfferBalance": "Você tem {coins} 🪙",
+  "hammerOfferEarnCoins": "Ganhar +{reward} 🪙 (Assistir Vídeo)",
+  "hammerOfferEarnedCoins": "+{reward} 🪙 creditadas no seu saldo!",
+  "coinSourcesTitle": "Como ganhar moedas",
+  "coinSourcesStars": "Vença fases com 3 estrelas",
+  "coinSourcesAds": "Assista a vídeos de recompensa",
+  "coinSourcesChests": "Conclua os capítulos do mapa",
+
   "hammerOfferNoCoins": "Moedas insuficientes",
   "@hammerOfferNoCoins": {
     "description": "Explica por que o botão de compra está desabilitado."

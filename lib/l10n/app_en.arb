@@ -122,6 +122,13 @@
     "placeholders": { "score": { "type": "int" } }
   },
 
+  "outcomeCoins": "+{coins} 🪙",
+  "@outcomeCoins": {
+    "description": "Coins earned by the stars this run added, shown on the win card.",
+    "placeholders": { "coins": { "type": "int" } }
+  },
+  "outcomeCoinsLabel": "COINS EARNED",
+
   "nextLevelButton": "NEXT LEVEL",
   "playAgainButton": "PLAY AGAIN",
   "tryAgainButton": "TRY AGAIN",
@@ -253,6 +260,26 @@
   "@hammerOfferNoCoins": {
     "description": "Explains why the buy button is disabled."
   },
+
+  "hammerOfferBalance": "You have {coins} 🪙",
+  "@hammerOfferBalance": {
+    "description": "Current coin balance shown inside the booster purchase dialog.",
+    "placeholders": { "coins": { "type": "int" } }
+  },
+  "hammerOfferEarnCoins": "Earn +{reward} 🪙 (Watch video)",
+  "@hammerOfferEarnCoins": {
+    "description": "Button that plays a rewarded ad paying coins.",
+    "placeholders": { "reward": { "type": "int" } }
+  },
+  "hammerOfferEarnedCoins": "+{reward} 🪙 added to your balance!",
+  "@hammerOfferEarnedCoins": {
+    "description": "Confirmation shown after the coin rewarded ad completes.",
+    "placeholders": { "reward": { "type": "int" } }
+  },
+  "coinSourcesTitle": "How to earn coins",
+  "coinSourcesStars": "Beat levels with 3 stars",
+  "coinSourcesAds": "Watch rewarded videos",
+  "coinSourcesChests": "Complete the chapters on the map",
 
   "hammerSemantics": "Fusion Hammer, {count} in stock. Smashes one cell without spending a move.",
   "@hammerSemantics": {

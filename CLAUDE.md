@@ -849,6 +849,56 @@ um teto ou um valor decrescente por capítulo antes de a Fase B do baú (ainda
 não construída) o conectar a um botão.
 
 
+### Fluxo de ganho de moedas e UI explicativa ✅
+
+**O vídeo que paga moeda tem provider e unidade próprios.** `coinAdProvider`
+nasce ao lado de `hammerAdProvider`, com o mesmo padrão que **paga o jogador
+sem rede nenhuma** — é o que mantém a suíte de widget rodando sem canal de
+plataforma —, e `AdIds.coinsRewarded` é a terceira unidade. Reaproveitar a
+unidade do martelo apontaria o mesmo ID hoje e impediria para sempre de saber
+qual dos três funis paga, que é a única coisa que a separação compra. Entrou
+também no `preloadRewardedAds`: o botão vive dentro de um modal aberto no meio
+de uma decisão, e pedir a rede ali é exatamente a espera que o preload existe
+para evitar.
+
+**A caixa não fecha ao creditar.** O jogador veio comprar um martelo; mandá-lo
+de volta ao tabuleiro com o saldo maior o obrigaria a mirar outra vez para
+gastar. Como `walletProvider` é observado no `build`, o crédito reacende o botão
+de compra no mesmo quadro — há teste para isso, montado com o saldo faltando
+exatamente `kCoinsPerRewardedAd`. `creditCoins` já persiste, então o teste
+afirma contra o **disco** (`InMemoryGameStorage.coins`), não contra o estado em
+memória: era o saldo sobreviver à sessão que o pedido exigia.
+
+**`kCoinsPerRewardedAd = 25` é um quarto do martelo, de propósito.** Quatro
+vídeos compram o item que um vídeo já daria direto — o funil do martelo continua
+sendo o caminho curto, e este é a torneira de quem prefere juntar. Alto demais
+esvaziaria o funil principal; baixo demais faria o botão parecer enfeite.
+
+**A lista de fontes de moeda não diz valores.** `kCoinsPerStar` e
+`kChapterChestReward` vão ser recalibrados, e um número escrito na tela viraria
+promessa desatualizada no primeiro ajuste. Ela fica no rodapé do convite, e não
+numa tela de ajuda: é ali que o jogador descobre que o saldo não cobre o preço, e
+é ali que a pergunta "como eu consigo mais?" nasce — respondê-la em outra tela é
+responder tarde. O texto de saldo insuficiente passou a trazer **quanto** o
+jogador tem: sem isso ele sabe que falta, mas não a distância, e é a distância
+que decide entre assistir a um vídeo e desistir.
+
+**O selo de moedas do cartão de vitória só aparece com estrela nova.** Ele lê
+`starsGained * kCoinsPerStar`, a mesma conta que o `game_screen` credita — não um
+campo novo atravessando a tela, que poderia divergir do que a carteira recebeu.
+Rejogar fase dominada rende zero (regra que `CampaignRecords.record()` já
+garantia), e um selo "+0 🪙" anunciaria que o jogo esqueceu de pagar.
+
+**O convite passou a precisar de rolagem no teste.** Na tela do jogo ele sempre
+viveu dentro do `SingleChildScrollView` do `_OutcomeOverlay`; `hammer_purchase_test`
+o montava cru, e o cartão informativo o fez estourar a janela padrão. O teste
+passou a reproduzir a montagem de produção em vez de encolher a UI. O golden
+`level_outcome.png` foi regerado com a caixa 80pt mais alta, pelo mesmo motivo.
+
+**Não validado em aparelho:** o ganho via anúncio de teste do AdMob roda pelo
+`RewardedAdService` já existente, mas só foi exercitado com a porta dublada. O
+caminho nativo continua sem teste, pela razão de sempre — testá-lo mediria o SDK.
+
 ### Ajustes de HUD, geometria e copywriting ✅
 
 **O contador de estrelas do capítulo já estava certo, e agora tem teste.** O

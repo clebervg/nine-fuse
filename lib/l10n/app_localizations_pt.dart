@@ -190,6 +190,14 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String outcomeCoins(int coins) {
+    return '+$coins 🪙';
+  }
+
+  @override
+  String get outcomeCoinsLabel => 'MOEDAS GANHAS';
+
+  @override
   String get nextLevelButton => 'PRÓXIMA FASE';
 
   @override
@@ -365,6 +373,33 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get hammerOfferNoCoins => 'Moedas insuficientes';
+
+  @override
+  String hammerOfferBalance(int coins) {
+    return 'Você tem $coins 🪙';
+  }
+
+  @override
+  String hammerOfferEarnCoins(int reward) {
+    return 'Ganhar +$reward 🪙 (Assistir Vídeo)';
+  }
+
+  @override
+  String hammerOfferEarnedCoins(int reward) {
+    return '+$reward 🪙 creditadas no seu saldo!';
+  }
+
+  @override
+  String get coinSourcesTitle => 'Como ganhar moedas';
+
+  @override
+  String get coinSourcesStars => 'Vença fases com 3 estrelas';
+
+  @override
+  String get coinSourcesAds => 'Assista a vídeos de recompensa';
+
+  @override
+  String get coinSourcesChests => 'Conclua os capítulos do mapa';
 
   @override
   String hammerSemantics(int count) {

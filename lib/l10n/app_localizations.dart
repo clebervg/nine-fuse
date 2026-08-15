@@ -302,6 +302,18 @@ abstract class AppLocalizations {
   /// **'Points: {score}'**
   String outcomeScore(int score);
 
+  /// Coins earned by the stars this run added, shown on the win card.
+  ///
+  /// In en, this message translates to:
+  /// **'+{coins} 🪙'**
+  String outcomeCoins(int coins);
+
+  /// No description provided for @outcomeCoinsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'COINS EARNED'**
+  String get outcomeCoinsLabel;
+
   /// No description provided for @nextLevelButton.
   ///
   /// In en, this message translates to:
@@ -588,6 +600,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not enough coins'**
   String get hammerOfferNoCoins;
+
+  /// Current coin balance shown inside the booster purchase dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {coins} 🪙'**
+  String hammerOfferBalance(int coins);
+
+  /// Button that plays a rewarded ad paying coins.
+  ///
+  /// In en, this message translates to:
+  /// **'Earn +{reward} 🪙 (Watch video)'**
+  String hammerOfferEarnCoins(int reward);
+
+  /// Confirmation shown after the coin rewarded ad completes.
+  ///
+  /// In en, this message translates to:
+  /// **'+{reward} 🪙 added to your balance!'**
+  String hammerOfferEarnedCoins(int reward);
+
+  /// No description provided for @coinSourcesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How to earn coins'**
+  String get coinSourcesTitle;
+
+  /// No description provided for @coinSourcesStars.
+  ///
+  /// In en, this message translates to:
+  /// **'Beat levels with 3 stars'**
+  String get coinSourcesStars;
+
+  /// No description provided for @coinSourcesAds.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch rewarded videos'**
+  String get coinSourcesAds;
+
+  /// No description provided for @coinSourcesChests.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete the chapters on the map'**
+  String get coinSourcesChests;
 
   /// No description provided for @hammerSemantics.
   ///

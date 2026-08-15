@@ -35,7 +35,17 @@ final movesAdServiceProvider = Provider<RewardedAdService>((ref) {
   return service;
 });
 
-/// Deixa os dois anúncios premiados carregados para esta fase/corrida.
+/// Serviço do anúncio que paga moedas dentro do modal de compra.
+final coinAdServiceProvider = Provider<RewardedAdService>((ref) {
+  final service = RewardedAdService(
+    port: ref.watch(rewardedAdPortProvider),
+    unitId: AdIds.coinsRewarded,
+  );
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+/// Deixa os anúncios premiados carregados para esta fase/corrida.
 ///
 /// Chamado no início do nível, e não no toque do botão, porque carregar sob
 /// demanda põe a rede no caminho crítico da decisão do jogador: ele veria
@@ -47,6 +57,10 @@ final movesAdServiceProvider = Provider<RewardedAdService>((ref) {
 void preloadRewardedAds(WidgetRef ref) {
   ref.read(hammerAdServiceProvider).preload();
   ref.read(movesAdServiceProvider).preload();
+  // O de moedas também: ele nasce dentro do modal de compra, que já é aberto
+  // no meio de uma decisão — pedir a rede ali é a espera que o preload existe
+  // para evitar.
+  ref.read(coinAdServiceProvider).preload();
 }
 
 /// Liga os dois funis de anúncio ao AdMob.
@@ -60,4 +74,5 @@ List<Override> admobOverrides() => [
     (ref) => ref.watch(hammerAdServiceProvider).show,
   ),
   movesAdProvider.overrideWith((ref) => ref.watch(movesAdServiceProvider).show),
+  coinAdProvider.overrideWith((ref) => ref.watch(coinAdServiceProvider).show),
 ];

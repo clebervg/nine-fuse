@@ -21,3 +21,12 @@ const int kHammerCoinPrice = 100;
 
 /// O que o baú de fim de capítulo paga, uma única vez por capítulo.
 const int kChapterChestReward = 200;
+
+/// Moedas por anúncio premiado assistido até o fim.
+///
+/// Vinte e cinco é um quarto do martelo: quatro vídeos compram o item que um
+/// vídeo já daria direto. É de propósito — o vídeo que paga o martelo continua
+/// sendo o caminho curto, e este é a torneira de quem prefere juntar. Um valor
+/// alto demais aqui esvaziaria o funil do martelo; um valor baixo demais faria
+/// o botão parecer enfeite.
+const int kCoinsPerRewardedAd = 25;

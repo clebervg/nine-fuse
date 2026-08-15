@@ -18,6 +18,12 @@ const Key hammerOfferDeclineKey = Key('hammer_offer_decline');
 /// Chave do botão que troca moedas por martelo.
 const Key hammerOfferBuyKey = Key('hammer_offer_buy');
 
+/// Chave do botão que assiste a um vídeo para ganhar moedas.
+const Key hammerOfferEarnCoinsKey = Key('hammer_offer_earn_coins');
+
+/// Chave do cartão que lista de onde vêm as moedas.
+const Key coinSourcesKey = Key('coin_sources');
+
 /// Como o jogo pede um anúncio premiado, e o que ele responde.
 ///
 /// `true` significa "o jogador assistiu até o fim, pague-o". É um provider, e
@@ -28,6 +34,18 @@ const Key hammerOfferBuyKey = Key('hammer_offer_buy');
 /// um funil que nunca conclui — um botão que promete um martelo e não entrega é
 /// pior do que a casa pagar por ele.
 final hammerAdProvider = Provider<Future<bool> Function()>(
+  (ref) =>
+      () async => true,
+);
+
+/// Como o jogo pede o anúncio premiado que paga **moedas**, e o que ele
+/// responde.
+///
+/// Unidade própria, e não o mesmo `hammerAdProvider`, pela mesma razão pela
+/// qual `AdIds` separa as unidades: é por unidade que a rede reporta receita, e
+/// um provider só impediria de saber qual dos dois funis paga. Mesmo padrão do
+/// martelo — o padrão paga o jogador, e quem liga o AdMob é o `main`.
+final coinAdProvider = Provider<Future<bool> Function()>(
   (ref) =>
       () async => true,
 );
@@ -83,6 +101,37 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
     setState(() {
       _waiting = false;
       _failed = true;
+    });
+  }
+
+  /// Assistiu ao vídeo e recebeu moedas. Some no toque seguinte.
+  bool _earned = false;
+
+  /// Assiste a um vídeo premiado para **ganhar moedas**, sem sair da caixa.
+  ///
+  /// A caixa não fecha ao pagar: o jogador veio aqui para comprar um martelo, e
+  /// mandá-lo de volta ao tabuleiro com o saldo maior o obrigaria a mirar de
+  /// novo para gastar. Como `walletProvider` é observado no `build`, o crédito
+  /// reacende o botão de compra no mesmo quadro — que é o "HUD atualizado
+  /// imediatamente" que o funil precisa para fazer sentido.
+  Future<void> _earnCoins() async {
+    if (_waiting) return;
+    setState(() {
+      _waiting = true;
+      _failed = false;
+      _earned = false;
+    });
+
+    final granted = await ref.read(coinAdProvider)();
+    if (!mounted) return;
+
+    // `creditCoins` já persiste no disco: o saldo sobrevive a fechar o jogo.
+    if (granted) ref.read(walletProvider.notifier).creditCoins(kCoinsPerRewardedAd);
+
+    setState(() {
+      _waiting = false;
+      _failed = !granted;
+      _earned = granted;
     });
   }
 
@@ -160,14 +209,39 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
             // botão apagado, porque o jogador não sabe se falhou ou foi cobrado.
             onPressed: canAfford ? _buy : null,
           ),
-          if (!canAfford) ...[
+          const SizedBox(height: 6),
+          // O saldo fica logo abaixo do preço: sem ele, "moedas insuficientes"
+          // diz que falta, mas não quanto — e é essa distância que decide se o
+          // jogador assiste a um vídeo ou desiste.
+          Text(
+            canAfford
+                ? l10n.hammerOfferBalance(wallet.coins)
+                : '${l10n.hammerOfferNoCoins} · ${l10n.hammerOfferBalance(wallet.coins)}',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: canAfford ? Colors.white54 : Colors.white38,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 10),
+          GameButton(
+            key: hammerOfferEarnCoinsKey,
+            label: l10n.hammerOfferEarnCoins(kCoinsPerRewardedAd),
+            color: AppColors.digit3,
+            foreground: Colors.black,
+            icon: Icons.ondemand_video_rounded,
+            onPressed: _earnCoins,
+          ),
+          if (_earned) ...[
             const SizedBox(height: 6),
             Text(
-              l10n.hammerOfferNoCoins,
+              l10n.hammerOfferEarnedCoins(kCoinsPerRewardedAd),
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white38, fontSize: 12),
+              style: const TextStyle(color: AppColors.digit2, fontSize: 12),
             ),
           ],
+          const SizedBox(height: 14),
+          const _CoinSourcesCard(),
           const SizedBox(height: 10),
           GameButton(
             key: hammerOfferDeclineKey,
@@ -180,4 +254,83 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
       ),
     );
   }
+}
+
+/// As três torneiras de moeda do jogo, listadas onde a moeda é gasta.
+///
+/// Fica no rodapé do convite, e não numa tela de ajuda: é aqui que o jogador
+/// descobre que o saldo não cobre o preço, e é aqui que a pergunta "e como eu
+/// consigo mais?" nasce. Respondê-la em outra tela é responder tarde.
+class _CoinSourcesCard extends StatelessWidget {
+  const _CoinSourcesCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Container(
+      key: coinSourcesKey,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.digit3.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l10n.coinSourcesTitle.toUpperCase(),
+            style: const TextStyle(
+              color: AppColors.digit3,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _CoinSource(icon: Icons.star_rounded, label: l10n.coinSourcesStars),
+          _CoinSource(
+            icon: Icons.ondemand_video_rounded,
+            label: l10n.coinSourcesAds,
+          ),
+          _CoinSource(
+            icon: Icons.flag_rounded,
+            label: l10n.coinSourcesChests,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Uma linha da lista: ícone e frase, sem promessa de valor.
+///
+/// Sem número ao lado: `kCoinsPerStar` e `kChapterChestReward` vão ser
+/// recalibrados, e um valor escrito na tela viraria promessa desatualizada no
+/// primeiro ajuste de balanceamento.
+class _CoinSource extends StatelessWidget {
+  const _CoinSource({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      children: [
+        Icon(icon, size: 14, color: AppColors.digit3),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 12.5),
+          ),
+        ),
+      ],
+    ),
+  );
 }
