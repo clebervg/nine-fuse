@@ -29,13 +29,6 @@ enum LossReason {
 /// reviver; ele decide olhando para um tabuleiro vivo, não para um resultado.
 const int kPreChurnMovesLeft = 2;
 
-/// Movimentos pagos pelo anúncio do reforço de saldo.
-///
-/// Cinco é mais do que os dois que restavam: um prêmio menor que a aflição não
-/// muda o desfecho da fase, e o jogador que assistiu ao anúncio para perder
-/// mesmo assim aprende a não assistir ao próximo.
-const int kPreChurnReward = 5;
-
 /// Situação da fase em andamento.
 enum GameStatus {
   /// Nenhuma fase começou.

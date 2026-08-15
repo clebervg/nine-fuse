@@ -347,6 +347,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               _OutcomeOverlay(
                 child: MovesOfferDialog(
                   movesLeft: state.movesLeft,
+                  reward: state.rewardedMoves,
                   onGranted: () {
                     ref.read(gameProvider.notifier).grantBonusMoves();
                     setState(() => _movesOfferOpen = false);
