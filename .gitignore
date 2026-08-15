@@ -43,3 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Artefatos de golden que falhou. O flutter_test cria esta pasta sozinho ao
+# lado do golden divergente, com quatro PNGs de diagnóstico (master, test,
+# masked e isolated diff). São descartáveis por natureza: só valem enquanto
+# a falha está na tela, e são regerados na próxima execução. Quatro deles
+# chegaram a ser commitados por acidente — daí a regra existir.
+test/**/failures/
