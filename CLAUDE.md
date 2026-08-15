@@ -944,6 +944,7 @@ texto novo descreve a causa com menos precisão que o antigo
 ("Não havia mais nenhuma troca possível"). Foi pedido explicitamente, e a
 pergunta "Deseja continuar?" combina com os dois botões que o cartão já
 oferece.
+
 ### AppIcon: peça 3D com o `9`, e o encolhimento duplo do adaptativo ✅
 
 **O ícone anterior era um anel de energia com o dígito no meio; agora é uma
@@ -1041,3 +1042,123 @@ exclusivamente a origem do ícone. Nenhum golden depende dele, e um teste de
 imagem de ícone mediria o `rsvg-convert`, não o jogo. A verificação é o render
 sob máscara, feita à mão a cada mudança de arte.
 
+
+### Badge global de moedas e martelos (`CoinsHeaderBadge`) ✅
+
+**O saldo só existia dentro do convite do martelo, e isso é tarde demais.** O
+jogador descobria quanto tinha no instante em que precisava gastar — a moeda
+nunca chegava a influenciar uma decisão anterior à compra. Um recurso que não é
+visível não é recurso: é surpresa. A pílula agora vive na `AppBar` do mapa, do
+Modo Recorde e da fase, e no topo do cartão de início — os quatro lugares em que
+o jogador ainda pode decidir algo com o número na mão.
+
+**Saldo zero aparece, e não some.** Uma pílula que se esconde no zero apaga
+justamente o estado em que o `+` importa, e ensina que a moeda é um detalhe
+intermitente.
+
+**O martelo é opcional na pílula, e fica fora das telas de partida.** Dentro de
+uma fase a autoridade do estoque é o `GameState`, relido a cada `startLevel`; o
+campo `Wallet.hammers` é o espelho que existe para as telas de **fora** de uma
+partida, onde não há `GameState` de onde ler. Mostrar o espelho durante a fase
+poria dois números do mesmo item na mesma tela — o do header e o da `HammerBar`,
+que é o certo — e eles divergiriam no primeiro golpe. Por isso só o mapa passa
+`hammers:`.
+
+**A loja é `showDialog`, contra a regra do resto do jogo, e é deliberado.** Todas
+as outras caixas são camadas do `Stack` da própria tela, porque ali havia um
+tabuleiro a não tirar da árvore de foco. Aqui o ponto de entrada nasce na
+`AppBar` de quatro telas: pedir a cada uma que hospede a camada e guarde o
+estado de aberto/fechado espalharia a mesma máquina por todas elas, para uma
+caixa puramente informativa aberta com o jogo parado.
+
+**A caixa não fecha ao creditar**, pela mesma razão já registrada no convite do
+martelo: quem veio buscar moeda costuma querer mais de uma. Como o saldo é
+observado com `walletProvider.select`, o crédito aparece no mesmo quadro — é o
+que faz o botão parecer ter funcionado.
+
+**A lista de fontes de moeda saiu para arquivo próprio** (`CoinSourcesCard`, em
+`coin_sources_card.dart`), com `export` de volta pelo `hammer_offer_dialog` para
+`coinSourcesKey` continuar endereçável de onde já era importada. Duas cópias
+divergiriam na primeira torneira nova, e o jogador leria fontes diferentes
+dependendo de qual caixa abriu. Ela segue **sem valores escritos**, pelo motivo
+de sempre: `kCoinsPerStar` e `kChapterChestReward` vão ser recalibrados.
+
+**A loja não vende pacote por dinheiro real, e isso não é lacuna de UI.** Não há
+compra in-app no projeto; o que a caixa entrega hoje é a resposta à pergunta que
+o `+` provoca, e o vídeo premiado (`coinAdProvider`, mesma unidade do funil de
+moedas já existente) é a única torneira acionável dali. É o ponto a trocar
+quando houver billing.
+
+**Armadilhas desta rodada:**
+- **O golden do mapa muda quando a `AppBar` ganha conteúdo.** `saga_map.png` foi
+  regerado; um badge no header é mudança de pixel, não só de árvore.
+- **Widget que lê provider quebra teste que monta o widget cru.**
+  `english_screens_test` montava `LevelStartDialog` sem `ProviderScope` e passou
+  a estourar `Bad state: No ProviderScope found`. O escopo entrou no teste **sem
+  overrides** — em produção a tela sempre nasce sob um, e o padrão da carteira é
+  saldo zero. Envolver o helper `localizedApp` num escopo teria sido o remédio
+  errado: os testes que já montam o próprio `ProviderScope` com overrides
+  ganhariam um escopo aninhado que os sombreia.
+
+**Não validado em aparelho:** o crédito por vídeo continua exercitado só com a
+porta dublada, pela razão de sempre — o caminho nativo mediria o SDK.
+
+
+### Polimento visual do HUD da fase: cards 3D e dock de boosters ✅
+
+**O aro dos cards é um degradê, e por isso é uma caixa por fora e não um
+`Border.all`.** `BoxBorder` só aceita cor chapada; o contorno claro em cima
+descendo para escuro embaixo é o que faz o cartão parecer iluminado de cima,
+como as peças do tabuleiro. Um contorno de cor única lê como contorno de
+formulário. A sombra da base é o outro meio da mesma frase: ela dá ao cartão um
+lado de baixo, em vez de deixá-lo colado no fundo.
+
+**MOVES sai do empate visual, e o critério não é estético.** Três caixas do
+mesmo tamanho e do mesmo peso dizem que as três informações valem o mesmo — e
+não valem: pontos são placar, objetivo é consulta, e o saldo de movimentos é o
+relógio que **decide** a fase. `GameMetricCard.hero` dá a ele aro dourado/laranja,
+fundo quente e número em 30, legível de canto de olho entre uma jogada e outra.
+
+**O alvo ganhou vitrine porque estava lido como enfeite do número.** Solto ao
+lado do contador, com o mesmo peso do resto da pílula, a peça que a fase inteira
+pede parecia decoração do "1 de 3". A caixinha com fundo da própria cor e
+contorno neon diz "isto aqui é o objeto" — e usa a cor que a peça tem no
+tabuleiro, para o reconhecimento ser imediato quando ela aparecer na grade.
+
+**As estrelas entraram no card de pontos, e ganharam trilho.** Nota parcial e
+pontos respondem à mesma pergunta ("como estou indo?"), e a linha separada
+abaixo do cabeçalho obrigava o olho a juntar duas coisas que o jogo já tratava
+como uma. O preenchimento proporcional existe porque três ícones sozinhos são um
+**estado**, não um progresso: a estrela apagada diz que ela se perdeu, e a barra
+atrás delas diz quanto do caminho ainda está de pé. A estrela acesa perdeu a
+sombra dourada — sobre o trilho preenchido, halo dourado em fundo dourado borra
+a silhueta em vez de destacá-la.
+
+**O disco roxo flutuante virou slot de um dock, e o problema nunca foi a cor.**
+Um controle sem chão não pertence a lugar nenhum da interface, então o olho o
+lia como sobreposição do sistema — algo que caiu por cima do jogo. Na prateleira
+ele é equipamento do jogador; ganhou o formato das peças (quadrado arredondado
+do tamanho de uma célula), o halo encolheu (dentro do dock ele já tem contraste,
+e o brilho de antes só sangraria para fora da barra) e o respingo passou a ser
+recortado no mesmo raio. O ganho estrutural é o que importa: **o segundo booster
+entra ao lado sem redesenhar nada.** O rótulo discreto "BOOSTERS" existe porque
+um dock com um item só e nenhuma legenda volta a ser lido como botão avulso com
+moldura — e ele sai de cena quando a mira começa e a dica assume o espaço.
+
+**O dock continua fora do card de métricas, pela regra de sempre:** o card
+informa, o dock age. E continua sumindo com a fase encerrada.
+
+**Armadilhas desta rodada:**
+- **`find.byType(Container)` com `single` quebra na primeira camada nova.** A
+  pílula passou a ser duas caixas encaixadas (a de fora desenha aro e base, a de
+  dentro o fundo) e `game_metric_card_test` estourou com "Too many elements".
+  Passou a pedir `widgetList(...).first`, que é o que a asserção sempre quis
+  dizer.
+- **O teste do alerta media `border.top.color`, que não existe mais.** Segue
+  medindo a mesma coisa — a cor com que o aro começa —, agora no primeiro stop
+  do degrau. Trocar a asserção foi acompanhar uma mudança deliberada de
+  desenho, não afrouxar o teste: a contagem de sombras (o neon só na urgência)
+  ficou intacta.
+- **Os dois goldens do HUD foram regerados** (`game_hud`, `game_hud_urgent`).
+  Nenhum outro golden mudou, o que confirma que o polimento ficou contido no
+  cabeçalho e no dock.
