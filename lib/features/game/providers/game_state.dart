@@ -1,4 +1,5 @@
 import 'package:nine_fuse/features/game/domain/board.dart';
+import 'package:nine_fuse/features/game/domain/game_balance_engine.dart';
 import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
@@ -230,6 +231,16 @@ class GameState {
   double get objectiveFraction => objectiveTarget <= 0
       ? 1.0
       : (objectiveProgress / objectiveTarget).clamp(0.0, 1.0);
+
+  /// Quantos movimentos o anúncio de reforço de saldo paga **nesta fase**.
+  ///
+  /// Existe como getter — e não como cálculo na tela ou no crédito — porque o
+  /// cartão anuncia o número **antes** de o anúncio rodar. Dois consumidores
+  /// lendo lugares diferentes divergiriam no primeiro refactor, e a divergência
+  /// apareceria como o jogo prometendo dez movimentos e pagando quatro.
+  int get rewardedMoves => GameBalanceEngine.calculateRewardedMoves(
+    remainingTargets: objectiveTarget - objectiveProgress,
+  );
 
   /// A fase terminou, de qualquer forma?
   bool get isOver => status == GameStatus.won || status == GameStatus.lost;

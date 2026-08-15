@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
@@ -170,6 +171,28 @@ void main() {
       notifier.grantBonusMoves();
 
       expect(notifier.state.movesAvailable, before);
+    });
+  });
+
+  group('o prêmio acompanha o que a fase ainda pede', () {
+    test('objetivo alto paga o teto', () {
+      // `notifierWith` usa objetivo 99 por padrão: muito acima do teto, então
+      // o prêmio é o máximo. É o caso que as fases geradas mais produzem.
+      final notifier = notifierWith(moveLimit: 20);
+
+      expect(notifier.state.rewardedMoves, kRewardedMaxMoves);
+    });
+
+    test('dois alvos restantes pagam seis', () {
+      final notifier = notifierWith(moveLimit: 20, objective: 2);
+
+      expect(notifier.state.rewardedMoves, 6);
+    });
+
+    test('um alvo restante paga o piso', () {
+      final notifier = notifierWith(moveLimit: 20, objective: 1);
+
+      expect(notifier.state.rewardedMoves, kRewardedMinMoves);
     });
   });
 }
