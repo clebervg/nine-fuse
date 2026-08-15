@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
@@ -40,10 +41,16 @@ void main() {
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
 
+    // O `ProviderScope` entra porque estes cartões podem hospedar widgets que
+    // leem providers (a pílula de saldo, por exemplo, quando montada na
+    // AppBar da tela real). Sem overrides: em produção estas telas sempre
+    // nascem sob um escopo, e o padrão da carteira é saldo zero.
     await tester.pumpWidget(
-      localizedApp(
-        locale: kTestLocaleEn,
-        home: Scaffold(body: SingleChildScrollView(child: child)),
+      ProviderScope(
+        child: localizedApp(
+          locale: kTestLocaleEn,
+          home: Scaffold(body: SingleChildScrollView(child: child)),
+        ),
       ),
     );
     await tester.pumpAndSettle();

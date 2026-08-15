@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nine_fuse/core/ads/ad_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/widgets/coins_header_badge.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
@@ -178,6 +179,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         centerTitle: true,
         backgroundColor: AppColors.darkSurface,
         elevation: 0,
+        // Só as moedas: o estoque de martelos já tem número próprio na
+        // `HammerBar`, e o espelho da carteira pode estar velho no meio de uma
+        // partida — dois números do mesmo item na mesma tela.
+        actions: const [CoinsHeaderBadge(), SizedBox(width: 4)],
       ),
       body: SafeArea(
         // O desfecho é sobreposto, não empilhado abaixo do tabuleiro: numa

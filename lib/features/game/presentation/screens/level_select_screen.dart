@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/widgets/coins_header_badge.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/domain/level_generator.dart';
@@ -178,6 +179,13 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
         centerTitle: true,
         backgroundColor: AppColors.darkSurface,
         elevation: 0,
+        // Fora de uma partida não há `GameState`, então aqui o espelho da
+        // carteira é a única leitura possível do estoque — e é a tela em que
+        // saber quantos martelos restam decide se vale comprar antes de entrar.
+        actions: [
+          CoinsHeaderBadge(hammers: ref.watch(walletProvider).hammers),
+          const SizedBox(width: 4),
+        ],
       ),
       body: SafeArea(
         child: Column(

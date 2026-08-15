@@ -390,6 +390,22 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get coinStoreTitle => 'Suas moedas';
+
+  @override
+  String get coinStoreClose => 'FECHAR';
+
+  @override
+  String coinsBadgeSemantics(int coins) {
+    return '$coins moedas';
+  }
+
+  @override
+  String hammersBadgeSemantics(int hammers) {
+    return '$hammers martelos';
+  }
+
+  @override
   String get coinSourcesTitle => 'Como ganhar moedas';
 
   @override

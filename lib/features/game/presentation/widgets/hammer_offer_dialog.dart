@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/features/game/domain/economy.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/coin_sources_card.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
+
+// A lista de fontes de moeda mudou de arquivo quando a loja do header passou a
+// usá-la. O reexport mantém `coinSourcesKey` endereçável por quem já importava
+// daqui — mudar todos os pontos de import não pagaria o trabalho.
+export 'package:nine_fuse/features/game/presentation/widgets/coin_sources_card.dart'
+    show CoinSourcesCard, coinSourcesKey;
 
 /// Chave do cartão de aquisição do martelo.
 const Key hammerOfferKey = Key('hammer_offer');
@@ -20,9 +27,6 @@ const Key hammerOfferBuyKey = Key('hammer_offer_buy');
 
 /// Chave do botão que assiste a um vídeo para ganhar moedas.
 const Key hammerOfferEarnCoinsKey = Key('hammer_offer_earn_coins');
-
-/// Chave do cartão que lista de onde vêm as moedas.
-const Key coinSourcesKey = Key('coin_sources');
 
 /// Como o jogo pede um anúncio premiado, e o que ele responde.
 ///
@@ -241,7 +245,7 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
             ),
           ],
           const SizedBox(height: 14),
-          const _CoinSourcesCard(),
+          const CoinSourcesCard(),
           const SizedBox(height: 10),
           GameButton(
             key: hammerOfferDeclineKey,
@@ -254,83 +258,4 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
       ),
     );
   }
-}
-
-/// As três torneiras de moeda do jogo, listadas onde a moeda é gasta.
-///
-/// Fica no rodapé do convite, e não numa tela de ajuda: é aqui que o jogador
-/// descobre que o saldo não cobre o preço, e é aqui que a pergunta "e como eu
-/// consigo mais?" nasce. Respondê-la em outra tela é responder tarde.
-class _CoinSourcesCard extends StatelessWidget {
-  const _CoinSourcesCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    return Container(
-      key: coinSourcesKey,
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.digit3.withValues(alpha: 0.35)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            l10n.coinSourcesTitle.toUpperCase(),
-            style: const TextStyle(
-              color: AppColors.digit3,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _CoinSource(icon: Icons.star_rounded, label: l10n.coinSourcesStars),
-          _CoinSource(
-            icon: Icons.ondemand_video_rounded,
-            label: l10n.coinSourcesAds,
-          ),
-          _CoinSource(
-            icon: Icons.flag_rounded,
-            label: l10n.coinSourcesChests,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Uma linha da lista: ícone e frase, sem promessa de valor.
-///
-/// Sem número ao lado: `kCoinsPerStar` e `kChapterChestReward` vão ser
-/// recalibrados, e um valor escrito na tela viraria promessa desatualizada no
-/// primeiro ajuste de balanceamento.
-class _CoinSource extends StatelessWidget {
-  const _CoinSource({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 3),
-    child: Row(
-      children: [
-        Icon(icon, size: 14, color: AppColors.digit3),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(color: Colors.white70, fontSize: 12.5),
-          ),
-        ),
-      ],
-    ),
-  );
 }

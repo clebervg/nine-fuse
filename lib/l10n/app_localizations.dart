@@ -619,6 +619,30 @@ abstract class AppLocalizations {
   /// **'+{reward} 🪙 added to your balance!'**
   String hammerOfferEarnedCoins(int reward);
 
+  /// No description provided for @coinStoreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your coins'**
+  String get coinStoreTitle;
+
+  /// No description provided for @coinStoreClose.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get coinStoreClose;
+
+  /// Spoken label of the header balance pill.
+  ///
+  /// In en, this message translates to:
+  /// **'{coins} coins'**
+  String coinsBadgeSemantics(int coins);
+
+  /// Spoken label of the hammer segment of the header pill.
+  ///
+  /// In en, this message translates to:
+  /// **'{hammers} hammers'**
+  String hammersBadgeSemantics(int hammers);
+
   /// No description provided for @coinSourcesTitle.
   ///
   /// In en, this message translates to:

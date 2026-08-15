@@ -60,6 +60,10 @@ class LevelStartDialog extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // O saldo não se repete aqui: a pílula global da AppBar continua
+          // visível por cima do véu do modal, e um segundo contador do mesmo
+          // número só competiria com o objetivo, que é o que o cartão existe
+          // para dizer.
           // O alvo em tamanho grande. É a tradução visual do objetivo: "crie
           // **esta** peça" — ou "quebre **isto**" — diz mais rápido do que
           // qualquer frase.

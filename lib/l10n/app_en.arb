@@ -276,6 +276,18 @@
     "description": "Confirmation shown after the coin rewarded ad completes.",
     "placeholders": { "reward": { "type": "int" } }
   },
+  "coinStoreTitle": "Your coins",
+  "coinStoreClose": "CLOSE",
+  "coinsBadgeSemantics": "{coins} coins",
+  "@coinsBadgeSemantics": {
+    "description": "Spoken label of the header balance pill.",
+    "placeholders": { "coins": { "type": "int" } }
+  },
+  "hammersBadgeSemantics": "{hammers} hammers",
+  "@hammersBadgeSemantics": {
+    "description": "Spoken label of the hammer segment of the header pill.",
+    "placeholders": { "hammers": { "type": "int" } }
+  },
   "coinSourcesTitle": "How to earn coins",
   "coinSourcesStars": "Beat levels with 3 stars",
   "coinSourcesAds": "Watch rewarded videos",
