@@ -150,9 +150,8 @@ class GameNotifier extends StateNotifier<GameState>
 
   /// Credita o prêmio do anúncio de reforço de saldo.
   ///
-  /// Sem [amount], paga [GameState.rewardedMoves] — o mesmo número que o
-  /// convite anunciou na tela. O parâmetro continua existindo para os testes
-  /// fixarem um valor sem depender da calibragem vigente.
+  /// Paga [GameState.rewardedMoves] — o mesmo número que o convite anunciou
+  /// na tela.
   ///
   /// Entra em [GameState.bonusMoves], e não descontando de `moves`, pela mesma
   /// razão do bônus do dígito máximo: `moves` é "quantas jogadas o jogador
@@ -161,10 +160,10 @@ class GameNotifier extends StateNotifier<GameState>
   /// A fase encerrada recusa. O cartão de desfecho já está no ar, e creditar
   /// movimentos aqui deixaria o jogador com saldo numa fase que acabou — sem
   /// contar que a regra anti-churn não vende nada na tela de derrota.
-  void grantBonusMoves([int? amount]) {
+  void grantBonusMoves() {
     if (state.status != GameStatus.playing) return;
     state = state.copyWith(
-      bonusMoves: state.bonusMoves + (amount ?? state.rewardedMoves),
+      bonusMoves: state.bonusMoves + state.rewardedMoves,
       // O convite se fecha por ter sido pago, e não só por ter sido mostrado:
       // sem isto ele reabriria assim que o saldo voltasse ao limiar.
       movesOfferShown: true,
