@@ -944,3 +944,49 @@ texto novo descreve a causa com menos precisão que o antigo
 ("Não havia mais nenhuma troca possível"). Foi pedido explicitamente, e a
 pergunta "Deseja continuar?" combina com os dois botões que o cartão já
 oferece.
+
+### Dynamic Extra Moves (DEM) ✅
+
+**O prêmio do anúncio deixou de ser fixo porque um número fixo estava errado
+nas duas pontas.** +5 numa fase a um alvo do fim é esmola confortável; +5 numa
+fase de "limpe todas as pedras" com três coberturas de pé não compra a vitória —
+o jogador assiste ao anúncio, perde mesmo assim, e aprende a não assistir ao
+próximo. `GameBalanceEngine.calculateRewardedMoves` escala a
+`kMovesPerTarget = 3.0` por alvo restante, entre `kRewardedMinMoves = 4` e
+`kRewardedMaxMoves = 10`.
+
+**`totalInitialTargets` foi removido da assinatura pedida no spec.** O corpo
+nunca o lia. Parâmetro exigido e ignorado é mentira de contrato: o próximo
+leitor suporia que a proporção "restante sobre total" pesa no cálculo. Se um
+dia pesar, ele volta junto com a fórmula que o usa.
+
+**`GameState.rewardedMoves` existe porque o cartão anuncia o número antes de o
+anúncio rodar.** UI e crédito lendo lugares diferentes divergiriam no primeiro
+refactor, e a divergência apareceria como o jogo prometendo dez movimentos e
+pagando quatro. Um getter, dois consumidores. `grantBonusMoves()` sem argumento
+lê o mesmo getter; o parâmetro opcional sobreviveu só para os testes fixarem
+valor sem depender da calibragem.
+
+**`remainingTargets` é `objectiveTarget - objectiveProgress`, sem caso
+especial.** Os três `ObjectiveType` já significam a mesma coisa nessa conta:
+peças de dígito a formar, coberturas a quebrar, coberturas restantes na limpeza
+total.
+
+**Um alvo restante paga o piso (4), e não 3.** `3.0 * 1` fica abaixo do piso, ou
+seja o multiplicador só manda de dois alvos em diante. É consequência dos
+números calibrados, não descuido — há teste travando o degrau para que trocá-lo
+seja decisão.
+
+**Isto é mudança de economia, não refactor.** O pior caso ficou **menos**
+generoso que o +5 de antes (fase a um alvo do fim: 4). As fases de cobertura com
+três unidades de pé saltaram para 9-10. Se a conversão do funil de movimentos
+mudar, a causa está aqui. `kPreChurnReward` foi removido para não deixar um 5
+morto competindo com o piso de 4; `kPreChurnMovesLeft` (o limiar que **abre** o
+convite) não foi tocado — é ortogonal ao tamanho do prêmio.
+
+**Nada do funil de anúncio mudou, e é o que atende a política do AdMob:**
+opt-in por clique (`_watch` no `onPressed`), uma vez por tentativa
+(`movesOfferShown`), crédito só quando o `Future<bool>` volta `true`, IDs de
+teste em `core/ads/ad_ids.dart`. Continuam fora de escopo, por decisão: pagar
+os movimentos com moedas e reabrir o cartão com o botão de anúncio desativado
+numa segunda derrota.
