@@ -381,7 +381,10 @@ ganhar nada em troca.
 ### Regras de Monetização & Exibição de Anúncios (AdMob)
 1. **Preload Obrigatorio:** Anúncios Recompensados e Intersticiais devem ser carregados no início do nível (`LevelStart`).
 2. **Anti-Churn de Derrota:** Intersticiais são proibidos em telas de Game Over/Derrota. Permitidos apenas pós-vitória ou na saída para o Mapa (respeitando intervalo mínimo de 45s de jogo).
-3. **Pre-Churn Trigger:** Oferecer +5 movimentos via Rewarded Ad quando `movesLeft == 2` e a vitória não estiver garantida.
+3. **Pre-Churn Trigger:** Oferecer via Rewarded Ad um número dinâmico de
+   movimentos (entre 4 e 10, escalando com as metas restantes da fase — ver
+   "Dynamic Extra Moves (DEM)") quando `movesLeft == 2` e a vitória não
+   estiver garantida.
 4. **Cap de Limite:** Máximo de 3 Martelos por dia via Rewarded Ads para preservar a economia interna.
 5. **Benefícios No-Ads Pass:** Remove intersticiais e ativa o Bônus Diário VIP (+50 Moedas/dia).
 
@@ -1162,3 +1165,74 @@ informa, o dock age. E continua sumindo com a fase encerrada.
 - **Os dois goldens do HUD foram regerados** (`game_hud`, `game_hud_urgent`).
   Nenhum outro golden mudou, o que confirma que o polimento ficou contido no
   cabeçalho e no dock.
+
+
+### Dynamic Extra Moves (DEM) ✅
+
+**O prêmio do anúncio deixou de ser fixo porque um número fixo estava errado
+nas duas pontas.** +5 numa fase a um alvo do fim é esmola confortável; +5 numa
+fase de "limpe todas as pedras" com três coberturas de pé não compra a vitória —
+o jogador assiste ao anúncio, perde mesmo assim, e aprende a não assistir ao
+próximo. `GameBalanceEngine.calculateRewardedMoves` escala a
+`kMovesPerTarget = 3.0` por alvo restante, entre `kRewardedMinMoves = 4` e
+`kRewardedMaxMoves = 10`.
+
+**`totalInitialTargets` foi removido da assinatura pedida no spec.** O corpo
+nunca o lia. Parâmetro exigido e ignorado é mentira de contrato: o próximo
+leitor suporia que a proporção "restante sobre total" pesa no cálculo. Se um
+dia pesar, ele volta junto com a fórmula que o usa.
+
+**`GameState.rewardedMoves` existe porque o cartão anuncia o número antes de o
+anúncio rodar.** UI e crédito lendo lugares diferentes divergiriam no primeiro
+refactor, e a divergência apareceria como o jogo prometendo dez movimentos e
+pagando quatro. Um getter, dois consumidores. `grantBonusMoves()` lê o mesmo
+getter — sem parâmetro, porque nenhum chamador precisava fixar um valor à
+parte da calibragem vigente, e um parâmetro que ninguém usa é contrato
+mentindo sobre o que o método aceita.
+
+**`remainingTargets` é `objectiveTarget - objectiveProgress`, sem caso
+especial.** Os três `ObjectiveType` já significam a mesma coisa nessa conta:
+peças de dígito a formar, coberturas a quebrar, coberturas restantes na limpeza
+total.
+
+**Um alvo restante paga o piso (4), e não 3.** `3.0 * 1` fica abaixo do piso, ou
+seja o multiplicador só manda de dois alvos em diante. É consequência dos
+números calibrados, não descuido — há teste travando o degrau para que trocá-lo
+seja decisão.
+
+**O número não é congelado quando o cartão sobe, e isso hoje não morde por
+sorte, não por desenho.** `rewardedMoves` é recalculado a cada leitura — a UI
+lê o getter para desenhar o cartão, o crédito lê o mesmo getter para pagar —, e
+nada impede as duas leituras de caírem em momentos diferentes. O que hoje
+garante que elas sempre concordam é uma combinação de dois fatos que não têm
+relação nenhuma com o DEM em si: enquanto o convite está aberto o
+`_OutcomeOverlay` é um `Positioned.fill(ColoredBox(...))` que barra o hit-test
+da tela inteira, então nenhuma troca, cascata ou golpe de martelo consegue
+correr por baixo dele; e `objectiveProgress` — o único insumo que
+`rewardedMoves` lê da fase — só muda dentro de `_finishMove`, o mesmo
+`copyWith` que zera `isResolving`, condição que o próprio convite exige para
+abrir. Ou seja: o convite só fica no ar quando nada mais pode mexer no
+objetivo, e é essa coincidência de guardas alheias ao DEM que mantém anunciado
+e pago iguais — não uma trava do próprio recurso. Qualquer mudança futura que
+abra uma fresta — uma cascata automática correndo com o modal aberto, um
+martelo utilizável por cima dele, um overlay que deixe de ser opaco ao toque —
+faz o prêmio prometido divergir do prêmio pago **em silêncio**, e nenhum teste
+hoje pegaria essa divergência, porque nenhum teste hoje consegue produzir o
+cenário que a quebraria. Se esse dia chegar, o remédio é parar de reler o
+getter no crédito: snapshotar `rewardedMoves` no instante em que o convite
+abre, num campo de estado ao lado de `movesOfferShown`, e creditar o valor
+guardado — não o recalculado.
+
+**Isto é mudança de economia, não refactor.** O pior caso ficou **menos**
+generoso que o +5 de antes (fase a um alvo do fim: 4). As fases de cobertura com
+três unidades de pé saltaram para 9-10. Se a conversão do funil de movimentos
+mudar, a causa está aqui. `kPreChurnReward` foi removido para não deixar um 5
+morto competindo com o piso de 4; `kPreChurnMovesLeft` (o limiar que **abre** o
+convite) não foi tocado — é ortogonal ao tamanho do prêmio.
+
+**Nada do funil de anúncio mudou, e é o que atende a política do AdMob:**
+opt-in por clique (`_watch` no `onPressed`), uma vez por tentativa
+(`movesOfferShown`), crédito só quando o `Future<bool>` volta `true`, IDs de
+teste em `core/ads/ad_ids.dart`. Continuam fora de escopo, por decisão: pagar
+os movimentos com moedas e reabrir o cartão com o botão de anúncio desativado
+numa segunda derrota.

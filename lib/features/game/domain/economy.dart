@@ -30,3 +30,19 @@ const int kChapterChestReward = 200;
 /// alto demais aqui esvaziaria o funil do martelo; um valor baixo demais faria
 /// o botão parecer enfeite.
 const int kCoinsPerRewardedAd = 25;
+
+/// Movimentos pagos por **alvo restante** no anúncio de reforço de saldo.
+///
+/// O prêmio fixo que este número substitui era esmola numa fase a um alvo do
+/// fim e insuficiente numa fase de cobertura com três pedras de pé — o jogador
+/// assistia ao anúncio e perdia do mesmo jeito, que é o que ensina a não
+/// assistir ao próximo.
+const double kMovesPerTarget = 3.0;
+
+/// Piso do prêmio. Abaixo disto o anúncio não muda desfecho nenhum, e um
+/// prêmio que não muda o desfecho é pior do que não ter sido oferecido.
+const int kRewardedMinMoves = 4;
+
+/// Teto do prêmio. Sem ele uma fase de objetivo alto renderia meia fase nova
+/// por um vídeo, e o limite de movimentos deixaria de significar alguma coisa.
+const int kRewardedMaxMoves = 10;

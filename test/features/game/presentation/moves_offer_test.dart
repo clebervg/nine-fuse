@@ -111,10 +111,25 @@ void main() {
     await reachThreshold(tester);
 
     final before = notifier.state.movesLeft;
+    final reward = notifier.state.rewardedMoves;
+
+    // O número que o cartão promete tem de ser o que o crédito paga: é a
+    // divergência que `rewardedMoves` existe para impedir. O `find` fica
+    // escopado no próprio cartão do convite (`movesOfferKey`), para não casar
+    // por acidente com o contador de movimentos ou o número da fase, que
+    // também vivem na tela.
+    expect(
+      find.descendant(
+        of: find.byKey(movesOfferKey),
+        matching: find.textContaining('$reward'),
+      ),
+      findsWidgets,
+    );
+
     await tester.tap(find.byKey(movesOfferWatchKey));
     await tester.pumpAndSettle();
 
-    expect(notifier.state.movesLeft, before + kPreChurnReward);
+    expect(notifier.state.movesLeft, before + reward);
     expect(find.byKey(movesOfferKey), findsNothing);
   });
 

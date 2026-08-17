@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
-import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 /// Chave do cartão de reforço de saldo.
@@ -26,11 +25,12 @@ const Key movesOfferDeclineKey = Key('moves_offer_decline');
 /// enquanto não há rede de anúncio configurada, um convite que nunca conclui é
 /// pior do que a casa pagar.
 final movesAdProvider = Provider<Future<bool> Function()>(
-  (ref) => () async => true,
+  (ref) =>
+      () async => true,
 );
 
 /// Convite de reforço de saldo, aberto quando a fase entra no limiar de
-/// movimentos ([kPreChurnMovesLeft]).
+/// movimentos.
 ///
 /// Sobe com o jogador **ainda jogando**, e não na tela de derrota: a regra
 /// anti-churn proíbe monetizar o fracasso, e a proposta aqui é sobre continuar,
@@ -39,6 +39,7 @@ class MovesOfferDialog extends ConsumerStatefulWidget {
   const MovesOfferDialog({
     super.key,
     required this.movesLeft,
+    required this.reward,
     required this.onGranted,
     required this.onDecline,
   });
@@ -46,6 +47,11 @@ class MovesOfferDialog extends ConsumerStatefulWidget {
   /// Quantos movimentos ainda restam. É o número que dá urgência ao convite —
   /// "restam 2" é a informação, "quase lá" é só o tom.
   final int movesLeft;
+
+  /// Quantos movimentos o anúncio paga. Vem de `GameState.rewardedMoves`, e
+  /// não de uma constante: o cartão não pode prometer um número diferente do
+  /// que o crédito soma.
+  final int reward;
 
   /// O anúncio foi concluído: credite os movimentos.
   final VoidCallback onGranted;
@@ -107,7 +113,7 @@ class _MovesOfferDialogState extends ConsumerState<MovesOfferDialog> {
           ),
           const SizedBox(height: 12),
           Text(
-            l10n.movesOfferBody(widget.movesLeft, kPreChurnReward),
+            l10n.movesOfferBody(widget.movesLeft, widget.reward),
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white70, fontSize: 15),
           ),
@@ -122,7 +128,7 @@ class _MovesOfferDialogState extends ConsumerState<MovesOfferDialog> {
           const SizedBox(height: 18),
           GameButton(
             key: movesOfferWatchKey,
-            label: l10n.movesOfferWatch(kPreChurnReward),
+            label: l10n.movesOfferWatch(widget.reward),
             color: AppColors.digit2,
             icon: Icons.play_circle_fill_rounded,
             onPressed: _watch,

@@ -1,4 +1,5 @@
 import 'package:nine_fuse/features/game/domain/board.dart';
+import 'package:nine_fuse/features/game/domain/game_balance_engine.dart';
 import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
@@ -27,13 +28,6 @@ enum LossReason {
 /// jogador ainda jogando faz a proposta ser sobre **continuar**, e não sobre
 /// reviver; ele decide olhando para um tabuleiro vivo, não para um resultado.
 const int kPreChurnMovesLeft = 2;
-
-/// Movimentos pagos pelo anúncio do reforço de saldo.
-///
-/// Cinco é mais do que os dois que restavam: um prêmio menor que a aflição não
-/// muda o desfecho da fase, e o jogador que assistiu ao anúncio para perder
-/// mesmo assim aprende a não assistir ao próximo.
-const int kPreChurnReward = 5;
 
 /// Situação da fase em andamento.
 enum GameStatus {
@@ -230,6 +224,16 @@ class GameState {
   double get objectiveFraction => objectiveTarget <= 0
       ? 1.0
       : (objectiveProgress / objectiveTarget).clamp(0.0, 1.0);
+
+  /// Quantos movimentos o anúncio de reforço de saldo paga **nesta fase**.
+  ///
+  /// Existe como getter — e não como cálculo na tela ou no crédito — porque o
+  /// cartão anuncia o número **antes** de o anúncio rodar. Dois consumidores
+  /// lendo lugares diferentes divergiriam no primeiro refactor, e a divergência
+  /// apareceria como o jogo prometendo dez movimentos e pagando quatro.
+  int get rewardedMoves => GameBalanceEngine.calculateRewardedMoves(
+    remainingTargets: objectiveTarget - objectiveProgress,
+  );
 
   /// A fase terminou, de qualquer forma?
   bool get isOver => status == GameStatus.won || status == GameStatus.lost;
