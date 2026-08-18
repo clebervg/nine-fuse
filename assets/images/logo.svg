@@ -37,45 +37,10 @@
       <stop offset="60%" stop-color="#FF5500" />
       <stop offset="100%" stop-color="#FFC800" />
     </linearGradient>
-    <!-- O glifo, definido UMA vez e reusado pelas três camadas (aura, entalhe
-         e forma branca). Antes o mesmo path aparecia copiado três vezes, e foi
-         assim que um defeito de anatomia passou: corrigir o dígito exigia
-         editar três lugares idênticos, e bastava esquecer um para as camadas
-         desalinharem. Com <use>, a forma tem uma fonte só.
-
-         Bowl e haste são dois <path> irmãos de propósito: fundidos num único
-         path com fill-rule="evenodd", a área em que a haste encosta na barriga
-         viraria buraco.
-
-         Geometria: bowl r=56 centrado em (256,216) com contra-forma r=23, e
-         haste reta de 40 de largura descendo pela BORDA DIREITA do bowl
-         (x 272..312) até y=352. A caixa do glifo fica em x 200..312,
-         y 160..352 — centro (256,256), praticamente o centro do bloco (251).
-         A barriga ocupa 58% da altura total, que é proporção de dígito. -->
-    <g id="nine">
-      <path fill-rule="evenodd"
-            d="M 256 160 a 56 56 0 1 0 0.1 0 Z
-               M 256 193 a 23 23 0 1 0 0.1 0 Z" />
-      <path d="M 272 216
-               L 312 216
-               L 312 344
-               A 8 8 0 0 1 304 352
-               L 280 352
-               A 8 8 0 0 1 272 344
-               Z" />
-    </g>
   </defs>
 
   <!-- Fundo -->
   <rect width="512" height="512" rx="115" fill="url(#bgGrad)" />
-
-  <!-- Tudo menos o fundo vive dentro de #mark, e não é organização: é o que
-       permite `rsvg-convert -i mark` (export-id) renderizar a marca SOZINHA, com
-       transparência em volta, a partir deste mesmo arquivo. O foreground do
-       ícone adaptativo do Android precisa disso — encolher o logo inteiro,
-       com o retângulo de fundo escuro junto, é o que produz a marca minúscula
-       numa ilha preta dentro da máscara. Uma fonte da verdade, dois recortes. -->
-  <g id="mark">
 
   <!-- Anel de Energia (Fuse Arc) -->
   <path d="M 125 385 A 180 180 0 1 1 420 256" 
@@ -110,19 +75,20 @@
         fill="#FFFFFF" 
         opacity="0.22" />
 
-  <!-- O número 9, em três camadas sobre a mesma forma (ver <g id="nine">).
-       A ordem importa: aura embaixo, entalhe no meio, forma branca por cima
-       e SEM desfoque — é ela que o olho usa para ler o dígito, e borrá-la
-       devolveria a ambiguidade que a correção de anatomia veio eliminar. -->
+  <!-- O Número "9" Pixel-Perfect (Aura neon separada da forma branca nítida) -->
+  <!-- 1. Glow Cyan Subjacente -->
+  <path d="M 276.5 320 C 242.2 320 216.3 297.6 216.3 259.5 C 216.3 219.1 245.7 192 284 192 C 320.1 192 342 216.7 342 254.5 L 342 312 L 305 312 L 305 289 C 298.5 310 286.5 320 276.5 320 Z M 281.5 222.5 C 263.2 222.5 252 236 252 256.5 C 252 276 263.5 289.5 280.5 289.5 C 297.8 289.5 307.5 275.5 307.5 256 C 307.5 235 298.2 222.5 281.5 222.5 Z" 
+        fill="#00F0FF" 
+        filter="url(#glow)" 
+        opacity="0.6" />
 
-  <!-- 1. Aura ciano, que descola o dígito do azul do bloco -->
-  <use href="#nine" fill="#00F0FF" filter="url(#glow)" opacity="0.6" />
+  <!-- 2. Sombra Projetada do Dígito (Entalhe 3D) -->
+  <path d="M 276.5 320 C 242.2 320 216.3 297.6 216.3 259.5 C 216.3 219.1 245.7 192 284 192 C 320.1 192 342 216.7 342 254.5 L 342 312 L 305 312 L 305 289 C 298.5 310 286.5 320 276.5 320 Z M 281.5 222.5 C 263.2 222.5 252 236 252 256.5 C 252 276 263.5 289.5 280.5 289.5 C 297.8 289.5 307.5 275.5 307.5 256 C 307.5 235 298.2 222.5 281.5 222.5 Z" 
+        fill="#001040" 
+        opacity="0.65" 
+        transform="translate(0, 4)" />
 
-  <!-- 2. Entalhe: a mesma forma deslocada 4 para baixo, dando espessura -->
-  <use href="#nine" fill="#001040" opacity="0.65" transform="translate(0, 4)" />
-
-  <!-- 3. Glifo em branco puro, nítido -->
-  <use href="#nine" fill="#FFFFFF" />
-
-  </g>
+  <!-- 3. Glifo Principal Nitidíssimo em Vetor Branco (Sem Blur) -->
+  <path d="M 276.5 320 C 242.2 320 216.3 297.6 216.3 259.5 C 216.3 219.1 245.7 192 284 192 C 320.1 192 342 216.7 342 254.5 L 342 312 L 305 312 L 305 289 C 298.5 310 286.5 320 276.5 320 Z M 281.5 222.5 C 263.2 222.5 252 236 252 256.5 C 252 276 263.5 289.5 280.5 289.5 C 297.8 289.5 307.5 275.5 307.5 256 C 307.5 235 298.2 222.5 281.5 222.5 Z" 
+        fill="#FFFFFF" />
 </svg>
