@@ -1236,3 +1236,100 @@ opt-in por clique (`_watch` no `onPressed`), uma vez por tentativa
 teste em `core/ads/ad_ids.dart`. Continuam fora de escopo, por decisão: pagar
 os movimentos com moedas e reabrir o cartão com o botão de anúncio desativado
 numa segunda derrota.
+
+
+### Balanceamento de fases geradas: fórmula de movimentos, anti-repetição e pacing ✅
+
+**A fórmula de dígito trocou de multiplicador fixo para distância até a
+janela, exatamente como pedido.** `_digitMoves` agora é
+`count * (digit - averageBoardTileLevel) + 8`, com `averageBoardTileLevel` lido
+como o centro da própria janela de sorteio da fase (`(spawnMin + spawnMax) /
+2`) — a mesma régua que toda a dificuldade da campanha gerada já usa (ver
+"invariância da janela de spawn" em `game_level.dart`: o jogo nunca olha o
+valor absoluto de uma peça, só a distância dela até o que cai do topo).
+`kDigitMovesPerPiece` (o multiplicador fixo de 2,2) foi removido — ele não
+sobrevive à troca de fórmula, e uma constante morta ao lado da nova só
+confundiria quem lesse o arquivo depois.
+
+**O piso de 16 movimentos é condicional, e o de 10 continua sendo o piso
+geral.** `kHeavyDigitMoveFloor = 16` só entra quando o objetivo é
+`reachDigit`, `count > 2` **e** `digit >= 7` (`kHeavyDigitCountThreshold`,
+`kHeavyDigitThreshold`) — a leitura de "mais de 2 alvos de nível 7+" do pedido
+original. Fora dessa combinação, `kMinMoveLimit` (10) continua valendo, pelo
+mesmo motivo já registrado na Fase 15: abaixo disso a fase deixa de ser um
+plano e vira sorteio do primeiro tabuleiro.
+
+**O histórico de objetivos não é uma lista com poda de 10 posições — é um
+cache indexado por número de fase, e a comparação em si olha só N-1 e N-2,
+como o pedido pediu.** `generateLevel` é, por decisão da Fase 15, uma função
+pura de `number`: não recebe (nem guarda) estado de fases jogadas. Um
+histórico literal — uma lista mutável dos últimos 10 objetivos — quebraria essa
+pureza e faria o resultado depender da **ordem** das chamadas, não só do
+número da fase; `generateLevel(500)` chamado antes ou depois de
+`generateLevel(499)` teria de devolver o mesmo objetivo, e uma lista de
+histórico populada por efeito colateral não garante isso. `_objectiveCache`
+resolve o mesmo problema sem abrir mão da pureza: guarda o objetivo **final**
+de cada fase já computada, indexado por número (não por posição relativa), e
+`_finalObjectiveFor` o preenche recursivamente conforme é consultado — o
+"histórico de 10" do pedido não existe como estrutura porque a regra em si só
+precisa de duas leituras (N-1 e N-2), e um cache completo custa o mesmo que um
+cache podado, sem o risco de podar justo a fase que a próxima comparação
+precisava.
+
+**A primeira colisão muda o valor do alvo; a segunda muda a natureza do
+objetivo — nessa ordem, e não por acaso.** Uma cadeia de três fases seguidas
+com a mesma contagem (comum nos blocos avançados, onde `count` já satura em
+`kMaxObjectiveCount`) só tem dois dígitos possíveis por posição
+(`spawnMax+1`/`spawnMax+2`), e a terceira da cadeia colide com as **duas**
+anteriores ao mesmo tempo. A primeira tentativa de correção resolve isso
+empilhando dígito (`digit + 1`) — é o eixo que o pedido cita primeiro
+("mudar o valor do número alvo") e o que o jogador mais nota —, mas continuar
+empilhando dígito para escapar da segunda colisão **cria a fase impossível que
+o objetivo 1 deste mesmo pedido pede para evitar**: a calibragem
+(`--mode=generated`) mediu "crie 6 peças 9" numa janela 3-6 em **0% de
+vitória**, mesmo com o piso de 16 já valendo — o dígito máximo com contagem
+alta é caro demais para qualquer piso de movimentos linear cobrir. A partir da
+segunda colisão a fase muda de tipo em vez de dígito: vira
+`Objective.clearObstacles` sobre a cobertura mais dura que o bloco já
+espalha, com seu próprio limite calibrado (`kObstacleMovesPerUnit`) — a leitura
+de "quebrar bloqueios" que o próprio pedido oferece como alternativa. Depois
+da correção, a mesma fase virou "quebre 2 stone" a 50% (piso normal de fase de
+cobertura, pelo motivo de sempre: o bot guloso nunca mira a cobertura de
+propósito).
+
+**Não existe objetivo de "pontuação acumulada" — a terceira alternativa do
+pedido —, e criar um só para este ajuste não foi feito.** `ObjectiveType` tem
+três valores (`reachDigit`, `clearObstacles`, `clearAllObstacles`), nenhum
+deles pontuação; adicionar um quarto tipo só para a fuga de repetição
+tocaria em `GameState.objectiveTarget`, no HUD do objetivo e em todo teste que
+enumera `ObjectiveType` — mudança de escopo bem maior que "ajustar
+balanceamento". A troca de tipo usa `clearObstacles`, que já existe e já é
+compatível com qualquer bloco (todo bloco gerado espalha ao menos gelo).
+
+**A curva de pacing é cosseno, não seno — e é a mesma família de curva.**
+`sin(n·π)` é zero para todo `n` inteiro (fase é sempre um número inteiro), o
+que apagaria o efeito por completo; `cos(n·π)` vale `+1` para `n` par e `-1`
+para `n` ímpar, dando exatamente a alternância pedida — fase difícil sempre
+seguida da relaxante — porque o sinal inverte a cada fase consecutiva. Cosseno
+é seno deslocado de π/2: continua sendo uma curva senoidal, só a fase certa
+para não colapsar em zero num domínio de inteiros. `kPacingAmplitude = 0.12`
+entra **depois** do aperto por bloco (`kTighteningPerBlock`/`kTighteningFloor`)
+e multiplica o resultado já apertado: o aperto por bloco decide a tendência de
+longo prazo, o pacing decide qual das duas fases vizinhas é a mais folgada.
+
+**A calibragem foi remedida com `--mode=generated`, e as duas linhas que
+antes zeravam continuam de pé, só que em outro formato.** As fases 253 e 1003
+(as amostras de contagem alta que o pedido pretendia proteger) deixaram de ser
+"crie 6 peças 9"/"crie 6 peças 8" e viraram "quebre 2 stone" pela troca de
+natureza acima — 50% e 47%, dentro do piso já documentado das fases de
+cobertura. As demais linhas da tabela não mudaram de arquétipo, só de número,
+puxadas pela nova fórmula de dígito: nenhuma ficou abaixo do que a Fase 15 já
+considerava aceitável, e a suíte inteira (721 testes) segue verde.
+
+**Testado com invariante de faixa, não com números fixos.** Os três testes
+novos em `level_generator_test.dart` cobrem 11 a 1000 fases inteiras: nenhuma
+repete tipo/dígito/cobertura/contagem da fase anterior ou da retrasada (com uma
+exceção documentada — os dois eixos de um objetivo de dígito no teto ao mesmo
+tempo, caso em que não sobra para onde variar), nenhuma fase pesada de dígito
+7+ com mais de duas peças fica abaixo de 16 movimentos, e o limite nunca chega
+a zero ou negativo em toda a faixa.

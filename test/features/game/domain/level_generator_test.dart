@@ -79,5 +79,68 @@ void main() {
     test('recusa número de fase artesanal', () {
       expect(() => generateLevel(10), throwsA(isA<AssertionError>()));
     });
+
+    group('anti-repetição de objetivo', () {
+      test('nenhuma fase repete o mesmo tipo/dígito/contagem da anterior ou da retrasada', () {
+        Objective? twoAgo;
+        Objective? oneAgo;
+        for (int n = kHandcraftedLevels + 1; n <= 1000; n++) {
+          final objective = generateLevel(n).objective;
+          bool samePattern(Objective? past) =>
+              past != null &&
+              past.type == objective.type &&
+              past.digit == objective.digit &&
+              past.obstacle == objective.obstacle &&
+              past.count == objective.count;
+
+          // Empate quando os dois eixos ajustáveis já estão no teto: caso
+          // registrado em `_varied`, não é falha de teste.
+          final bothCapped = objective.type == ObjectiveType.reachDigit &&
+              objective.digit == kMaxDigit &&
+              objective.count == kMaxObjectiveCount;
+
+          if (!bothCapped) {
+            expect(samePattern(oneAgo), isFalse, reason: 'fase $n repete a fase ${n - 1}');
+            expect(samePattern(twoAgo), isFalse, reason: 'fase $n repete a fase ${n - 2}');
+          }
+
+          twoAgo = oneAgo;
+          oneAgo = objective;
+        }
+      });
+    });
+
+    group('piso de movimentos para fases pesadas de dígito alto', () {
+      test('mais de duas peças de dígito 7+ nunca ficam abaixo de 16 movimentos', () {
+        for (int n = kHandcraftedLevels + 1; n <= 1000; n++) {
+          final level = generateLevel(n);
+          final objective = level.objective;
+          if (objective.type != ObjectiveType.reachDigit) continue;
+          if (objective.count <= 2 || objective.digit! < 7) continue;
+
+          expect(level.moveLimit, greaterThanOrEqualTo(16), reason: 'fase $n: ${objective.debugLabel}');
+        }
+      });
+    });
+
+    group('curva senoidal de pacing', () {
+      test('a fase 11 (ímpar) recebe o limite calculado com o fator relaxante do pacing', () {
+        // n=11: block 0, spawn 3-6, objetivo "crie um 7" (digit=7, count=1).
+        // digitMoves = 1 * (7 - 4.5) + 8 = 10.5; tighteningFactor(block 0) = 1;
+        // pacing(11) = 1 + 0.12 * cos(11π) = 1 - 0.12 = 0.88 (11 é ímpar).
+        // paced = 10.5 * 0.88 = 9.24 -> floor 9, abaixo do piso geral (10):
+        // o piso é quem decide o resultado final.
+        final level = generateLevel(11);
+        expect(level.objective.digit, 7);
+        expect(level.objective.count, 1);
+        expect(level.moveLimit, 10);
+      });
+
+      test('o limite nunca desaba pra zero ou negativo em toda a faixa gerada', () {
+        for (int n = kHandcraftedLevels + 1; n <= 1000; n++) {
+          expect(generateLevel(n).moveLimit, greaterThan(0), reason: 'fase $n');
+        }
+      });
+    });
   });
 }

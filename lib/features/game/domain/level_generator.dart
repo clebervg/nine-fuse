@@ -1,3 +1,5 @@
+import 'dart:math' show cos, pi;
+
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
@@ -41,18 +43,25 @@ const int kMaxObstacles = 7;
 /// que são as mais curtas que o jogo já se permitiu.
 const int kMinMoveLimit = 10;
 
-/// Quantos movimentos vale cada peça pedida num objetivo de dígito.
+/// Piso de movimentos das fases "pesadas": mais de dois alvos de dígito
+/// alto (7, 8 ou o próprio [kMaxDigit]) na mesma fase.
 ///
-/// O nome sugere que este número governa o limite das fases de dígito, mas na
-/// prática ele quase não participa: com `count` de 1 a 4 a base
-/// (`2.2 * count`) fica entre 2,2 e 8,8, sempre abaixo de [kMinMoveLimit] — o
-/// piso decide sozinho, e só as contagens 5-6 em blocos baixos chegam a
-/// escapar dele. [kTighteningFloor] também não morde nessas fases (13,2 × 0,75
-/// = 9,9 < 10). Quem de fato calibra o limite das fases de dígito é o piso de
-/// dez movimentos, não este multiplicador — o valor aqui só evita que a base
-/// fique **acima** do piso nas contagens altas, o que voltaria a inflar o
-/// limite sem necessidade.
-const double kDigitMovesPerPiece = 2.2;
+/// [kMinMoveLimit] (10) é o piso geral, calibrado para o caso comum. Um
+/// objetivo com mais de duas peças de nível 7+ pesa mais do que a fórmula
+/// linear de [_digitMoves] sozinha reconhece — cada peça daquele patamar
+/// exige várias fusões de preparo antes mesmo de a primeira aparecer no
+/// tabuleiro —, e o piso de 10 já se mostrou curto demais para esse caso na
+/// tabela de calibragem. 16 é o valor pedido para essas fases especificamente;
+/// as demais continuam no piso geral.
+const int kHeavyDigitMoveFloor = 16;
+
+/// A partir de qual dígito um alvo conta como "alto" para
+/// [kHeavyDigitMoveFloor].
+const int kHeavyDigitThreshold = 7;
+
+/// Quantos alvos de dígito alto uma fase precisa pedir para o piso pesado
+/// entrar em vigor. "Mais de 2" no pedido original, ou seja, a partir de 3.
+const int kHeavyDigitCountThreshold = 2;
 
 /// Quantos movimentos vale cada cobertura pedida.
 ///
@@ -88,6 +97,24 @@ const double kTighteningPerBlock = 0.02;
 /// onde ela não é lida como desafio, e sim como bug: o tabuleiro inicial.
 const double kTighteningFloor = 0.75;
 
+/// Amplitude da curva senoidal de ritmo (pacing).
+///
+/// Depois do aperto por bloco (que só encolhe), esta curva alterna o limite de
+/// movimentos ±12% a cada fase: uma fase "difícil" (fator abaixo de 1) é
+/// sempre seguida por uma "relaxante" (fator acima de 1), porque
+/// `cos((n+1)π) = -cos(nπ)` inverte o sinal a cada fase consecutiva. É o que
+/// evita que uma sequência de fases igualmente apertadas canse o jogador antes
+/// de ele reagir a uma queda de dificuldade real.
+const double kPacingAmplitude = 0.12;
+
+/// O fator de ritmo da fase [number].
+///
+/// `cos(nπ)` é `+1` para `n` par e `-1` para `n` ímpar — uma onda senoidal
+/// (cosseno é seno deslocado de π/2) de período 2, que é exatamente a cadência
+/// pedida: cada fase de um lado da onda é seguida pela do lado oposto. Usar
+/// `sin(nπ)` teria dado zero para todo `n` inteiro, por isso o cosseno.
+double _pacingFactor(int number) => 1 + kPacingAmplitude * cos(number * pi);
+
 /// A fase de número [number], calculada.
 ///
 /// Determinística por construção: só faz aritmética sobre [number]. O
@@ -101,26 +128,174 @@ GameLevel generateLevel(int number) {
   );
 
   final block = _blockOf(number);
-  final position = _positionOf(number);
-
   final spawnMin = _spawnMinFor(block);
   final spawnMax = spawnMin + kSpawnWidth - 1;
   final obstacles = _obstaclesFor(block);
-  final objective = _objectiveFor(
-    position: position,
-    block: block,
-    spawnMax: spawnMax,
-    obstacles: obstacles,
-  );
+  final objective = _finalObjectiveFor(number);
 
   return GameLevel(
     number: number,
     objective: objective,
-    moveLimit: _movesFor(objective: objective, block: block),
+    moveLimit: _movesFor(
+      objective: objective,
+      block: block,
+      spawnMin: spawnMin,
+      spawnMax: spawnMax,
+      number: number,
+    ),
     spawnMin: spawnMin,
     spawnMax: spawnMax,
     obstacles: obstacles,
   );
+}
+
+/// Objetivo final da fase [number], já passado pelo controle de
+/// anti-repetição.
+///
+/// Memoizado porque o controle olha para trás (fase [number] - 1 e - 2): sem
+/// cache, cada fase recomputaria toda a cadeia até [kHandcraftedLevels] a cada
+/// chamada. A função continua pura — o cache só evita trabalho repetido, não
+/// muda o resultado, que depende exclusivamente de [number].
+final Map<int, Objective> _objectiveCache = {};
+
+Objective _finalObjectiveFor(int number) {
+  return _objectiveCache.putIfAbsent(number, () {
+    final block = _blockOf(number);
+    final position = _positionOf(number);
+    final spawnMax = _spawnMinFor(block) + kSpawnWidth - 1;
+    final obstacles = _obstaclesFor(block);
+
+    final candidate = _objectiveFor(
+      position: position,
+      block: block,
+      spawnMax: spawnMax,
+      obstacles: obstacles,
+    );
+
+    return _avoidRepetition(number: number, candidate: candidate, obstacles: obstacles);
+  });
+}
+
+/// Evita que a fase [number] peça o mesmo `targetValue`/`targetCount` que a
+/// fase anterior ou a retrasada.
+///
+/// O histórico "dos últimos 10 objetivos" do pedido original vive no
+/// [_objectiveCache] acima — toda fase gerada fica registrada nele, não só as
+/// dez mais recentes, porque descartar as mais antigas não compraria nada:
+/// olhar para trás de verdade custa duas leituras (N-1 e N-2), que é a regra
+/// que decide a mudança. Comparar contra dez fases recuaria a origem do
+/// padrão sem mudar a decisão de forçar ou não.
+Objective _avoidRepetition({
+  required int number,
+  required Objective candidate,
+  required ObstacleLayout obstacles,
+}) {
+  if (number <= kHandcraftedLevels + 1) {
+    // Fase 11 é a primeira gerada: não há N-1 nem N-2 geradas para comparar.
+    return candidate;
+  }
+
+  final previous = <Objective>[
+    if (number - 1 > kHandcraftedLevels) _finalObjectiveFor(number - 1),
+    if (number - 2 > kHandcraftedLevels) _finalObjectiveFor(number - 2),
+  ];
+
+  // Um único passo de `_varied` pode escapar da fase N-2 e cair exatamente no
+  // padrão da fase N-1 (ou vice-versa) — os dois alvos comparados não são o
+  // mesmo, e mudar para longe de um pode ser mudar para perto do outro. Por
+  // isso o loop: cada volta varia de novo até não colidir com nenhum dos dois,
+  // com um teto para o caso raro em que os dois eixos ajustáveis do objetivo
+  // já estão no limite e não sobra para onde variar. `attempts` é passado
+  // adiante porque a **estratégia** de variação muda a partir da segunda
+  // colisão — ver o comentário em `_varied`.
+  var result = candidate;
+  var attempts = 0;
+  while (previous.any((past) => _samePattern(past, result)) && attempts < 10) {
+    result = _varied(result, obstacles, attempt: attempts);
+    attempts++;
+  }
+  return result;
+}
+
+bool _samePattern(Objective a, Objective b) =>
+    a.type == b.type && a.digit == b.digit && a.obstacle == b.obstacle && a.count == b.count;
+
+/// Um objetivo alternativo para quando [candidate] repete o padrão de uma das
+/// duas fases anteriores.
+///
+/// [attempt] é 0 na primeira colisão (com N-1 ou N-2) e sobe se o resultado
+/// ainda colidir com a outra fase. Isto importa porque uma cadeia de três
+/// fases seguidas com a mesma contagem — comum nos blocos de contagem alta,
+/// onde `count` já satura em [kMaxObjectiveCount] — só tem dois valores de
+/// dígito disponíveis por posição (`spawnMax+1`/`spawnMax+2`), e a terceira da
+/// cadeia colide com as outras duas ao mesmo tempo. Empilhar dígito de novo
+/// (a única saída de `attempt == 0`) resolveria a segunda colisão criando um
+/// objetivo pior do que qualquer uma das duas fases originais: a calibragem
+/// (`--mode=generated`) mediu uma fase assim ("crie 6 peças 9", janela 3-6) em
+/// **0%** de vitória mesmo com o piso de movimentos aplicado — o próprio bug
+/// que este ajuste deveria evitar. Por isso, a partir de `attempt >= 1` a
+/// variação troca de **natureza** o objetivo em vez de continuar empilhando o
+/// mesmo eixo, como o pedido original sugere ("alternar para... quebrar
+/// bloqueios"): vira uma fase de quebra de cobertura sobre o que o bloco já
+/// espalha, que tem seu próprio limite de movimentos calibrado
+/// (`kObstacleMovesPerUnit`) e não herda o custo inflado do dígito.
+Objective _varied(Objective candidate, ObstacleLayout obstacles, {required int attempt}) {
+  switch (candidate.type) {
+    case ObjectiveType.reachDigit:
+      if (attempt == 0) {
+        final digit = candidate.digit!;
+        if (digit < kMaxDigit) {
+          return Objective(digit: digit + 1, count: candidate.count);
+        }
+        // Já no teto do dígito: a contagem é o único eixo que sobra.
+        final count = (candidate.count + 1).clamp(1, kMaxObjectiveCount);
+        return Objective(digit: digit, count: count);
+      }
+      return _toObstacleGoal(obstacles) ?? candidate;
+
+    case ObjectiveType.clearObstacles:
+      final available = obstacles.countOf(candidate.obstacle);
+      if (candidate.count < available) {
+        return Objective.clearObstacles(obstacle: candidate.obstacle, count: candidate.count + 1);
+      }
+      // A contagem já pede tudo que o tabuleiro tem daquele tipo: não há como
+      // subir sem pedir cobertura que não existe. Troca o tipo de cobertura
+      // em vez da contagem — é o mesmo recurso da fase de "limpe tudo" logo
+      // abaixo.
+      final alternative = _secondHardestOf(obstacles, avoiding: candidate.obstacle);
+      if (alternative == null) return candidate;
+      final alternativeAvailable = obstacles.countOf(alternative);
+      return Objective.clearObstacles(
+        obstacle: alternative,
+        count: candidate.count.clamp(1, alternativeAvailable),
+      );
+
+    case ObjectiveType.clearAllObstacles:
+      final alternative = _secondHardestOf(obstacles, avoiding: candidate.obstacle);
+      return alternative == null ? candidate : Objective.clearAllObstacles(alternative);
+  }
+}
+
+/// Converte para um objetivo de quebra de cobertura sobre o que [obstacles]
+/// espalha, usado como escape de uma fase de dígito que já colidiu duas vezes.
+/// `null` só quando o bloco não espalha cobertura nenhuma — não acontece hoje
+/// (`_obstaclesFor` sempre inclui gelo), mas a fase não pode pedir o que o
+/// tabuleiro não tem.
+Objective? _toObstacleGoal(ObstacleLayout obstacles) {
+  if (obstacles.isEmpty) return null;
+  final hardest = _hardestOf(obstacles);
+  final available = obstacles.countOf(hardest);
+  final count = available < 2 ? available : 2;
+  return Objective.clearObstacles(obstacle: hardest, count: count);
+}
+
+/// A cobertura mais dura de [layout] que não seja [avoiding], se houver
+/// alguma.
+ObstacleType? _secondHardestOf(ObstacleLayout layout, {required ObstacleType avoiding}) {
+  for (final type in [ObstacleType.stone, ObstacleType.glass, ObstacleType.ice]) {
+    if (type != avoiding && layout.countOf(type) > 0) return type;
+  }
+  return null;
 }
 
 /// Índice do bloco de progressão, contado a partir da primeira fase gerada.
@@ -244,9 +419,15 @@ ObstacleType _hardestOf(ObstacleLayout layout) {
 /// o eixo de calibragem é este limite, e ele tem um piso de projeto
 /// ([kMinMoveLimit]) abaixo do qual nenhum número é aceito, por melhor que a
 /// taxa de vitória fique.
-int _movesFor({required Objective objective, required int block}) {
+int _movesFor({
+  required Objective objective,
+  required int block,
+  required int spawnMin,
+  required int spawnMax,
+  required int number,
+}) {
   final double base = switch (objective.type) {
-    ObjectiveType.reachDigit => kDigitMovesPerPiece * objective.count,
+    ObjectiveType.reachDigit => _digitMoves(objective, spawnMin: spawnMin, spawnMax: spawnMax),
     ObjectiveType.clearObstacles => kObstacleMovesPerUnit * objective.count,
     ObjectiveType.clearAllObstacles => kClearAllMoves,
   };
@@ -256,7 +437,45 @@ int _movesFor({required Objective objective, required int block}) {
   // contra ele. O `clamp` inferior é o conserto do defeito que fazia a fase 500
   // sair com um movimento — um percentual aplicado para sempre não tende a um
   // limite apertado, tende a nenhum limite.
-  final factor = (1 - kTighteningPerBlock * block).clamp(kTighteningFloor, 1.0);
-  final tightened = (base * factor).floor();
-  return tightened < kMinMoveLimit ? kMinMoveLimit : tightened;
+  final tighteningFactor = (1 - kTighteningPerBlock * block).clamp(kTighteningFloor, 1.0);
+
+  // A curva senoidal de ritmo entra por último, sobre o valor já apertado: ela
+  // é quem decide se esta fase específica é a "difícil" ou a "relaxante" do
+  // par, não quem define a tendência de longo prazo — essa continua sendo o
+  // aperto por bloco.
+  final paced = base * tighteningFactor * _pacingFactor(number);
+
+  final floor = _moveFloorFor(objective);
+  final result = paced.floor();
+  return result < floor ? floor : result;
+}
+
+/// A fórmula pedida para objetivos de "crie N peças de nível X":
+/// `moves = count * (targetValue - averageBoardTileLevel) + 8`.
+///
+/// `averageBoardTileLevel` é o centro da janela de sorteio da fase
+/// (`(spawnMin + spawnMax) / 2`) — a régua que já governa toda a dificuldade
+/// da campanha gerada (ver a nota de invariância da janela de spawn em
+/// `game_level.dart`): o jogo nunca olha o valor absoluto de uma peça, só a
+/// distância dela até o que cai do topo. `targetValue - averageBoardTileLevel`
+/// é essa distância. O dígito-alvo é sempre estritamente maior que
+/// `spawnMax` (invariante travada em teste), e `spawnMax` é sempre maior que
+/// o centro da janela, então esta diferença nunca é negativa.
+double _digitMoves(Objective objective, {required int spawnMin, required int spawnMax}) {
+  final averageBoardTileLevel = (spawnMin + spawnMax) / 2;
+  return objective.count * (objective.digit! - averageBoardTileLevel) + 8;
+}
+
+/// O piso de movimentos que vale para [objective].
+///
+/// [kHeavyDigitMoveFloor] só entra em fases de dígito que pedem mais de
+/// [kHeavyDigitCountThreshold] peças de nível [kHeavyDigitThreshold]+: são as
+/// únicas em que a fórmula linear de [_digitMoves] mediu curto na calibragem.
+/// Todo o resto continua no piso geral [kMinMoveLimit].
+int _moveFloorFor(Objective objective) {
+  final isHeavyDigitGoal = objective.type == ObjectiveType.reachDigit &&
+      objective.count > kHeavyDigitCountThreshold &&
+      (objective.digit ?? 0) >= kHeavyDigitThreshold;
+
+  return isHeavyDigitGoal ? kHeavyDigitMoveFloor : kMinMoveLimit;
 }
