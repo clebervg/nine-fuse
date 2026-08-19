@@ -486,6 +486,17 @@ void main() {
       expect(storage.highScore, hammered.state.score);
     });
   });
+
+  group('endlessIsUnlocked', () {
+    test('bloqueado abaixo da fase de desbloqueio', () {
+      expect(endlessIsUnlocked(kEndlessUnlockLevel - 1), isFalse);
+    });
+
+    test('liberado a partir da fase de desbloqueio', () {
+      expect(endlessIsUnlocked(kEndlessUnlockLevel), isTrue);
+      expect(endlessIsUnlocked(kEndlessUnlockLevel + 1), isTrue);
+    });
+  });
 }
 
 /// Joga [notifier] até travar ou até [cap] movimentos.

@@ -337,6 +337,17 @@ final endlessProvider = StateNotifierProvider<EndlessNotifier, EndlessState>((
 /// a campanha já ensinou fusão, cadeia e gestão de espaço.
 const int kEndlessUnlockLevel = 5;
 
+/// O Modo Recorde está liberado para quem chegou até [campaignProgress] na
+/// campanha?
+///
+/// Função pura, e não um getter espalhado por cada tela que precisa saber:
+/// hoje só `level_select_screen.dart` e o novo convite de migração
+/// (`game_screen.dart`) fazem essa pergunta, mas as duas têm de concordar —
+/// duas cópias da mesma comparação divergiriam no primeiro ajuste do
+/// desbloqueio.
+bool endlessIsUnlocked(int campaignProgress) =>
+    campaignProgress >= kEndlessUnlockLevel;
+
 /// O recorde do Endless, lido sem começar uma partida.
 ///
 /// Existe porque o destaque do Endless no mapa precisa mostrar o recorde, e o
