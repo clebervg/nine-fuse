@@ -7,11 +7,14 @@ import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/star_rating.dart';
+import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
+import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/apex_celebration.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/combo_banner.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/endless_suggestion_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_button.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/moves_offer_dialog.dart';
@@ -81,6 +84,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   /// que torna `shouldOfferMoves` falso no mesmo quadro. Ligado direto ao
   /// getter, o cartão fecharia sozinho no frame seguinte ao de abrir.
   bool _movesOfferOpen = false;
+
+  /// O convite de migração para o Modo Recorde está aberto agora?
+  ///
+  /// Mesmo motivo de [_movesOfferOpen]: precisa ser separado de
+  /// `GameState.shouldOfferEndless` porque abrir o convite não muda o
+  /// contador — só `markEndlessOfferShown()` o gasta, e é a tela quem decide
+  /// chamá-lo.
+  bool _endlessSuggestionOpen = false;
 
   /// Onde o tabuleiro está na tela. A camada de mira do martelo precisa saber:
   /// é o que separa "bateu numa célula" de "tocou fora e desistiu".
@@ -157,6 +168,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           // `startLevel`); um convite aberto da partida anterior ficaria por
           // cima do cartão de início da nova.
           _movesOfferOpen = false;
+          _endlessSuggestionOpen = false;
         });
       }
 
@@ -167,6 +179,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       if (!_movesOfferOpen && _ready && next.shouldOfferMoves) {
         _movesOfferOpen = true;
         ref.read(gameProvider.notifier).markMovesOfferShown();
+      }
+
+      // O convite de migração só sobe depois de a fase acabar em derrota —
+      // diferente do de movimentos, que é pre-churn. `endlessIsUnlocked` lê o
+      // progresso da campanha porque `GameState` não tem acesso a ele.
+      if (!_endlessSuggestionOpen &&
+          next.shouldOfferEndless &&
+          endlessIsUnlocked(ref.read(campaignProgressProvider))) {
+        _endlessSuggestionOpen = true;
+        ref.read(gameProvider.notifier).markEndlessOfferShown();
       }
     });
 
@@ -369,6 +391,32 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   onBack: () => Navigator.of(context).maybePop(),
                   starsInChapter: chapterStars,
                   starsGained: _chapterStarsGained,
+                ),
+              ),
+            // Sobe **sobre** o cartão de desfecho: recusar revela o mesmo
+            // cartão, com o botão de tentar de novo intacto.
+            if (_endlessSuggestionOpen)
+              _OutcomeOverlay(
+                child: EndlessSuggestionDialog(
+                  onGoToEndless: () {
+                    setState(() => _endlessSuggestionOpen = false);
+                    Navigator.of(context)
+                        .push(
+                          MaterialPageRoute(
+                            builder: (_) => const EndlessScreen(),
+                          ),
+                        )
+                        .then((_) {
+                          if (mounted) {
+                            ref
+                                .read(endlessHighScoreProvider.notifier)
+                                .refresh();
+                            ref.read(walletProvider.notifier).refresh();
+                          }
+                        });
+                  },
+                  onDecline: () =>
+                      setState(() => _endlessSuggestionOpen = false),
                 ),
               ),
           ],
