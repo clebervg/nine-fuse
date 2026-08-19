@@ -13,10 +13,8 @@ import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
-// `kMaxDigitForTest` mora em `game_notifier_test.dart`, não num arquivo de
-// suporte compartilhado. O `show` evita colisão com o `main()` deste arquivo,
-// que a importação completa da biblioteca de teste traria junto.
-import '../providers/game_notifier_test.dart' show kMaxDigitForTest;
+
+const int kMaxDigitForTest = 9; // Dígito máximo do jogo.
 
 void main() {
   late GameNotifier notifier;
