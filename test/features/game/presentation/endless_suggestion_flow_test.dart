@@ -10,7 +10,6 @@ import 'package:nine_fuse/features/game/presentation/widgets/endless_suggestion_
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
-import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
 
@@ -59,7 +58,7 @@ void main() {
     }
   }
 
-  (Position, Position)? _swap() {
+  (Position, Position)? findSwap() {
     final engine = notifier.engine!;
     final board = notifier.state.board;
     for (final (a, b) in engine.candidateSwaps(board)) {
@@ -69,7 +68,7 @@ void main() {
   }
 
   Future<void> loseOnce(WidgetTester tester) async {
-    final pair = _swap()!;
+    final pair = findSwap()!;
     notifier.swapTiles(pair.$1, pair.$2);
     await tester.pumpAndSettle();
   }
