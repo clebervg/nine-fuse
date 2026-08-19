@@ -311,4 +311,43 @@ void main() {
       expect(notifier.state.status, GameStatus.playing);
     });
   });
+
+  group('shouldOfferEndless', () {
+    test('padrão nasce zerado e sem oferta', () {
+      notifier.startLevel(
+        const GameLevel(
+          number: 89,
+          objective: Objective(digit: 4, count: 3),
+          moveLimit: 50,
+        ),
+      );
+
+      expect(notifier.state.consecutiveLosses, 0);
+      expect(notifier.state.endlessOfferShown, isFalse);
+      expect(notifier.state.shouldOfferEndless, isFalse);
+    });
+
+    test('só é verdadeiro com a fase perdida e o contador no limiar', () {
+      final base = notifier.state.copyWith(
+        status: GameStatus.lost,
+        consecutiveLosses: kConsecutiveLossesForEndlessOffer,
+      );
+
+      expect(base.shouldOfferEndless, isTrue);
+      expect(
+        base
+            .copyWith(consecutiveLosses: kConsecutiveLossesForEndlessOffer - 1)
+            .shouldOfferEndless,
+        isFalse,
+      );
+      expect(
+        base.copyWith(status: GameStatus.playing).shouldOfferEndless,
+        isFalse,
+      );
+      expect(
+        base.copyWith(endlessOfferShown: true).shouldOfferEndless,
+        isFalse,
+      );
+    });
+  });
 }
