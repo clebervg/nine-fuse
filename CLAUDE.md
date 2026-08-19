@@ -1364,7 +1364,7 @@ chegou a existir — ele continua elegível e recebe a sugestão assim que cruza
 o limiar de desbloqueio numa derrota seguinte. Marcar cedo demais gastaria a
 única oferta da sequência num momento em que ela não tinha como ser aceita.
 
-**O overlay novo sobe **sobre** o `LevelOutcomeCard`, seguindo o padrão já
+**O overlay novo sobe *sobre* o `LevelOutcomeCard`, seguindo o padrão já
 estabelecido por `HammerOfferDialog`/`MovesOfferDialog`:** recusar a sugestão
 revela o cartão de desfecho por baixo, intacto, com o botão de tentar de novo
 disponível. E, como os outros dois, ganhou guarda `state.isOver` explícita na
