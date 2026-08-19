@@ -395,7 +395,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ),
             // Sobe **sobre** o cartão de desfecho: recusar revela o mesmo
             // cartão, com o botão de tentar de novo intacto.
-            if (_endlessSuggestionOpen)
+            if (_endlessSuggestionOpen && state.isOver)
               _OutcomeOverlay(
                 child: EndlessSuggestionDialog(
                   onGoToEndless: () {

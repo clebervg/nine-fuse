@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_suggestion_dialog.dart';
@@ -13,8 +14,6 @@ import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
 
-const int kMaxDigitForTest = 9; // Dígito máximo do jogo.
-
 void main() {
   late GameNotifier notifier;
 
@@ -22,7 +21,7 @@ void main() {
   /// antes do objetivo (inalcançável) ser cumprido.
   const stuck = GameLevel(
     number: 95,
-    objective: Objective(digit: kMaxDigitForTest, count: 9),
+    objective: Objective(digit: kMaxDigit, count: 9),
     moveLimit: 1,
   );
 

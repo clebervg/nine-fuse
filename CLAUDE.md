@@ -1333,3 +1333,44 @@ exceção documentada — os dois eixos de um objetivo de dígito no teto ao mes
 tempo, caso em que não sobra para onde variar), nenhuma fase pesada de dígito
 7+ com mais de duas peças fica abaixo de 16 movimentos, e o limite nunca chega
 a zero ou negativo em toda a faixa.
+
+
+### Sugestão de migração para o Modo Recorde após derrotas seguidas ✅
+
+**O contador é só de memória, e é decisão.** `consecutiveLosses` vive em
+`GameState`, sem persistência nenhuma em `GameStorage`: fechar o app no meio de
+uma sequência de derrotas zera a contagem. Não é bug — é gatilho de sugestão,
+não métrica de produto, e persistir mais um contador só para sobreviver a um
+fechamento de app não paga o custo de disco e de migração de estado salvo.
+
+**`restartLevel()` não zera o contador; só trocar de fase zera.** Tentar de
+novo a mesma fase depois de perder é exatamente a sequência que o recurso
+mede — repetir a mesma pedra três vezes é o sinal de frustração, não a
+correção dele. O contador some ao vencer (o jogador não está mais travado) ou
+ao começar uma fase diferente (a frustração era daquela fase, não de outra).
+
+**A checagem de desbloqueio do Endless fica fora de `GameState` de
+propósito.** `endlessIsUnlocked(int)`, em `endless_notifier.dart`, é função
+pura sobre o progresso da campanha; `GameState` não tem — e não devia ganhar —
+acesso ao provider de progresso da campanha, então `GameState.shouldOfferEndless`
+só sabe responder "o jogador perdeu três vezes seguidas". Quem junta as duas
+metades (perdeu três vezes **e** o Modo Recorde já está desbloqueado) é a
+tela, em `game_screen.dart`.
+
+**O convite só é marcado como mostrado (`markEndlessOfferShown()`) quando
+realmente aparece na tela.** Um jogador na terceira derrota da fase 3, ainda
+abaixo do desbloqueio (fase 5), não pode ser queimado por um convite que nunca
+chegou a existir — ele continua elegível e recebe a sugestão assim que cruzar
+o limiar de desbloqueio numa derrota seguinte. Marcar cedo demais gastaria a
+única oferta da sequência num momento em que ela não tinha como ser aceita.
+
+**O overlay novo sobe **sobre** o `LevelOutcomeCard`, seguindo o padrão já
+estabelecido por `HammerOfferDialog`/`MovesOfferDialog`:** recusar a sugestão
+revela o cartão de desfecho por baixo, intacto, com o botão de tentar de novo
+disponível. E, como os outros dois, ganhou guarda `state.isOver` explícita na
+condição do `if` — antes disso a invariante era verdadeira só por acidente de
+dois mecanismos alheios ao recurso (o flag só nasce `true` quando
+`status == lost`, e o único caminho de volta a `playing` já limpa o flag via
+mudança de `runId` no mesmo listener); a guarda explícita documenta a
+invariante em vez de depender dela ficar de pé por composição de efeitos
+colaterais.
