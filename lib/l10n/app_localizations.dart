@@ -709,6 +709,30 @@ abstract class AppLocalizations {
   /// **'No ad available right now.'**
   String get movesOfferFailed;
 
+  /// No description provided for @endlessSuggestionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of energy?'**
+  String get endlessSuggestionTitle;
+
+  /// No description provided for @endlessSuggestionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your energy for this level ran out! How about beating your Personal Best while it recharges?'**
+  String get endlessSuggestionBody;
+
+  /// No description provided for @endlessSuggestionGo.
+  ///
+  /// In en, this message translates to:
+  /// **'GO TO RECORD MODE'**
+  String get endlessSuggestionGo;
+
+  /// No description provided for @endlessSuggestionDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'KEEP TRYING'**
+  String get endlessSuggestionDecline;
+
   /// No description provided for @storeSubtitle.
   ///
   /// In en, this message translates to:
