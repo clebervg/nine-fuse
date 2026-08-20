@@ -19,6 +19,14 @@ const Duration kSplashDuration = Duration(milliseconds: 1800);
 /// por fração do valor do controller (entrada, power-up, idle, saída) — não
 /// em `Future.delayed` nem em controllers separados, e a duração é finita
 /// para não travar `pumpAndSettle` em teste.
+///
+/// O design original previa anéis de energia girando e um glow dourado por
+/// trás do logo durante o estágio power-up. O `assets/images/logo.png`
+/// reaproveitado não é a peça `9` dourada isolada: é um cartão "9F" de vidro
+/// ciano/magenta com um redemoinho de energia roxo/laranja já pintado na
+/// própria imagem. Sobrepor os anéis sintéticos duplicava esse redemoinho, e
+/// o glow dourado destoava das cores do cartão — por isso ambos foram
+/// removidos, mantendo o texto "NineFuse" surgindo no mesmo estágio.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, this.onSplashComplete});
 
@@ -94,19 +102,13 @@ class _SplashScreenState extends State<SplashScreen>
     final logoScale = 0.7 + 0.3 * entrance;
     final logoOpacity = entrance;
 
-    // Pisca 2x rápido dentro do estágio power-up, e assenta aceso.
-    final glowOpacity =
-        powerUp >= 1.0 ? 1.0 : math.sin(powerUp * math.pi * 4).abs();
-
-    // Gira rápido e desacelera (ease-out) dentro do estágio power-up.
-    final ringRotation = (1 - math.pow(1 - powerUp, 3)) * math.pi * 2;
-
     final exitScale = 1.0 + 0.15 * exit;
     final exitOpacity = 1.0 - exit;
 
     final size = MediaQuery.of(context).size;
     final logoSize = math.min(size.width, size.height) * 0.4;
     final haloSize = logoSize * 1.6;
+    final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
 
     return Opacity(
       opacity: exitOpacity,
@@ -117,45 +119,21 @@ class _SplashScreenState extends State<SplashScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                width: haloSize,
-                height: haloSize,
+                width: logoSize,
+                height: logoSize,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    Transform.rotate(
-                      angle: ringRotation,
-                      child: _ring(haloSize, AppColors.digit5),
-                    ),
-                    Transform.rotate(
-                      angle: -ringRotation * 0.6,
-                      child: _ring(haloSize * 0.8, AppColors.digit4),
-                    ),
-                    Opacity(
-                      opacity: glowOpacity,
-                      child: Container(
-                        width: logoSize * 1.1,
-                        height: logoSize * 1.1,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.digit9.withValues(alpha: 0.6),
-                              blurRadius: 40,
-                              spreadRadius: 10,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    ClipOval(
-                      child: SizedBox(
-                        width: logoSize,
-                        height: logoSize,
-                        child: Opacity(
-                          opacity: logoOpacity,
-                          child: Transform.scale(
-                            scale: logoScale,
-                            child: Image.asset('assets/images/logo.png'),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(logoSize * 0.15),
+                      child: Opacity(
+                        opacity: logoOpacity,
+                        child: Transform.scale(
+                          scale: logoScale,
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            cacheWidth:
+                                (logoSize * devicePixelRatio).round(),
                           ),
                         ),
                       ),
@@ -197,21 +175,6 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
   }
-
-  Widget _ring(double diameter, Color color) => Container(
-    width: diameter,
-    height: diameter,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      gradient: SweepGradient(
-        colors: [
-          color.withValues(alpha: 0.0),
-          color.withValues(alpha: 0.8),
-          color.withValues(alpha: 0.0),
-        ],
-      ),
-    ),
-  );
 
   /// Faixa diagonal translúcida cruzando o logo uma vez, de fora a fora,
   /// durante o estágio idle.
