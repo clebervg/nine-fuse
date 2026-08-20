@@ -157,6 +157,10 @@
   "movesOfferWatch": "GANHAR +{reward} MOVIMENTOS",
   "movesOfferDecline": "CONTINUAR ASSIM",
   "movesOfferFailed": "Nenhum anúncio disponível agora.",
+  "endlessSuggestionTitle": "Sem energia agora?",
+  "endlessSuggestionBody": "Sua energia nesta fase acabou! Que tal bater seu Recorde Pessoal enquanto ela recarrega?",
+  "endlessSuggestionGo": "IR PARA O MODO RECORDE",
+  "endlessSuggestionDecline": "CONTINUAR TENTANDO",
 
   "storeSubtitle": "Combine 3, evolua o número, alcance o 9",
   "storeShortDescription": "Match-3 de números: três iguais viram o próximo. Chegue ao 9 e detone o tabuleiro.",

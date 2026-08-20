@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
@@ -347,7 +348,7 @@ void main() {
       // Alvo inalcançável em dois movimentos.
       const tight = GameLevel(
         number: 94,
-        objective: Objective(digit: kMaxDigitForTest, count: 9),
+        objective: Objective(digit: kMaxDigit, count: 9),
         moveLimit: 2,
       );
       notifier.startLevel(tight);
@@ -366,7 +367,7 @@ void main() {
     test('não aceita mais jogada depois de a fase terminar', () {
       const tight = GameLevel(
         number: 93,
-        objective: Objective(digit: kMaxDigitForTest, count: 9),
+        objective: Objective(digit: kMaxDigit, count: 9),
         moveLimit: 1,
       );
       notifier.startLevel(tight);
@@ -393,6 +394,110 @@ void main() {
       expect(notifier.state.moves, 0);
       expect(notifier.state.movesLeft, roomy.moveLimit);
       expect(notifier.state.rejectedSwap, (pair.$1, pair.$2));
+    });
+  });
+
+  group('sugestão de migração para o Endless', () {
+    // Fase que trava em um movimento: qualquer troca que forme combinação já
+    // esgota o saldo antes de o objetivo (inalcançável) ser cumprido.
+    const stuck = GameLevel(
+      number: 95,
+      objective: Objective(digit: kMaxDigit, count: 9),
+      moveLimit: 1,
+    );
+
+    void loseOnce() {
+      final pair = findSwap(creatingMatch: true)!;
+      notifier.swapTiles(pair.$1, pair.$2);
+    }
+
+    test('derrota incrementa o contador na mesma fase', () {
+      notifier.startLevel(stuck);
+      loseOnce();
+      expect(notifier.state.status, GameStatus.lost);
+      expect(notifier.state.consecutiveLosses, 1);
+
+      notifier.restartLevel();
+      loseOnce();
+      expect(notifier.state.consecutiveLosses, 2);
+    });
+
+    test('sugere o Endless só na terceira derrota seguida, não antes', () {
+      notifier.startLevel(stuck);
+      for (int i = 0; i < 2; i++) {
+        loseOnce();
+        expect(notifier.state.shouldOfferEndless, isFalse);
+        notifier.restartLevel();
+      }
+      loseOnce();
+
+      expect(notifier.state.consecutiveLosses, 3);
+      expect(notifier.state.shouldOfferEndless, isTrue);
+    });
+
+    test('vencer zera o contador', () {
+      notifier.startLevel(stuck);
+      loseOnce();
+      notifier.restartLevel();
+      loseOnce();
+      expect(notifier.state.consecutiveLosses, 2);
+
+      notifier.markEndlessOfferShown();
+      expect(notifier.state.endlessOfferShown, true);
+
+      const winnable = GameLevel(
+        number: 96,
+        objective: Objective(digit: 4),
+        moveLimit: 50,
+      );
+      notifier.startLevel(winnable);
+      while (notifier.state.status == GameStatus.playing) {
+        final pair = findSwap(creatingMatch: true);
+        if (pair == null) break;
+        notifier.swapTiles(pair.$1, pair.$2);
+      }
+
+      expect(notifier.state.status, GameStatus.won);
+      expect(notifier.state.consecutiveLosses, 0);
+      expect(notifier.state.endlessOfferShown, false);
+    });
+
+    test(
+      'trocar de fase depois de perder zera o contador, mesmo sem vencer',
+      () {
+        notifier.startLevel(stuck);
+        loseOnce();
+        expect(notifier.state.consecutiveLosses, 1);
+
+        const otherLevel = GameLevel(
+          number: 97,
+          objective: Objective(digit: 4),
+          moveLimit: 50,
+        );
+        notifier.startLevel(otherLevel);
+
+        expect(notifier.state.consecutiveLosses, 0);
+      },
+    );
+
+    test('markEndlessOfferShown trava o convite até a próxima fase', () {
+      notifier.startLevel(stuck);
+      for (int i = 0; i < 2; i++) {
+        loseOnce();
+        notifier.restartLevel();
+      }
+      loseOnce();
+      expect(notifier.state.shouldOfferEndless, isTrue);
+
+      notifier.markEndlessOfferShown();
+      expect(notifier.state.shouldOfferEndless, isFalse);
+
+      // Recomeçar a mesma fase perdida não reabre o convite: a fase segue
+      // sendo a mesma, e a oferta já foi gasta.
+      notifier.restartLevel();
+      loseOnce();
+      expect(notifier.state.consecutiveLosses, 4);
+      expect(notifier.state.shouldOfferEndless, isFalse);
     });
   });
 
@@ -605,7 +710,7 @@ void main() {
       test('a fase encerrada não entra em mira', () async {
         const tight = GameLevel(
           number: 88,
-          objective: Objective(digit: kMaxDigitForTest, count: 9),
+          objective: Objective(digit: kMaxDigit, count: 9),
           moveLimit: 1,
         );
         final hammered = await withHammers(1, level: tight);
@@ -773,7 +878,7 @@ void main() {
       test('a fase encerrada não aceita golpe', () async {
         const tight = GameLevel(
           number: 85,
-          objective: Objective(digit: kMaxDigitForTest, count: 9),
+          objective: Objective(digit: kMaxDigit, count: 9),
           moveLimit: 1,
         );
         final hammered = await withHammers(1, level: tight);
@@ -881,6 +986,3 @@ void main() {
     });
   });
 }
-
-/// Dígito alto usado nos testes que precisam de um objetivo inalcançável.
-const int kMaxDigitForTest = 9;

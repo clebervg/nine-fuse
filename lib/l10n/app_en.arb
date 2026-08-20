@@ -313,6 +313,10 @@
   },
   "movesOfferDecline": "KEEP PLAYING",
   "movesOfferFailed": "No ad available right now.",
+  "endlessSuggestionTitle": "Out of energy?",
+  "endlessSuggestionBody": "Your energy for this level ran out! How about beating your Personal Best while it recharges?",
+  "endlessSuggestionGo": "GO TO RECORD MODE",
+  "endlessSuggestionDecline": "KEEP TRYING",
 
   "storeSubtitle": "Match 3, evolve the number, reach 9",
   "storeShortDescription": "Number match-3: three of a kind become the next digit. Reach 9 and blow up the board.",

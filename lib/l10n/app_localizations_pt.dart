@@ -451,6 +451,19 @@ class AppLocalizationsPt extends AppLocalizations {
   String get movesOfferFailed => 'Nenhum anúncio disponível agora.';
 
   @override
+  String get endlessSuggestionTitle => 'Sem energia agora?';
+
+  @override
+  String get endlessSuggestionBody =>
+      'Sua energia nesta fase acabou! Que tal bater seu Recorde Pessoal enquanto ela recarrega?';
+
+  @override
+  String get endlessSuggestionGo => 'IR PARA O MODO RECORDE';
+
+  @override
+  String get endlessSuggestionDecline => 'CONTINUAR TENTANDO';
+
+  @override
   String get storeSubtitle => 'Combine 3, evolua o número, alcance o 9';
 
   @override

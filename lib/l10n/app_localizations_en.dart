@@ -449,6 +449,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get movesOfferFailed => 'No ad available right now.';
 
   @override
+  String get endlessSuggestionTitle => 'Out of energy?';
+
+  @override
+  String get endlessSuggestionBody =>
+      'Your energy for this level ran out! How about beating your Personal Best while it recharges?';
+
+  @override
+  String get endlessSuggestionGo => 'GO TO RECORD MODE';
+
+  @override
+  String get endlessSuggestionDecline => 'KEEP TRYING';
+
+  @override
   String get storeSubtitle => 'Match 3, evolve the number, reach 9';
 
   @override

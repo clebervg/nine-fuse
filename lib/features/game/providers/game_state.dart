@@ -29,6 +29,13 @@ enum LossReason {
 /// reviver; ele decide olhando para um tabuleiro vivo, não para um resultado.
 const int kPreChurnMovesLeft = 2;
 
+/// Quantas derrotas seguidas na mesma fase sugerem o Modo Recorde.
+///
+/// Três, e não uma: sugerir na primeira derrota leria como o jogo desistindo
+/// do jogador antes dele. É o mesmo limiar que a análise de retenção do
+/// produto definiu como "energia da fase acabou".
+const int kConsecutiveLossesForEndlessOffer = 3;
+
 /// Situação da fase em andamento.
 enum GameStatus {
   /// Nenhuma fase começou.
@@ -67,6 +74,8 @@ class GameState {
     this.movesOfferShown = false,
     this.boardObstacleGoal,
     this.hammer = const HammerState(),
+    this.consecutiveLosses = 0,
+    this.endlessOfferShown = false,
   });
 
   final Board board;
@@ -175,6 +184,23 @@ class GameState {
   /// porque a aflição também recomeça.
   final bool movesOfferShown;
 
+  /// Quantas vezes seguidas o jogador perdeu **esta mesma fase**.
+  ///
+  /// Vive só em memória: fechar o app no meio de uma sequência de derrotas
+  /// zera a contagem, e é uma perda aceitável — o contador é gatilho de
+  /// sugestão, não métrica de produto que precise sobreviver a reinícios.
+  /// Reseta ao vencer a fase ou ao trocar para outra (ver [GameNotifier]);
+  /// **não** reseta ao simplesmente recomeçar a mesma fase perdida, porque é
+  /// justamente essa sequência de tentativas que o contador mede.
+  final int consecutiveLosses;
+
+  /// O convite de migração para o Modo Recorde já foi mostrado nesta fase.
+  ///
+  /// Mesma razão de [movesOfferShown]: sem a trava, [shouldOfferEndless]
+  /// continuaria verdadeiro a cada nova derrota depois da terceira, e o
+  /// convite reabriria sozinho.
+  final bool endlessOfferShown;
+
   /// O Martelo de Fusão: estoque, mira e último golpe.
   ///
   /// Num objeto só, e não em cinco campos soltos, porque o Endless carrega
@@ -260,6 +286,20 @@ class GameState {
       moves > 0 &&
       movesLeft <= kPreChurnMovesLeft;
 
+  /// A fase acabou de perder feio o bastante para valer sugerir o Modo
+  /// Recorde?
+  ///
+  /// As três guardas: **fase perdida** (o convite é sobre o desfecho, não
+  /// sobre uma fase em andamento — diferente do convite de movimentos, que é
+  /// pre-churn), **contador no limiar** e **ainda não mostrado nesta fase**.
+  /// Não checa se o Endless está desbloqueado: `GameState` não tem acesso ao
+  /// progresso da campanha (é outro provider); quem combina os dois é
+  /// `game_screen.dart`.
+  bool get shouldOfferEndless =>
+      status == GameStatus.lost &&
+      consecutiveLosses >= kConsecutiveLossesForEndlessOffer &&
+      !endlessOfferShown;
+
   /// Cria um novo GameState com valores opcionalmente alterados.
   ///
   /// [selectedTile] e [rejectedSwap] precisam poder voltar a `null`, o que
@@ -292,6 +332,8 @@ class GameState {
     int? boardObstacleGoal,
     bool clearBoardObstacleGoal = false,
     HammerState? hammer,
+    int? consecutiveLosses,
+    bool? endlessOfferShown,
   }) => GameState(
     board: board ?? this.board,
     level: level ?? this.level,
@@ -320,6 +362,8 @@ class GameState {
         ? null
         : (boardObstacleGoal ?? this.boardObstacleGoal),
     hammer: hammer ?? this.hammer,
+    consecutiveLosses: consecutiveLosses ?? this.consecutiveLosses,
+    endlessOfferShown: endlessOfferShown ?? this.endlessOfferShown,
   );
 
   /// Estado antes de qualquer fase começar.
@@ -353,7 +397,9 @@ class GameState {
           explosions == other.explosions &&
           movesOfferShown == other.movesOfferShown &&
           boardObstacleGoal == other.boardObstacleGoal &&
-          hammer == other.hammer;
+          hammer == other.hammer &&
+          consecutiveLosses == other.consecutiveLosses &&
+          endlessOfferShown == other.endlessOfferShown;
 
   // `hashAll` em vez de `hash`: com os campos do martelo o estado passou de 20
   // componentes, que é o teto posicional de `Object.hash`.
@@ -379,6 +425,8 @@ class GameState {
     movesOfferShown,
     boardObstacleGoal,
     hammer,
+    consecutiveLosses,
+    endlessOfferShown,
   ]);
 
   @override

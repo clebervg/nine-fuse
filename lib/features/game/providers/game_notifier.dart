@@ -93,6 +93,11 @@ class GameNotifier extends StateNotifier<GameState>
 
   /// Começa a fase [level] com um tabuleiro novo.
   void startLevel(GameLevel level) {
+    // A mesma fase, tentada de novo, mantém a sequência de derrotas — é
+    // justamente essa sequência que `shouldOfferEndless` mede. Qualquer outra
+    // fase (avançar, recomeçar do mapa) é uma folga nova.
+    final samePhase = state.level.number == level.number;
+
     _engine = MatchEngine(
       random: _random,
       spawnMin: level.spawnMin,
@@ -114,6 +119,8 @@ class GameNotifier extends StateNotifier<GameState>
       // O inventário atravessa a fase nova (é do jogador, não da partida), mas
       // a mira e o estilhaço ficam para trás com a partida que acabou.
       hammer: state.hammer.inventoryOnly,
+      consecutiveLosses: samePhase ? state.consecutiveLosses : 0,
+      endlessOfferShown: samePhase ? state.endlessOfferShown : false,
     );
 
     // O Endless pode ter gastado um martelo enquanto esta tela estava viva: os
@@ -146,6 +153,16 @@ class GameNotifier extends StateNotifier<GameState>
   void markMovesOfferShown() {
     if (state.movesOfferShown) return;
     state = state.copyWith(movesOfferShown: true);
+  }
+
+  /// O convite abriu na tela.
+  ///
+  /// Quem marca é a **UI**, e não o notifier, pela mesma razão de
+  /// [markMovesOfferShown]: a regra sabe dizer que a fase justifica a
+  /// sugestão, só a tela sabe se o cartão chegou a subir.
+  void markEndlessOfferShown() {
+    if (state.endlessOfferShown) return;
+    state = state.copyWith(endlessOfferShown: true);
   }
 
   /// Credita o prêmio do anúncio de reforço de saldo.
@@ -389,6 +406,18 @@ class GameNotifier extends StateNotifier<GameState>
       hasMove: hint != null,
     );
 
+    // O contador de derrotas seguidas mede a mesma fase: cresce a cada
+    // derrota, e só uma vitória o zera — trocar de fase é responsabilidade de
+    // `startLevel`, não deste método.
+    final consecutiveLosses = switch (outcome.status) {
+      GameStatus.lost => state.consecutiveLosses + 1,
+      GameStatus.won => 0,
+      _ => state.consecutiveLosses,
+    };
+    final endlessOfferShown = outcome.status == GameStatus.won
+        ? false
+        : state.endlessOfferShown;
+
     state = state.copyWith(
       board: resolution.board,
       score: state.score + extraScore,
@@ -410,6 +439,8 @@ class GameNotifier extends StateNotifier<GameState>
       // isto a comemoração só existiria no caminho animado.
       apexCelebrated: state.apexCelebrated || resolution.explosions > 0,
       explosions: state.explosions + (extraExplosions ?? resolution.explosions),
+      consecutiveLosses: consecutiveLosses,
+      endlessOfferShown: endlessOfferShown,
     );
   }
 

@@ -209,7 +209,7 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
                   ),
                   const SizedBox(height: 10),
                   EndlessHighlight(
-                    isUnlocked: progress >= kEndlessUnlockLevel,
+                    isUnlocked: endlessIsUnlocked(progress),
                     unlockedAt: kEndlessUnlockLevel,
                     highScore: highScore,
                     onTap: () => Navigator.of(context)
