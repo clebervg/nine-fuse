@@ -6,7 +6,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:nine_fuse/core/ads/ad_providers.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
-import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
+import 'package:nine_fuse/features/game/presentation/screens/splash_screen.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 void main() {
@@ -117,7 +117,7 @@ class NineFuseApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const LevelSelectScreen(),
+      home: const SplashScreen(),
     );
   }
 }
