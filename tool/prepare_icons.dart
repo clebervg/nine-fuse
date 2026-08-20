@@ -70,7 +70,14 @@ Image _render(String svgPath, int side) {
 
 /// Escreve um SVG temporário contendo os `defs` e só o grupo `mark` — a arte
 /// sem o retângulo de fundo.
-File _markOnlySvg(String source) {
+///
+/// Devolve `null` quando a fonte não tem o grupo `mark` — hoje é o caso do
+/// `logo.svg` atual, um export raster embutido em `<image>` sem grupos
+/// nomeados. Sem o grupo não há como separar arte de fundo, então o
+/// chamador cai para o logo inteiro como frente do adaptativo: a zona segura
+/// de 66% ainda é respeitada, mas o fundo (se a arte tiver algum, opaco) vai
+/// junto na frente em vez de vir só do `adaptive_icon_background`.
+File? _markOnlySvg(String source) {
   final svg = File(source).readAsStringSync();
 
   final markStart = svg.indexOf('<g id="mark">');
@@ -78,9 +85,7 @@ File _markOnlySvg(String source) {
   final defsEnd = svg.indexOf('</defs>');
 
   if (markStart < 0 || markEnd < markStart || defsEnd < 0) {
-    print('ERRO: $source precisa ter <defs>...</defs> e <g id="mark">...</g>.');
-    print('A frente do ícone adaptativo é derivada desse grupo.');
-    exit(1);
+    return null;
   }
 
   final header = svg.substring(0, defsEnd + '</defs>'.length);
@@ -106,8 +111,17 @@ void main() {
   _write('assets/images/logo.png', logo, 'render do SVG (asset e conferência)');
 
   final markSvg = _markOnlySvg(_svgPath);
-  final mark = _render(markSvg.path, _masterSide);
-  markSvg.deleteSync();
+  Image mark;
+  if (markSvg != null) {
+    mark = _render(markSvg.path, _masterSide);
+    markSvg.deleteSync();
+  } else {
+    print(
+      'AVISO: $_svgPath não tem <g id="mark">; usando o logo inteiro como '
+      'frente do adaptativo (sem separação de fundo).',
+    );
+    mark = logo;
+  }
 
   final background = _dominantOpaqueColor(logo);
   final hex = '#${_hex(background.r)}${_hex(background.g)}${_hex(background.b)}';

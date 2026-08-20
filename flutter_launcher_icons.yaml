@@ -20,7 +20,7 @@ flutter_launcher_icons:
   # se alguém trocar o `image_path` por um PNG com alfa, o envio continua
   # válido em vez de ser recusado na revisão.
   remove_alpha_ios: true
-  background_color_ios: "#180840"
+  background_color_ios: "#000028"
 
   android: "ic_launcher"
   min_sdk_android: 21
@@ -28,11 +28,11 @@ flutter_launcher_icons:
   # Android 8+ recorta a frente em círculo, quadrado ou outras máscaras
   # conforme o aparelho. A frente já vem com a arte encolhida para a zona
   # segura central.
-  adaptive_icon_background: "#180840"
+  adaptive_icon_background: "#000028"
   adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
 
   web:
     generate: true
     image_path: "assets/icon/app_icon.png"
-    background_color: "#180840"
-    theme_color: "#180840"
+    background_color: "#000028"
+    theme_color: "#000028"
