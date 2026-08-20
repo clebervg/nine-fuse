@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:nine_fuse/core/ads/ad_providers.dart';
@@ -11,7 +12,17 @@ import 'package:nine_fuse/l10n/app_localizations.dart';
 void main() {
   // Obrigatório antes de falar com qualquer canal de plataforma, e o SDK de
   // anúncio é exatamente isso.
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+
+  // Mantém a splash nativa (Android/iOS) acesa depois que o engine já
+  // renderizaria a primeira tela do Flutter por baixo dela. Sem isso haveria
+  // um piscar entre a splash nativa e a tela vazia enquanto o primeiro frame
+  // do app monta. Removida no fim de `NineFuseApp.build`, quando esse
+  // primeiro frame já está na tela — não há nada assíncrono hoje que valha a
+  // pena esperar antes disso (nem fontes, nem o SDK de anúncio, que já é
+  // fire-and-forget por design, ver abaixo).
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
   AppFonts.registerLicense();
 
   // A inicialização do SDK é assíncrona e **não é esperada**: ela leva algumas
@@ -52,6 +63,12 @@ class NineFuseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Some no primeiro frame renderizado, não antes: remover no `build` em si
+    // tiraria a splash antes de haver algo do app para mostrar no lugar dela.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FlutterNativeSplash.remove();
+    });
+
     final base = ThemeData.dark(useMaterial3: true);
 
     return MaterialApp(

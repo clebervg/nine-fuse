@@ -50,6 +50,13 @@ dependencies:
   # tela, sem precisar de variantes @2x/@3x.
   flutter_svg: ^2.0.16
   google_mobile_ads: 9.0.0
+  # Splash nativa de cold start (Android/iOS). Vai em `dependencies`, não em
+  # `dev_dependencies`, porque expõe API de runtime (`FlutterNativeSplash.
+  # preserve`/`remove`, chamada de `main.dart`) — diferente do
+  # `flutter_launcher_icons`, que só roda como ferramenta de build e nunca é
+  # importado pelo app. A configuração mora em `flutter_native_splash.yaml`,
+  # não aqui, pelo mesmo motivo do arquivo do launcher_icons.
+  flutter_native_splash: ^2.4.6
 
 dev_dependencies:
   flutter_test:
@@ -95,7 +102,7 @@ flutter:
   # (ver core/theme/app_fonts.dart), como a OFL exige de quem redistribui.
   assets:
     - assets/fonts/OFL.txt
-    - assets/images/logo.svg
+    - assets/images/
 
   # Nunito vem empacotada, não baixada em runtime: uma fonte que depende de
   # rede cai silenciosamente no padrão do sistema quando o aparelho está

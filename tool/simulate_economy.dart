@@ -774,7 +774,7 @@ void main(List<String> args) {
       // As posições dentro do bloco são o que escolhe o arquétipo: 0-6 são
       // dígito, 7-8 são "quebre N", 9 é "limpe tudo".
       numbers: const [
-        14, 22, 103, 253, 1003, // dígito: blocos 0, 1, 9, 24 e 99
+        14, 22, 96, 103, 253, 1003, // dígito: blocos 0, 1, 8, 9, 24 e 99
         18, 108, 1008, // quebre N coberturas: blocos 0, 9 e 99
         20, 100, 1000, // limpe tudo: blocos 0, 8 e 98
       ],

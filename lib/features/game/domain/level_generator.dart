@@ -24,6 +24,24 @@ const int kBlockSize = 10;
 /// desafio: a partir de certo ponto o jogador só repete a mesma fusão.
 const int kMaxObjectiveCount = 6;
 
+/// Teto de peças pedidas quando o dígito-alvo é [kMaxDigit].
+///
+/// O ápice não é só "o dígito mais caro": alcançá-lo dispara a onda de choque
+/// (ver a Fase 8/12 em `match_engine.dart`), que varre os vizinhos e reseta o
+/// progresso que o jogador vinha construindo em volta. Cada peça-alvo seguinte
+/// não custa "mais uma vez o mesmo preço" — custa reconstruir a vizinhança que
+/// a explosão anterior acabou de zerar, e o custo composto por peça sobe muito
+/// mais rápido que a distância linear que [_digitMoves] mede. Medido com
+/// `--mode=probe`: "crie 2 peças 9" (janela 3-6) já pede 90 movimentos para
+/// 99%, contra os ~16 que a fórmula linear dava; "crie 6" não passa de ~50%
+/// nem com 120. Nenhum multiplicador de [_digitMoves] cobre as duas pontas ao
+/// mesmo tempo, porque a curva real não é linear — por isso o teto é sobre a
+/// **contagem**, não sobre o custo por peça: acima de duas peças-9 na mesma
+/// fase, o objetivo é estruturalmente injogável em qualquer limite razoável de
+/// movimentos, e é isso — não um multiplicador maior — que faz a fase 96
+/// ("crie 6 peças 9", medida em 0% até 90 movimentos) existir.
+const int kMaxApexObjectiveCount = 2;
+
 /// Teto de coberturas no tabuleiro.
 ///
 /// `placeObstacles` descarta em silêncio a cobertura que não acha lugar — as
@@ -244,12 +262,17 @@ Objective _varied(Objective candidate, ObstacleLayout obstacles, {required int a
     case ObjectiveType.reachDigit:
       if (attempt == 0) {
         final digit = candidate.digit!;
-        if (digit < kMaxDigit) {
-          return Objective(digit: digit + 1, count: candidate.count);
+        final bumped = digit + 1;
+        // Empilhar para dentro do ápice por este caminho — que, ao contrário
+        // de [_objectiveFor], não sabe a distância até `spawnMax` — reproduziu
+        // a fase 96 ("crie 6 peças 9", janela 3-6, 0% até 90 movimentos): ver a
+        // nota de [kMaxApexObjectiveCount]. O ápice só é seguro quando nasce da
+        // fórmula que já respeita essa distância; aqui ele pula direto para o
+        // escape de cobertura.
+        if (digit < kMaxDigit && bumped < kMaxDigit) {
+          return Objective(digit: bumped, count: candidate.count);
         }
-        // Já no teto do dígito: a contagem é o único eixo que sobra.
-        final count = (candidate.count + 1).clamp(1, kMaxObjectiveCount);
-        return Objective(digit: digit, count: count);
+        return _toObstacleGoal(obstacles) ?? candidate;
       }
       return _toObstacleGoal(obstacles) ?? candidate;
 
@@ -356,13 +379,11 @@ Objective _objectiveFor({
   //
   // O `+1` alternando com `+2` dá dois patamares de esforço dentro do mesmo
   // degrau de janela — uma fusão contra duas — sem precisar de outro eixo.
-  final digit = position.isOdd ? spawnMax + 2 : spawnMax + 1;
-  final count = (1 + position % 3 + block ~/ 2).clamp(1, kMaxObjectiveCount);
+  final digit0 = position.isOdd ? spawnMax + 2 : spawnMax + 1;
+  final digit = digit0 > kMaxDigit ? kMaxDigit : digit0;
+  final count = (1 + position % 3 + block ~/ 2).clamp(1, _maxCountFor(digit));
 
-  return Objective(
-    digit: digit > kMaxDigit ? kMaxDigit : digit,
-    count: count,
-  );
+  return Objective(digit: digit, count: count);
 }
 
 /// As coberturas que o bloco espalha.
@@ -398,6 +419,13 @@ ObstacleLayout _obstaclesFor(int block) {
 
   return ObstacleLayout(ice: trimmedIce, glass: glass, stone: stone);
 }
+
+/// O teto de contagem que vale para um objetivo de dígito [digit].
+///
+/// [kMaxApexObjectiveCount] no ápice, [kMaxObjectiveCount] em qualquer outro
+/// dígito — ver a nota de [kMaxApexObjectiveCount] para o porquê do ápice ter
+/// um teto próprio, bem mais baixo.
+int _maxCountFor(int digit) => digit == kMaxDigit ? kMaxApexObjectiveCount : kMaxObjectiveCount;
 
 /// A cobertura mais dura que [layout] espalha.
 ObstacleType _hardestOf(ObstacleLayout layout) {
