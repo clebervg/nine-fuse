@@ -15,7 +15,7 @@ Baseline: `flutter test` completo — 740 testes passando.
 - [x] 4 Super 9 — criação e limite de 1 ativo — completa (commit 324508b..3d7899e, revisão aprovada após 1 rodada de fix, 90/90 testes). Fix: faltava teste do caso de duas fusões de 5+ na mesma jogada (cobertura do ramo `updates` de `_hasActiveSuperNine`).
 - [x] 5 Super 9 — ativação por troca, conversão board-wide, decaimento — completa (commit e6d3481..4254a6a, revisão aprovada, 96/96 testes).
 - [x] 6 Providers e UI — recompilar contra o novo contrato — completa (commit 964c52a..599fa11, revisão aprovada após 1 rodada de fix, 739/739 testes). Fix: ativação do Super 9 não atualizava objectiveProgress (contagem por diff de tabuleiro antes/depois) nem consecutiveLosses/endlessOfferShown. Endless confirmado sem sistema de objetivo/loss-streak — nada a corrigir lá.
-- [ ] 7 JuicePriority e JuiceDirector
+- [x] 7 JuicePriority e JuiceDirector — completa (commit 5107c79..d20c2a8, revisão aprovada, 745/745 testes).
 - [ ] 8 Apresentação do evento Supernova
 - [ ] 9 Recalibrar economia e registrar achado
 
