@@ -509,6 +509,28 @@ void main() {
       expect(resolution.score, 0);
       expect(valuesOf(resolution.board), valuesOf(board));
     });
+
+    test('o orçamento de cascata para o loop em 4 passos, mesmo com match pendente', () {
+      // Corrente de match-3 que se realimenta: cada fusão de "1" cria um "2"
+      // que completa outro trio na linha de baixo, e assim por diante — sem
+      // limite, isso rodaria mais de 4 vezes.
+      final grid = baseGrid();
+      for (int row = 0; row < 6; row++) {
+        grid[row][0] = 1;
+        grid[row][1] = 1;
+        grid[row][2] = 0;
+      }
+      grid[6][0] = 9;
+      grid[6][1] = 9;
+      grid[6][2] = 9;
+      grid[7][0] = 9;
+      grid[7][1] = 9;
+      grid[7][2] = 9;
+
+      final resolution = engine.resolve(boardFromValues(grid));
+
+      expect(resolution.steps.length, lessThanOrEqualTo(kCascadeBudgetPerTurn));
+    });
   });
 
   group('configuração padrão', () {
@@ -1159,11 +1181,20 @@ void main() {
           board = resolution.board;
 
           expect(board.isFull, isTrue, reason: 'seed $seed: sobrou vazio');
-          expect(
-            e.detectMatches(board),
-            isEmpty,
-            reason: 'seed $seed: o ciclo parou com combinação pendente',
-          );
+          // O orçamento de cascata (kCascadeBudgetPerTurn) pode congelar o
+          // ciclo com uma combinação pendente de propósito — nesse caso
+          // resolve() já gastou o teto de passos da jogada, e o match
+          // restante só volta a ser resolvido na jogada seguinte.
+          final pendingMatch = e.detectMatches(board).isNotEmpty;
+          if (pendingMatch) {
+            expect(
+              resolution.steps.length,
+              kCascadeBudgetPerTurn,
+              reason:
+                  'seed $seed: sobrou combinação sem o orçamento de cascata '
+                  'ter sido totalmente consumido',
+            );
+          }
         }
       }
     });

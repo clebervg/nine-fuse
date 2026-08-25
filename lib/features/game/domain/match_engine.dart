@@ -39,6 +39,24 @@ const int kExplosionBonusMoves = 3;
 /// regra de jogo — em partida normal nunca deve ser alcançado.
 const int _maxCascades = 64;
 
+/// Teto de cascatas por jogada, como regra de jogo — não rede de segurança.
+/// Ao ser atingido com match ainda pendente no tabuleiro, `resolve()` para
+/// ali: o match não é perdido, fica congelado até a jogada seguinte.
+const int kCascadeBudgetPerTurn = 4;
+
+/// Orçamento de reações consumido por `resolve()` dentro de uma única
+/// jogada. Existe como objeto (em vez de um contador solto) para o dia em
+/// que a origem da reação importar ao orçamento — hoje todo passo custa 1.
+class CascadeBudget {
+  CascadeBudget([this.remaining = kCascadeBudgetPerTurn]);
+
+  int remaining;
+
+  bool get isExhausted => remaining <= 0;
+
+  void consume() => remaining--;
+}
+
 /// O que acontece quando uma fusão cria o dígito máximo.
 ///
 /// A peça no topo da escala não tem para onde evoluir, e não há como juntar
@@ -589,10 +607,12 @@ class MatchEngine {
     var current = board;
     final steps = <ResolutionStep>[];
     Position? currentAnchor = anchor;
+    final budget = CascadeBudget();
 
-    while (steps.length < _maxCascades) {
+    while (!budget.isExhausted && steps.length < _maxCascades) {
       final matches = detectMatches(current);
       if (matches.isEmpty) break;
+      budget.consume();
 
       final fused = _applyFusions(current, matches, currentAnchor);
       current = fused.board;
