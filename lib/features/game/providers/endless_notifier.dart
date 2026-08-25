@@ -230,6 +230,9 @@ class EndlessNotifier extends StateNotifier<EndlessState>
       explosions: state.explosions + 1,
       status: stuck ? EndlessStatus.stuck : EndlessStatus.playing,
       isRecord: stuck && state.score > _highScore,
+      // Ativar o Super 9 sempre produz um 9 — mesma régua de
+      // `GameNotifier._applySuperNineActivation`.
+      apexCelebrated: state.apexCelebrated || convertedFrom + 1 == kMaxDigit,
     );
 
     if (stuck) _saveIfRecord(state.score);
@@ -310,6 +313,11 @@ class EndlessNotifier extends StateNotifier<EndlessState>
       board = engine.placeObstacles(board, progression.obstaclesFor(step));
     }
 
+    // O decaimento das peças especiais só roda em jogada que **conta** como
+    // turno do jogador — o golpe de martelo não decai, mesma régua de
+    // `GameNotifier._finishMove`.
+    if (countsAsMove) board = engine.decaySpecials(board);
+
     final score = state.score + extraScore;
 
     // Uma varredura só serve às duas perguntas: ainda dá para jogar e qual é
@@ -333,9 +341,10 @@ class EndlessNotifier extends StateNotifier<EndlessState>
       isResolving: false,
       clearSelectedTile: true,
       clearRejectedSwap: true,
-      // `apexCelebrated`/`explosions` não mudam aqui: nenhuma fusão comum
-      // (Bloco 9 incluso) os altera mais — só a ativação do Super 9
-      // (`_applySuperNineActivation`) e o martelo os tocam.
+      // O clímax (Bloco 9/Super 9) é o que `apexCelebrated` celebra agora:
+      // primeira vez que o dígito máximo nasce nesta corrida.
+      apexCelebrated:
+          state.apexCelebrated || resolution.producedDigits.contains(kMaxDigit),
     );
 
     if (stuck) _saveIfRecord(score);

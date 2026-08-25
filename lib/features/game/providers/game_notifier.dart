@@ -9,6 +9,7 @@ import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
+import 'package:nine_fuse/features/game/domain/special_tile.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
@@ -330,6 +331,18 @@ class GameNotifier extends StateNotifier<GameState>
         _explosionFeedback();
       }
 
+      // Um Super 9 CRIADO nesta jogada merece a mesma apresentação de
+      // Supernova que a ativação já tem (spec: "Super 9 criado ou ativado
+      // nesta jogada: supernova"). Checagem direta em vez de rotear por
+      // `JuiceDirector`/`JuicePriority`: o sinal (`specialType` no
+      // `FusionEvent`) já é exatamente o que o director usaria, e uma
+      // checagem inline evita construir uma segunda máquina de prioridade
+      // só para este caso — `JuiceDirector` continua disponível para uma
+      // integração mais ampla no futuro.
+      final supernovaCreated = step.fusions.any(
+        (f) => f.specialType == SpecialTileType.superNine,
+      );
+
       state = state.copyWith(
         board: step.boardAfterFusion,
         score: runningScore,
@@ -339,7 +352,16 @@ class GameNotifier extends StateNotifier<GameState>
           for (final fusion in step.fusions)
             if (fusion.isBig) fusion.tileId,
         },
+        pendingSupernova: supernovaCreated ? true : null,
       );
+
+      if (supernovaCreated) {
+        // Mesmo hitstop que a ativação usa: o payoff do Supernova precisa do
+        // mesmo peso, nasça ele de uma troca ou de uma criação.
+        await _delay(JuiceTimings.supernovaHitstop);
+        if (!mounted) return;
+      }
+
       await _delay(JuiceTimings.fusion);
       if (!mounted) return;
 
@@ -395,10 +417,16 @@ class GameNotifier extends StateNotifier<GameState>
     // obstáculo, então não há `ObstacleHit` para contar.
     final produced = convertedFrom + 1;
     final objective = state.level.objective;
+    // A contagem certa é "quantos tiles tinham `convertedFrom` ANTES da
+    // troca" — cada um deles virou exatamente um tile promovido. Contar pela
+    // diferença depois/antes no board pós-`refill` (como uma versão anterior
+    // fazia) inflava o ganho: o `refill` completa só o buraco que o Super 9
+    // deixou, mas se a peça sorteada ali calhar de cair no valor-alvo, ela
+    // entra na conta como se fosse promoção — e é sorteio, não conversão.
     final gained =
         objective.type == ObjectiveType.reachDigit &&
             objective.digit == produced
-        ? _countValue(board, produced) - _countValue(state.board, produced)
+        ? _countValue(state.board, convertedFrom)
         : 0;
     final progress = state.objectiveProgress + gained;
 
@@ -437,6 +465,10 @@ class GameNotifier extends StateNotifier<GameState>
       endlessOfferShown: endlessOfferShown,
       pendingSupernova: true,
       isResolving: false,
+      // O clímax do jogo (Bloco 9/Super 9) substituiu a explosão antiga, e a
+      // celebração de "primeira vez que o dígito máximo aparece nesta
+      // partida" acompanha a troca: ativar o Super 9 sempre produz um 9.
+      apexCelebrated: state.apexCelebrated || produced == kMaxDigit,
     );
   }
 
@@ -472,9 +504,18 @@ class GameNotifier extends StateNotifier<GameState>
     // (ver `_applySuperNineActivation`, que não passa por `_finishMove`).
     final bonusMoves = state.bonusMoves;
 
+    // O decaimento das peças especiais só roda em jogada que **conta** como
+    // turno do jogador — o golpe de martelo não decai, pela mesma régua que
+    // já vale para `moves`. Sem isto, um Super 9 nunca criado por decaimento
+    // ficaria preso no tabuleiro para sempre, bloqueando qualquer outro (o
+    // limite é de 1 por vez).
+    final board = countsAsMove
+        ? engine.decaySpecials(resolution.board)
+        : resolution.board;
+
     // Uma varredura só serve às duas perguntas: existe jogada (senão a fase
     // acabou) e qual é ela (para a dica).
-    final hint = engine.findHint(resolution.board);
+    final hint = engine.findHint(board);
 
     final outcome = _outcomeAfterMove(
       progress: progress,
@@ -503,7 +544,7 @@ class GameNotifier extends StateNotifier<GameState>
         : state.endlessOfferShown;
 
     state = state.copyWith(
-      board: resolution.board,
+      board: board,
       score: state.score + extraScore,
       moves: moves,
       bonusMoves: bonusMoves,
@@ -520,9 +561,13 @@ class GameNotifier extends StateNotifier<GameState>
       clearSelectedTile: true,
       clearRejectedSwap: true,
       clearPendingSupernova: true,
-      // `apexCelebrated`/`explosions` não mudam aqui: nenhuma fusão comum
-      // (Bloco 9 incluso) os altera mais — só a ativação do Super 9
-      // (`_applySuperNineActivation`) e o martelo os tocam.
+      // O clímax (Bloco 9/Super 9) substituiu a explosão antiga como o que
+      // `apexCelebrated` celebra: dispara na primeira vez que o dígito
+      // máximo nasce nesta partida, criado por Bloco 9 ou Super 9 — os dois
+      // produzem `value == kMaxDigit` num `FusionEvent`, então checar
+      // `producedDigits` cobre ambos sem precisar olhar `specialType`.
+      apexCelebrated:
+          state.apexCelebrated || resolution.producedDigits.contains(kMaxDigit),
       consecutiveLosses: consecutiveLosses,
       endlessOfferShown: endlessOfferShown,
     );

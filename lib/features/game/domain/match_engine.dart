@@ -635,7 +635,16 @@ class MatchEngine {
       // bloqueadores ao redor do 9 recém-criado. Cascatas automáticas
       // seguintes (steps já não está vazio) não disparam o efeito.
       if (steps.isEmpty && fused.maxed.isNotEmpty) {
-        final cleared = _clearBlockersAround(current, fused.maxed);
+        // Uma cobertura já atingida por `_damageObstacles` neste mesmo passo
+        // não pode levar um segundo hit aqui: as duas vizinhanças (ortogonal
+        // da fusão, 3x3 do Bloco 9) costumam se sobrepor, e "um impacto por
+        // passo" é invariante do projeto.
+        final alreadyHit = {for (final hit in obstacleHits) hit.position};
+        final cleared = _clearBlockersAround(
+          current,
+          fused.maxed,
+          skip: alreadyHit,
+        );
         current = cleared.board;
         obstacleHits = [...obstacleHits, ...cleared.hits];
       }
@@ -721,14 +730,17 @@ class MatchEngine {
   /// célula, igual a [_damageObstacles].
   ({Board board, List<ObstacleHit> hits}) _clearBlockersAround(
     Board board,
-    Iterable<Position> centres,
-  ) {
+    Iterable<Position> centres, {
+    Set<Position> skip = const {},
+  }) {
     final touched = <Position>{};
     for (final centre in centres) {
       for (int row = centre.row - 1; row <= centre.row + 1; row++) {
         for (int col = centre.col - 1; col <= centre.col + 1; col++) {
           final position = Position(row: row, col: col);
-          if (Board.contains(position)) touched.add(position);
+          if (Board.contains(position) && !skip.contains(position)) {
+            touched.add(position);
+          }
         }
       }
     }

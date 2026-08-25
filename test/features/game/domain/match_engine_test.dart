@@ -683,6 +683,66 @@ void main() {
       );
       expect(resolution.countCleared(ObstacleType.ice), 0);
     });
+
+    // Achado da revisão final da branch: a vizinhança ortogonal que
+    // `_damageObstacles` já ataca (as combinações consumidas + seus vizinhos
+    // ortogonais) e a caixa 3x3 do Bloco 9 se sobrepõem quase inteiramente
+    // para um trio reto — é literalmente o que o teste anterior documenta
+    // ("a vizinhança ortogonal... coincide exatamente com a caixa 3x3"). Sem
+    // deduplicar por posição, uma cobertura na sobreposição levava DOIS hits
+    // no mesmo passo: um de `_damageObstacles`, outro de
+    // `_clearBlockersAround` — quebrando o "um impacto por passo" que o
+    // projeto documenta como invariante. Com vidro (2 HP) o efeito é visível:
+    // o bug faria `cleared` sair `true` já no primeiro (e único) passo.
+    test(
+      'uma cobertura na sobreposição das duas vizinhanças leva só um hit',
+      () {
+        var board = boardFromValues(baseGrid());
+        for (final col in [2, 3, 4]) {
+          final pos = Position(row: 3, col: col);
+          board = board.updateTile(
+            pos,
+            board.getTileAt(pos)!.copyWith(value: kMaxDigit - 1),
+          );
+        }
+        // (2,2) está nas duas vizinhanças: é canto da caixa 3x3 do Bloco 9
+        // (centro em (3,3)) **e** vizinho ortogonal de (3,2), uma das casas
+        // consumidas pela fusão.
+        const overlap = Position(row: 2, col: 2);
+        board = board.updateTile(
+          overlap,
+          board.getTileAt(overlap)!.withObstacle(ObstacleType.glass),
+        );
+
+        final glassId = board.getTileAt(overlap)!.id;
+        final resolution = engine.resolve(board);
+
+        final hits = resolution.steps
+            .expand((s) => s.obstacleHits)
+            .where((h) => h.position == overlap)
+            .toList();
+
+        expect(
+          hits,
+          hasLength(1),
+          reason: 'um impacto por passo, mesmo em posição tocada por dois '
+              'mecanismos de dano',
+        );
+        // A gravidade move a peça coberta como qualquer outra (é decisão de
+        // projeto registrada em CLAUDE.md: obstáculo cai com o resto), então
+        // procurar o vidro pelo **id** — não pela posição de origem — é o
+        // que garante achar a peça certa depois do assentamento.
+        final glassAfter = resolution.board
+            .getAllTiles()
+            .firstWhere((t) => t.id == glassId);
+        expect(
+          glassAfter.isBlocked,
+          isTrue,
+          reason: 'vidro (2 HP) não pode cair com um hit só',
+        );
+        expect(resolution.countCleared(ObstacleType.glass), 0);
+      },
+    );
   });
 
   group('Super 9 (5+ peças de valor 8)', () {

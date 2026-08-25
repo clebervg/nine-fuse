@@ -11,10 +11,12 @@ Jogo de quebra-cabeça estilo Match-3 Lógico (inspirado em Candy Crush + 2048) 
 1. **Mecânica de Fusão (Evolução dos Números):** 
    - Ao alinhar 3 ou mais números iguais (ex: três blocos `4`), eles não apenas somem.
    - O bloco central da combinação **evolui para o próximo número** (ex: vira um `5` energizado), e os outros blocos somem liberando espaço para a queda do topo.
-2. **A Assinatura do Número 9 (Lendário / Apex Tile):**
-   - Alcançar o número `9` é o clímax do jogo: ativa uma animação de onda de choque (*Shockwave*), elimina obstáculos/peças vizinhas fracas, concede **+3 movimentos bônus** (`kExplosionBonusMoves`) e dispara a celebração do evento NineFuse.
+2. **Bloco 9 e Super 9 (clímax do jogo — "o 9 resolve problemas, o Super 9 cria oportunidades"):**
+   - **Bloco 9** (fusão de 3-4 peças de valor 8): o `9` recém-nascido **permanece no tabuleiro** (não se consome) e limpa as coberturas na vizinhança 3x3 ao redor, sem remover peças e sem pagar movimentos bônus. Fusão de 4 peças soma um bônus de score estático.
+   - **Super 9** (fusão de 5+ peças de valor 8, no máximo um por vez no tabuleiro): nasce como peça especial que decai para `9` comum após 3 turnos sem uso. Trocá-lo com um vizinho `0-8` **converte todo aquele valor no tabuleiro inteiro** para o valor seguinte (sem gastar cascata — a resolução fica congelada até a jogada seguinte).
+   - `CascadeBudget` limita a 4 cascatas automáticas por jogada (regra de jogo, não rede de segurança).
 3. **Obstáculos do Tabuleiro (Gelo, Vidro, Pedra):**
-   - Elementos de bloqueio que adicionam variedade ao Level Design procedural (Gelo = 1 fusão adjacente; Vidro = 2 fusões; Pedra = 3 fusões ou Onda de Choque do 9).
+   - Elementos de bloqueio que adicionam variedade ao Level Design procedural (Gelo = 1 fusão adjacente; Vidro = 2 fusões; Pedra = 3 fusões ou a limpeza 3x3 do Bloco 9).
 4. **Modos de Jogo:**
    - **Campanha (Saga Map):** Fases com objetivos e limite de movimentos.
    - **Modo Recorde (Endless):** Desbloqueado após a fase 5. Janela de spawn progressiva e recorde persistido.

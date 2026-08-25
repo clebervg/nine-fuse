@@ -71,17 +71,18 @@ void main() {
       expect(notifierAt(_boardWithTrio(3)).state.apexCelebrated, isFalse);
     });
 
-    // O Bloco 9 (o 9 criado por uma combinação comum de 3-4 peças) deixou de
-    // acender o sinal: hoje ele só limpa bloqueador ao redor, sem o peso
-    // visual que justificava a comemoração. `apexCelebrated` fica reservado
-    // para o próximo evento de clímax do jogo — a ativação do Super 9 —, que
-    // ainda não liga este sinal nesta task (é polimento de apresentação,
-    // fora do escopo desta integração; ver nota no game_notifier.dart).
-    test('criar o dígito máximo (Bloco 9) não acende mais o sinal', () {
+    // O Bloco 9 (o 9 criado por uma combinação comum de 3-4 peças) e o
+    // Super 9 (criação ou ativação) são o clímax que substituiu a explosão
+    // antiga, e `apexCelebrated` voltou a acompanhá-los: é a mesma pergunta
+    // de sempre — "o jogador já viu o dígito máximo nesta partida?" —, só
+    // que agora respondida pelos dois eventos novos em vez de um `_detonate`
+    // que não existe mais. Achado da revisão final da branch: o sinal tinha
+    // ficado morto (nada mais o acendia) depois da remoção da explosão.
+    test('criar o dígito máximo (Bloco 9) acende o sinal', () {
       final notifier = notifierAt(_boardWithTrio(kMaxDigit - 1));
       _playTrio(notifier.swapTiles);
 
-      expect(notifier.state.apexCelebrated, isFalse);
+      expect(notifier.state.apexCelebrated, isTrue);
     });
 
     test('uma jogada comum não acende nada', () {
@@ -96,8 +97,8 @@ void main() {
     test('criar o dígito máximo ainda dispara o retorno tátil', () async {
       // A batida tátil é do Bloco 9 aprimorado (a fusão que cria o dígito
       // máximo), e continua ligada mesmo sem o clarão antigo — ver
-      // `EndlessNotifier._playResolution`. `apexCelebrated` não faz mais
-      // parte deste evento (ver comentário acima, no grupo da campanha).
+      // `EndlessNotifier._playResolution`. `apexCelebrated` acompanha o
+      // mesmo evento (ver comentário acima, no grupo da campanha).
       var beats = 0;
       EndlessNotifier.explosionFeedback = () => beats++;
       JuiceTimings.instantResolution = false;
@@ -122,6 +123,7 @@ void main() {
       }
 
       expect(beats, greaterThanOrEqualTo(1));
+      expect(notifier.state.apexCelebrated, isTrue);
     });
   });
 

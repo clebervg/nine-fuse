@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
@@ -19,6 +20,25 @@ import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
 class _BrokenHammerStorage extends InMemoryGameStorage {
   @override
   Future<int> readHammerCount() async => throw StateError('sem disco');
+}
+
+/// Sempre sorteia o maior valor possível dentro do intervalo pedido.
+///
+/// Usado para **forçar** a sobreposição que a maioria dos testes de Super 9
+/// evita de propósito: com a janela de sorteio cobrindo o valor promovido, o
+/// `refill` do buraco deixado pelo Super 9 sempre cai no mesmo valor que a
+/// conversão acabou de criar — o cenário em que a fórmula antiga (que
+/// contava a diferença de peças no tabuleiro depois do refill) inflava o
+/// ganho do objetivo em 1.
+class _AlwaysMaxRandom implements Random {
+  @override
+  int nextInt(int max) => max - 1;
+
+  @override
+  double nextDouble() => 0.999;
+
+  @override
+  bool nextBool() => true;
 }
 
 void main() {
@@ -608,6 +628,53 @@ void main() {
     );
 
     test(
+      'objetivo não infla quando o refill do buraco cai no mesmo valor '
+      'promovido (janela de sorteio sobrepondo o alvo)',
+      () async {
+        // Janela 1-4 inclui o valor promovido (4 = neighbourValue(3) + 1), e
+        // o Random dublado força o `refill` do buraco do Super 9 a sortear
+        // exatamente esse valor. A contagem certa continua sendo 4 (as 4
+        // peças que a conversão promoveu) — nunca 5, que é o que a fórmula
+        // antiga (diferença de peças no tabuleiro pós-refill) devolveria
+        // aqui.
+        final riggedNotifier = GameNotifier(
+          random: _AlwaysMaxRandom(),
+          storage: InMemoryGameStorage(),
+          delay: (_) async {},
+        );
+        const level = GameLevel(
+          number: 96,
+          objective: Objective(digit: 4, count: 10),
+          moveLimit: 500,
+          spawnMin: 1,
+          spawnMax: 4,
+        );
+        riggedNotifier.startLevel(level);
+        riggedNotifier.debugSetBoard(
+          superNineBoard(at: at, neighbourValue: 3, baseline: 1, count: 4),
+        );
+
+        riggedNotifier.swapTiles(at, neighbour);
+        await Future<void>.delayed(Duration.zero);
+
+        // Confere a premissa do teste: o buraco foi mesmo preenchido com o
+        // valor promovido (4) — senão o cenário não estaria exercitando a
+        // sobreposição que o teste existe para cobrir.
+        expect(
+          riggedNotifier.state.board.getAllTiles().where((t) => t.value == 4),
+          hasLength(5),
+          reason:
+              '4 peças promovidas + 1 do refill sorteado no mesmo valor',
+        );
+        expect(
+          riggedNotifier.state.objectiveProgress,
+          4,
+          reason: 'só as peças promovidas contam; o refill não é conversão',
+        );
+      },
+    );
+
+    test(
       'não credita objetivo de cobertura — a ativação não toca obstáculo',
       () async {
         const level = GameLevel(
@@ -730,6 +797,316 @@ void main() {
           ),
           isEmpty,
           reason: 'a promoção do Super 9 é a única jogada que valeu',
+        );
+      },
+    );
+  });
+
+  group('apresentação do Supernova na CRIAÇÃO do Super 9', () {
+    // Achado da revisão final da branch: o spec pede a apresentação de
+    // Supernova tanto para a ativação quanto para a CRIAÇÃO do Super 9
+    // ("Super 9 criado ou ativado nesta jogada: supernova"), mas só a
+    // ativação (Task 8) acendia `pendingSupernova`. `_playResolution`
+    // precisa da encenação passo a passo (não da resolução instantânea) para
+    // este teste fazer sentido: é ali, olhando `step.fusions`, que a
+    // detecção acontece.
+    setUp(() {
+      JuiceTimings.instantResolution = false;
+    });
+    tearDown(() {
+      JuiceTimings.instantResolution = true;
+    });
+
+    Board boardFromValues(List<List<int>> values) {
+      var board = Board.empty();
+      for (int row = 0; row < Board.boardSize; row++) {
+        for (int col = 0; col < Board.boardSize; col++) {
+          final position = Position(row: row, col: col);
+          board = board.updateTile(
+            position,
+            Tile(
+              id: 'r${row}c$col',
+              value: values[row][col],
+              position: position,
+            ),
+          );
+        }
+      }
+      return board;
+    }
+
+    /// Tabuleiro em que a troca (3,3)↔(4,3) completa uma fileira de 5 peças
+    /// de valor 8 na linha 3 — match de 5+, que cria um Super 9.
+    Board boardAboutToCreateSuperNine() {
+      final grid = [
+        for (int row = 0; row < Board.boardSize; row++)
+          [for (int col = 0; col < Board.boardSize; col++) (row + col) % 3],
+      ];
+      for (final col in [1, 2, 4, 5]) {
+        grid[3][col] = kMaxDigit - 1;
+      }
+      grid[3][3] = 0;
+      grid[4][3] = kMaxDigit - 1;
+      return boardFromValues(grid);
+    }
+
+    test(
+      'criar um Super 9 (não ativar) acende pendingSupernova',
+      () async {
+        final creationNotifier = GameNotifier(
+          random: Random(7),
+          storage: InMemoryGameStorage(),
+          delay: (_) async {},
+        );
+        creationNotifier.startLevel(
+          const GameLevel(
+            number: 100,
+            objective: Objective(digit: 8, count: 99),
+            moveLimit: 20,
+          ),
+        );
+        creationNotifier.debugSetBoard(boardAboutToCreateSuperNine());
+
+        // Criar o 9 dispara a batida tátil da fusão máxima, que fala com o
+        // canal de plataforma — sem binding de widget, `test()` puro estoura.
+        final realExplosion = GameNotifier.explosionFeedback;
+        GameNotifier.explosionFeedback = () {};
+        addTearDown(() => GameNotifier.explosionFeedback = realExplosion);
+
+        creationNotifier.swapTiles(
+          const Position(row: 3, col: 3),
+          const Position(row: 4, col: 3),
+        );
+        // `swapTiles` não é `async`: ele dispara `_playResolution` (que é) e
+        // devolve o controle assim que ela bate no primeiro `await` — que é
+        // exatamente o `_delay(JuiceTimings.supernovaHitstop)` logo depois
+        // de `pendingSupernova` ser ligado. Então, neste ponto síncrono, o
+        // sinal já deve estar aceso.
+        expect(
+          creationNotifier.state.pendingSupernova,
+          isTrue,
+          reason:
+              'a criação do Super 9 tem de acender o mesmo sinal que a '
+              'ativação já acende',
+        );
+
+        // Drena o resto da encenação até o fim da jogada.
+        for (int i = 0; i < 20; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        expect(
+          creationNotifier.state.board
+              .getAllTiles()
+              .where((t) => t.specialType == SpecialTileType.superNine),
+          hasLength(1),
+          reason: 'a jogada precisa mesmo ter criado o Super 9',
+        );
+        // `_finishMove` limpa o sinal ao fim da jogada — a mesma régua que já
+        // vale para a ativação.
+        expect(creationNotifier.state.pendingSupernova, isFalse);
+        expect(creationNotifier.state.apexCelebrated, isTrue);
+      },
+    );
+  });
+
+  group('decaimento do Super 9 numa jogada normal', () {
+    // Achado da revisão final da branch: `decaySpecials` só era chamado
+    // dentro de `_applySuperNineActivation` (a jogada que CONSOME um Super
+    // 9), nunca em `_finishMove` (a jogada normal). Como o limite de 1 Super
+    // 9 no tabuleiro é absoluto, um Super 9 nunca usado bloqueava para
+    // sempre qualquer Super 9 novo pelo resto da fase — o decaimento de 3
+    // turnos do spec nunca rodava de verdade.
+    //
+    // `JuiceTimings.instantResolution` já é `true` por padrão em toda a
+    // suíte (ver `test/flutter_test_config.dart`), então nada a configurar
+    // aqui.
+
+    Board boardFromValues(List<List<int>> values) {
+      var board = Board.empty();
+      for (int row = 0; row < Board.boardSize; row++) {
+        for (int col = 0; col < Board.boardSize; col++) {
+          final position = Position(row: row, col: col);
+          board = board.updateTile(
+            position,
+            Tile(
+              id: 'r${row}c$col',
+              value: values[row][col],
+              position: position,
+            ),
+          );
+        }
+      }
+      return board;
+    }
+
+    /// Tabuleiro com um trio em L pronto para fundir na troca (3,3)↔(4,3) —
+    /// em L, e não em fila, senão a troca seria recusada por não formar nada
+    /// de novo — mais um Super 9 fixo em (0,0), longe do trio, que nenhuma
+    /// das jogadas deste teste toca nem troca de lugar.
+    Board boardWithTrioAndSuperNine(int value, Tile superNine) {
+      final grid = [
+        for (int row = 0; row < Board.boardSize; row++)
+          [for (int col = 0; col < Board.boardSize; col++) (row + col) % 3],
+      ];
+      grid[4][2] = value;
+      grid[4][4] = value;
+      grid[3][3] = value;
+      return boardFromValues(grid).updateTile(superNine.position, superNine);
+    }
+
+    const superNinePosition = Position(row: 0, col: 0);
+    const swapA = Position(row: 3, col: 3);
+    const swapB = Position(row: 4, col: 3);
+
+    test(
+      'não usado em 3 jogadas normais, reverte para 9 comum',
+      () {
+        final decayNotifier = GameNotifier(
+          random: Random(7),
+          storage: InMemoryGameStorage(),
+        );
+        decayNotifier.startLevel(
+          const GameLevel(
+            number: 97,
+            objective: Objective(digit: 8, count: 99),
+            moveLimit: 20,
+          ),
+        );
+
+        var superNine = Tile.withSpecial(
+          id: 'super',
+          value: kMaxDigit,
+          position: superNinePosition,
+          specialType: SpecialTileType.superNine,
+        );
+
+        for (int turn = 1; turn <= 3; turn++) {
+          decayNotifier.debugSetBoard(
+            boardWithTrioAndSuperNine(5, superNine),
+          );
+          decayNotifier.swapTiles(swapA, swapB);
+
+          superNine = decayNotifier.state.board.getTileAt(superNinePosition)!;
+
+          if (turn < 3) {
+            expect(
+              superNine.specialType,
+              SpecialTileType.superNine,
+              reason: 'só decai depois de 3 turnos, não antes',
+            );
+          }
+        }
+
+        expect(
+          superNine.specialType,
+          isNull,
+          reason: 'decaiu para 9 comum depois de 3 jogadas sem ser usado',
+        );
+        expect(superNine.value, kMaxDigit);
+      },
+    );
+
+    test('o golpe de martelo não conta como turno e não decai', () {
+      final decayNotifier = GameNotifier(
+        random: Random(7),
+        storage: InMemoryGameStorage(),
+      );
+      decayNotifier.startLevel(
+        const GameLevel(
+          number: 98,
+          objective: Objective(digit: 8, count: 99),
+          moveLimit: 20,
+        ),
+      );
+      final superNine = Tile.withSpecial(
+        id: 'super',
+        value: kMaxDigit,
+        position: superNinePosition,
+        specialType: SpecialTileType.superNine,
+      );
+      decayNotifier.debugSetBoard(
+        boardWithTrioAndSuperNine(5, superNine),
+      );
+
+      // `strikeFeedback` fala com o canal de plataforma (haptic); sem
+      // binding de widget no ar, `test()` puro estoura.
+      final realStrike = HammerBooster.strikeFeedback;
+      HammerBooster.strikeFeedback = () {};
+      addTearDown(() => HammerBooster.strikeFeedback = realStrike);
+
+      // Empresta o inventário: o golpe recusa sem martelo.
+      decayNotifier.grantHammer();
+      decayNotifier.useHammer(const Position(row: 7, col: 7));
+
+      final result = decayNotifier.state.board.getTileAt(superNinePosition)!;
+      expect(
+        result.specialType,
+        SpecialTileType.superNine,
+        reason: 'o golpe não conta como turno do jogador',
+      );
+      expect(result.specialTurnsLeft, kSpecialTileLifespan);
+    });
+
+    test(
+      'ativado antes do 3º turno não recebe mais nenhum decaimento',
+      () async {
+        // O Super 9 é consumido pela própria ativação, então perguntar se
+        // "ele continua decaindo" depois disso não faz sentido — o que a
+        // regra garante é que a ativação em si só decai o resto do
+        // tabuleiro (outras peças especiais, se houvesse), nunca a peça que
+        // acabou de virar conversão. Aqui isso é verificado indiretamente:
+        // a ativação consome o Super 9 do tabuleiro, e ele não reaparece
+        // decaído em lugar nenhum.
+        final activationNotifier = GameNotifier(
+          random: Random(7),
+          storage: InMemoryGameStorage(),
+          delay: (_) async {},
+        );
+        activationNotifier.startLevel(
+          const GameLevel(
+            number: 99,
+            objective: Objective(digit: 6, count: 10),
+            moveLimit: 500,
+          ),
+        );
+        const at = Position(row: 4, col: 2);
+        const neighbour = Position(row: 4, col: 3);
+        var board = Board.empty();
+        var n = 0;
+        for (var row = 0; row < Board.boardSize; row++) {
+          for (var col = 0; col < Board.boardSize; col++) {
+            final position = Position(row: row, col: col);
+            board = board.updateTile(
+              position,
+              Tile(id: 't${n++}', value: 2, position: position),
+            );
+          }
+        }
+        board = board.updateTile(
+          neighbour,
+          board.getTileAt(neighbour)!.copyWith(value: 5),
+        );
+        board = board.updateTile(
+          at,
+          Tile.withSpecial(
+            id: 'super',
+            value: kMaxDigit,
+            position: at,
+            specialType: SpecialTileType.superNine,
+          ),
+        );
+        activationNotifier.debugSetBoard(board);
+
+        activationNotifier.swapTiles(at, neighbour);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          activationNotifier.state.board
+              .getAllTiles()
+              .where((t) => t.specialType == SpecialTileType.superNine),
+          isEmpty,
+          reason: 'a ativação consome o Super 9 — não sobra nada para decair',
         );
       },
     );
