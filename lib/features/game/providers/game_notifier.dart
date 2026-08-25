@@ -362,17 +362,43 @@ class GameNotifier extends StateNotifier<GameState>
     final moves = state.moves + 1;
     final hint = engine.findHint(decayed);
 
+    // A promoção em massa conta para o objetivo de dígito exatamente como uma
+    // peça nascida de fusão contaria: o que importa é que ela **passou a
+    // existir no tabuleiro** neste movimento, não o mecanismo que a criou.
+    // Objetivos de cobertura ganham zero aqui — a ativação nunca toca
+    // obstáculo, então não há `ObstacleHit` para contar.
+    final produced = convertedFrom + 1;
+    final objective = state.level.objective;
+    final gained =
+        objective.type == ObjectiveType.reachDigit &&
+            objective.digit == produced
+        ? _countValue(board, produced) - _countValue(state.board, produced)
+        : 0;
+    final progress = state.objectiveProgress + gained;
+
     final outcome = _outcomeAfterMove(
-      progress: state.objectiveProgress,
+      progress: progress,
       target: state.objectiveTarget,
       moves: moves,
       movesAvailable: state.level.moveLimit + state.bonusMoves,
       hasMove: hint != null,
     );
 
+    // Mesma régua de `_finishMove`: derrota soma, vitória zera, e só a
+    // vitória libera de novo a sugestão do Modo Recorde.
+    final consecutiveLosses = switch (outcome.status) {
+      GameStatus.lost => state.consecutiveLosses + 1,
+      GameStatus.won => 0,
+      _ => state.consecutiveLosses,
+    };
+    final endlessOfferShown = outcome.status == GameStatus.won
+        ? false
+        : state.endlessOfferShown;
+
     state = state.copyWith(
       board: decayed,
       moves: moves,
+      objectiveProgress: progress,
       clearSelectedTile: true,
       clearRejectedSwap: true,
       hint: hint,
@@ -381,8 +407,18 @@ class GameNotifier extends StateNotifier<GameState>
       status: outcome.status,
       lossReason: outcome.loss,
       clearLossReason: outcome.loss == null,
+      consecutiveLosses: consecutiveLosses,
+      endlessOfferShown: endlessOfferShown,
     );
   }
+
+  /// Quantas peças do tabuleiro têm o valor [value].
+  ///
+  /// Usado só para medir o ganho da ativação do Super 9 contra o objetivo de
+  /// dígito: a diferença entre a contagem depois e antes da conversão é
+  /// exatamente o número de peças que a promoção **criou** neste movimento.
+  int _countValue(Board board, int value) =>
+      board.getAllTiles().where((t) => t.value == value).length;
 
   /// Aplica o desfecho da jogada: objetivo, movimento, dica e situação da fase.
   ///

@@ -6,6 +6,7 @@ import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
+import 'package:nine_fuse/features/game/domain/special_tile.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
@@ -498,6 +499,132 @@ void main() {
       loseOnce();
       expect(notifier.state.consecutiveLosses, 4);
       expect(notifier.state.shouldOfferEndless, isFalse);
+    });
+  });
+
+  group('ativação do Super 9', () {
+    /// Tabuleiro 8x8 todo em [baseline], com [count] peças de [neighbourValue]
+    /// espalhadas (uma delas vizinha ao Super 9) e um Super 9 em [at].
+    ///
+    /// A janela de sorteio da fase (0-3, o padrão) fica sempre fora de
+    /// [neighbourValue]/[neighbourValue] + 1: assim a peça que o `refill`
+    /// repõe no lugar do Super 9 consumido nunca contamina a contagem do
+    /// objetivo.
+    Board superNineBoard({
+      required Position at,
+      required int neighbourValue,
+      required int baseline,
+      int count = 4,
+    }) {
+      var board = Board.empty();
+      var n = 0;
+      for (var row = 0; row < Board.boardSize; row++) {
+        for (var col = 0; col < Board.boardSize; col++) {
+          final position = Position(row: row, col: col);
+          board = board.updateTile(
+            position,
+            Tile(id: 't${n++}', value: baseline, position: position),
+          );
+        }
+      }
+
+      final neighbour = Position(row: at.row, col: at.col + 1);
+      final extraSlots = [
+        for (var col = 0; col < Board.boardSize; col++)
+          Position(row: 0, col: col),
+      ].where((p) => p != neighbour).take(count - 1);
+      final targets = [neighbour, ...extraSlots];
+
+      for (final position in targets) {
+        board = board.updateTile(
+          position,
+          board.getTileAt(position)!.copyWith(value: neighbourValue),
+        );
+      }
+
+      board = board.updateTile(
+        at,
+        Tile.withSpecial(
+          id: 'super',
+          value: kMaxDigit,
+          position: at,
+          specialType: SpecialTileType.superNine,
+        ),
+      );
+
+      return board;
+    }
+
+    const at = Position(row: 4, col: 2);
+    final neighbour = Position(row: at.row, col: at.col + 1);
+
+    test(
+      'promove todas as peças de X para X+1 e credita o objetivo de dígito',
+      () {
+        const level = GameLevel(
+          number: 90,
+          objective: Objective(digit: 6, count: 10),
+          moveLimit: 500,
+        );
+        notifier.startLevel(level);
+        notifier.debugSetBoard(
+          superNineBoard(at: at, neighbourValue: 5, baseline: 2, count: 4),
+        );
+
+        notifier.swapTiles(at, neighbour);
+
+        expect(notifier.state.status, GameStatus.playing);
+        expect(
+          notifier.state.board.getAllTiles().where((t) => t.value == 5),
+          isEmpty,
+          reason: 'todo valor 5 devia virar 6',
+        );
+        expect(
+          notifier.state.objectiveProgress,
+          4,
+          reason:
+              'as 4 peças promovidas para o dígito pedido contam como criadas',
+        );
+      },
+    );
+
+    test('não credita objetivo de cobertura — a ativação não toca obstáculo', () {
+      const level = GameLevel(
+        number: 91,
+        objective: Objective.clearObstacles(
+          obstacle: ObstacleType.ice,
+          count: 1,
+        ),
+        moveLimit: 500,
+      );
+      notifier.startLevel(level);
+      notifier.debugSetBoard(
+        superNineBoard(at: at, neighbourValue: 5, baseline: 2, count: 4),
+      );
+
+      notifier.swapTiles(at, neighbour);
+
+      expect(notifier.state.objectiveProgress, 0);
+    });
+
+    test('uma derrota causada pela ativação incrementa consecutiveLosses', () {
+      // Uma jogada só: a ativação consome o único movimento disponível, e o
+      // objetivo (inalcançável) segue longe — a mesma armadilha do grupo
+      // "sugestão de migração para o Endless".
+      const stuck = GameLevel(
+        number: 92,
+        objective: Objective(digit: kMaxDigit, count: 9),
+        moveLimit: 1,
+      );
+      notifier.startLevel(stuck);
+      notifier.debugSetBoard(
+        superNineBoard(at: at, neighbourValue: 5, baseline: 2, count: 4),
+      );
+
+      notifier.swapTiles(at, neighbour);
+
+      expect(notifier.state.status, GameStatus.lost);
+      expect(notifier.state.consecutiveLosses, 1);
     });
   });
 
