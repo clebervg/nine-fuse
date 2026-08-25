@@ -11,7 +11,7 @@ Baseline: `flutter test` completo — 740 testes passando.
 ## Tarefas
 - [x] 1 SpecialTileType + Tile.withSpecial — completa (commit b4b0360..7976e23, revisão aprovada, 743 testes)
 - [x] 2 CascadeBudget — completa (commit 07db656..8ef97c5, revisão aprovada, 744 testes). Ajuste fora do brief, verificado pelo revisor: teste pré-existente "o ciclo fecha" precisou aceitar match pendente quando steps.length == kCascadeBudgetPerTurn (consequência esperada da mudança de semântica).
-- [ ] 3 Bloco 9 — remove explosão antiga, limpa bloqueadores
+- [x] 3 Bloco 9 — completa (commit fd6e471..099a6e2, revisão aprovada, 86/86 testes do domínio). Duas correções de cenário de teste do brief (posições de gelo em cima do próprio trio; grade que não produzia o 9 em cascata) — verificadas pelo revisor como bugs genuínos do brief, não do motor.
 - [ ] 4 Super 9 — criação e limite de 1 ativo
 - [ ] 5 Super 9 — ativação por troca, conversão board-wide, decaimento
 - [ ] 6 Providers e UI — recompilar contra o novo contrato
@@ -20,6 +20,11 @@ Baseline: `flutter test` completo — 740 testes passando.
 - [ ] 9 Recalibrar economia e registrar achado
 
 ## Achados menores (para a revisão final triar)
+- T3: comentários obsoletos mencionando "explosão" removida (match_engine.dart, hoje
+  ~linhas 101 e 560 — números vão mudar com tasks seguintes).
+- T3: `_clearBlockersAround` varre a célula central (onde o 9 nasceu) no raio 3x3;
+  inofensivo (célula central nunca carrega obstáculo, pela invariante de que peça
+  coberta não entra em combinação), mas sem comentário explicando isso.
 
 ## Notas de execução
 - Ledger anterior deste arquivo (Dynamic Extra Moves, e depois Splash Screen) foi
