@@ -41,7 +41,6 @@ class GameOutcome {
   GameOutcome({
     required this.movesPlayed,
     required this.firstReach,
-    required this.explosions,
     required Map<int, List<int>> producedAt,
   }) {
     this.producedAt.addAll(producedAt);
@@ -65,9 +64,6 @@ class GameOutcome {
   /// fusão, em ordem. Peça vinda do sorteio não entra: para um objetivo de
   /// fase, "criar um 5" não é "receber um 5 do topo".
   final Map<int, List<int>> producedAt = {};
-
-  /// Total de explosões do dígito máximo na partida.
-  final int explosions;
 }
 
 /// Joga uma partida inteira e registra quando cada dígito surgiu.
@@ -81,7 +77,6 @@ GameOutcome playGame({
   final firstReach = <int, int>{};
   final producedAt = <int, List<int>>{};
   var moves = 0;
-  var explosions = 0;
 
   // Os dígitos do tabuleiro inicial contam como alcançados no movimento 0.
   for (final tile in board.getAllTiles()) {
@@ -103,7 +98,6 @@ GameOutcome playGame({
     );
     board = resolution.board;
     moves++;
-    explosions += resolution.explosions;
 
     for (final digit in resolution.producedDigits) {
       producedAt.putIfAbsent(digit, () => []).add(moves);
@@ -117,7 +111,6 @@ GameOutcome playGame({
   return GameOutcome(
     movesPlayed: moves,
     firstReach: firstReach,
-    explosions: explosions,
     producedAt: producedAt,
   );
 }
@@ -193,7 +186,6 @@ void _report({
   required int moveCap,
   int spawnMin = kSpawnMin,
   int spawnMax = kSpawnMax,
-  ExplosionShape explosion = ExplosionShape.none,
 }) {
   final outcomes = <GameOutcome>[];
 
@@ -207,7 +199,6 @@ void _report({
           fusionRule: rule,
           spawnMin: spawnMin,
           spawnMax: spawnMax,
-          explosionShape: explosion,
         ),
         strategy: strategy,
         random: Random(1000 + seed),
@@ -241,14 +232,9 @@ void _report({
 
   final lengths = outcomes.map((o) => o.movesPlayed).toList();
   final stalled = outcomes.where((o) => o.movesPlayed < moveCap).length;
-  final blasts = outcomes.map((o) => o.explosions).toList();
   print('  ${'-' * 58}');
   print('  partida: mediana ${_median(lengths)} movimentos   '
       'TRAVOU em $stalled/${outcomes.length}');
-  if (blasts.any((b) => b > 0)) {
-    print('  explosões por partida: mediana ${_median(blasts)}   '
-        'máx ${blasts.reduce(max)}');
-  }
 }
 
 /// Taxa de sucesso de uma fase (criar [count] peças de [digit]) para vários
@@ -779,40 +765,6 @@ void main(List<String> args) {
         20, 100, 1000, // limpe tudo: blocos 0, 8 e 98
       ],
     );
-  }
-
-  if (mode == 'explosion' || mode == 'both') {
-    print('');
-    print('#' * 62);
-    print('# C) EXPLOSÃO DO DÍGITO $kMaxDigit');
-    print('#' * 62);
-    print('# A peça no topo da escala não tem para onde evoluir. Sem uma');
-    print('# saída, peças altas sem parceiro assoreiam o tabuleiro. Aqui se');
-    print('# mede se a explosão dá vazão — olhar a linha TRAVOU.');
-    print('#');
-    print('# A explosão só age se o jogador chegar ao $kMaxDigit, então o');
-    print('# formato é cruzado com a janela de spawn: numa janela baixa a');
-    print('# válvula fica numa porta que ninguém alcança.');
-    print('#' * 62);
-
-    for (final window in [(0, 3), (2, 5), (3, 6)]) {
-      print('');
-      print('  === janela de spawn ${window.$1}-${window.$2} ===');
-      for (final shape in ExplosionShape.values) {
-        _report(
-          heading: 'Explosão: ${shape.name}',
-          subheading: 'Jogador: guloso   regra: graduada   '
-              'spawn ${window.$1}-${window.$2}',
-          rule: const TieredFusion(),
-          strategy: Strategy.greedy,
-          games: games,
-          moveCap: moveCap,
-          spawnMin: window.$1,
-          spawnMax: window.$2,
-          explosion: shape,
-        );
-      }
-    }
   }
 
   if (mode == 'spawn' || mode == 'both') {

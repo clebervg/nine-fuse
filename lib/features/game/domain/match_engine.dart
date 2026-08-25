@@ -9,6 +9,10 @@ import 'package:nine_fuse/features/game/domain/tile.dart';
 /// Dígito máximo do jogo.
 const int kMaxDigit = 9;
 
+/// Bônus de score estático do Bloco 9 aprimorado (fusão de 4 peças de valor
+/// 8). Não muda a mecânica de limpeza — só o placar.
+const int kBigNineScoreBonus = 200;
+
 /// Menor e maior valor sorteados na criação do tabuleiro e na reposição do
 /// topo. O MVP usa 0-3 para facilitar os primeiros movimentos.
 const int kSpawnMin = 0;
@@ -26,14 +30,6 @@ const int kSpawnWidth = 4;
 
 /// Comprimento mínimo de uma combinação.
 const int kMinMatch = 3;
-
-/// Movimentos devolvidos ao jogador por cada dígito máximo criado.
-///
-/// A explosão já limpa o tabuleiro, mas isso é recompensa de *espaço*, não de
-/// *fase*: quem gastou jogadas montando o 9 continuava perdendo no saldo. Três
-/// é o suficiente para pagar o investimento sem transformar a fase em infinita
-/// — na campanha o 9 só é alcançável nas fases finais, e uma vez por partida.
-const int kExplosionBonusMoves = 3;
 
 /// Teto de cascatas por movimento. É rede de segurança contra loop, não
 /// regra de jogo — em partida normal nunca deve ser alcançado.
@@ -55,26 +51,6 @@ class CascadeBudget {
   bool get isExhausted => remaining <= 0;
 
   void consume() => remaining--;
-}
-
-/// O que acontece quando uma fusão cria o dígito máximo.
-///
-/// A peça no topo da escala não tem para onde evoluir, e não há como juntar
-/// três dela com facilidade. Sem uma saída, peças de valor alto acumulam sem
-/// parceiro e o tabuleiro assoreia até não haver mais troca válida — foi o que
-/// a simulação mostrou ser o verdadeiro limite do jogo, não a economia da
-/// fusão. A explosão é essa saída: o dígito máximo se consome levando
-/// vizinhança com ele, devolvendo espaço.
-enum ExplosionShape {
-  /// Sem explosão: a peça fica no tabuleiro. Serve de linha de base para
-  /// medir o efeito das outras opções.
-  none,
-
-  /// Limpa o quadrado 3x3 centrado na peça (até 9 células).
-  area,
-
-  /// Limpa a linha e a coluna inteiras (até 15 células).
-  cross,
 }
 
 /// Tentativas de gerar um tabuleiro inicial jogável antes de desistir.
@@ -99,11 +75,6 @@ class Resolution {
   late final int fusions = steps.fold(
     0,
     (total, step) => total + step.fusions.length,
-  );
-
-  late final int explosions = steps.fold(
-    0,
-    (total, step) => total + step.explosionCentres.length,
   );
 
   /// Coberturas destruídas nesta resolução. É o que um objetivo de fase do
@@ -234,9 +205,6 @@ class ResolutionStep {
   const ResolutionStep({
     required this.cascade,
     required this.fusions,
-    required this.explosionCentres,
-    required this.clearedDigits,
-    this.clearedByExplosion = const {},
     required this.boardAfterFusion,
     required this.boardAfterSettle,
     required this.score,
@@ -247,30 +215,6 @@ class ResolutionStep {
   final int cascade;
 
   final List<FusionEvent> fusions;
-
-  /// Peças que alcançaram o dígito máximo e explodiram.
-  final List<Position> explosionCentres;
-
-  /// Peças que a explosão **destruiu**, e o dígito que cada uma tinha.
-  ///
-  /// Guarda o dígito de **antes** do estouro pelo mesmo motivo que `ObstacleHit`
-  /// guarda o tipo de antes do impacto: depois da explosão a célula está vazia,
-  /// e a UI não saberia de que cor pintar o estilhaço. Sem a cor, as peças
-  /// varridas somem sob o clarão branco e o jogador vê o tabuleiro mudar sem ver
-  /// o que a onda levou.
-  ///
-  /// É **subconjunto** de [clearedByExplosion], e a diferença é real: a fusão
-  /// que criou o dígito máximo já esvaziou as células das peças absorvidas, e a
-  /// onda passa por cima delas sem destruir nada. Um estilhaço ali mentiria
-  /// sobre o que a onda levou.
-  final Map<Position, int> clearedDigits;
-
-  /// Células **alcançadas** pela onda, com ou sem peça em cima.
-  ///
-  /// É o raio da explosão, e é o que a pontuação do clímax remunera: medir pelo
-  /// que havia de peça faria a mesma explosão render menos perto de uma borda
-  /// já vazia, punindo justamente quem montou o dígito máximo no canto.
-  final Set<Position> clearedByExplosion;
 
   /// Tabuleiro logo após fundir, **antes** de cair. É o quadro em que as peças
   /// absorvidas ainda estão visíveis encolhendo.
@@ -328,7 +272,6 @@ class MatchEngine {
     this.spawnMin = kSpawnMin,
     this.spawnMax = kSpawnMax,
     this.fusionRule = const TieredFusion(),
-    this.explosionShape = ExplosionShape.area,
     this.allowWideSpawn = false,
   }) : assert(spawnMin <= spawnMax),
        assert(
@@ -373,9 +316,6 @@ class MatchEngine {
 
   /// Economia do jogo: o que cada combinação produz.
   final FusionRule fusionRule;
-
-  /// O que acontece ao criar o dígito máximo.
-  final ExplosionShape explosionShape;
 
   /// Quantidade de valores distintos que podem ser sorteados.
   int get spawnWidth => spawnMax - spawnMin + 1;
@@ -572,8 +512,6 @@ class MatchEngine {
     final strike = ResolutionStep(
       cascade: 0,
       fusions: const [],
-      explosionCentres: const [],
-      clearedDigits: const {},
       boardAfterFusion: struck,
       boardAfterSettle: settled,
       score: 0,
@@ -625,33 +563,19 @@ class MatchEngine {
       final damage = _damageObstacles(current, fused.events);
       current = damage.board;
 
-      // A âncora vale só para a combinação do movimento do jogador.
-      currentAnchor = null;
-
-      // A explosão vem antes da queda: ela abre os vazios que a gravidade
-      // então preenche, no mesmo passo da cascata.
-      var cleared = <Position, int>{};
-      var swept = <Position>{};
-      // Só conta como explosão o que de fato estourou: com
-      // ExplosionShape.none a peça alcança o topo mas permanece no tabuleiro.
-      var detonated = const <Position>[];
-      // Todo passo começa só com os impactos da fusão; a explosão, quando
-      // existir, se junta a eles em vez de substituí-los.
       var obstacleHits = damage.hits;
 
-      if (fused.maxed.isNotEmpty && explosionShape != ExplosionShape.none) {
-        final blast = _detonate(current, fused.maxed);
-        current = blast.board;
-        stepScore += blast.score;
-        cleared = blast.cleared;
-        swept = blast.swept;
-        detonated = fused.maxed;
-        // A onda varre a célula inteira, cobertura incluída — e quem paga
-        // por "limpe toda a pedra" é o `ObstacleHit`, não o sumiço silencioso
-        // da peça. Era exatamente essa emissão que faltava: a pedra cedia na
-        // tela e o objetivo não via nada acontecer.
-        obstacleHits = _mergeObstacleHits(damage.hits, blast.sweptObstacles);
+      // Bloco 9: só a fusão do jogador (primeiro passo da resolução) limpa
+      // bloqueadores ao redor do 9 recém-criado. Cascatas automáticas
+      // seguintes (steps já não está vazio) não disparam o efeito.
+      if (steps.isEmpty && fused.maxed.isNotEmpty) {
+        final cleared = _clearBlockersAround(current, fused.maxed);
+        current = cleared.board;
+        obstacleHits = [...obstacleHits, ...cleared.hits];
       }
+
+      // A âncora vale só para a combinação do movimento do jogador.
+      currentAnchor = null;
 
       // Guardado antes da queda: é o quadro em que as peças absorvidas ainda
       // aparecem, e é o que a UI precisa para animar a fusão.
@@ -664,9 +588,6 @@ class MatchEngine {
         ResolutionStep(
           cascade: steps.length + 1,
           fusions: fused.events,
-          explosionCentres: detonated,
-          clearedDigits: cleared,
-          clearedByExplosion: swept,
           boardAfterFusion: afterFusion,
           boardAfterSettle: current,
           score: stepScore,
@@ -676,39 +597,6 @@ class MatchEngine {
     }
 
     return Resolution(board: current, steps: steps);
-  }
-
-  /// Junta os impactos da fusão com os da onda de choque no mesmo passo, sem
-  /// duplicar impacto em cobertura que as duas alcançaram.
-  ///
-  /// A regra do obstáculo é **um impacto por passo**, e a onda não é exceção
-  /// — mas ela destrói por inteiro, sempre. Uma cobertura já danificada pela
-  /// fusão e depois varrida pela explosão não pode continuar aparecendo como
-  /// "só trincada": ela sumiu do tabuleiro, e um hit que ainda diga
-  /// `cleared: false` é o mesmo bug de origem, só que disfarçado — o
-  /// objetivo ficaria devendo essa cobertura para sempre.
-  List<ObstacleHit> _mergeObstacleHits(
-    List<ObstacleHit> fusionHits,
-    Map<Position, ObstacleType> sweptObstacles,
-  ) {
-    if (sweptObstacles.isEmpty) return fusionHits;
-
-    final merged = [
-      for (final hit in fusionHits)
-        sweptObstacles.containsKey(hit.position)
-            ? ObstacleHit(position: hit.position, type: hit.type, remainingHp: 0)
-            : hit,
-    ];
-
-    final alreadyHit = fusionHits.map((h) => h.position).toSet();
-    for (final entry in sweptObstacles.entries) {
-      if (alreadyHit.contains(entry.key)) continue;
-      merged.add(
-        ObstacleHit(position: entry.key, type: entry.value, remainingHp: 0),
-      );
-    }
-
-    return merged;
   }
 
   /// Bate uma vez em cada cobertura encostada nas combinações de [events].
@@ -762,88 +650,42 @@ class MatchEngine {
   Iterable<Position> _orthogonalNeighbours(Position at) =>
       at.orthogonalNeighbours.where(Board.contains);
 
-  /// Limpa a vizinhança de cada peça que alcançou o dígito máximo, e a própria
-  /// peça. Explosões não encadeiam: uma peça destruída pelo estouro não
-  /// dispara o seu.
-  ({
+  /// Limpa as coberturas na vizinhança 3x3 de cada posição onde nasceu o
+  /// dígito máximo. Não remove peça nenhuma — só a cobertura, um impacto por
+  /// célula, igual a [_damageObstacles].
+  ({Board board, List<ObstacleHit> hits}) _clearBlockersAround(
     Board board,
-    int score,
-    Set<Position> swept,
-    Map<Position, int> cleared,
-    Map<Position, ObstacleType> sweptObstacles,
-  })
-  _detonate(
-    Board board,
-    List<Position> centres,
+    Iterable<Position> centres,
   ) {
-    final hit = <Position>{};
-
+    final touched = <Position>{};
     for (final centre in centres) {
-      hit.addAll(_blastRadius(centre));
+      for (int row = centre.row - 1; row <= centre.row + 1; row++) {
+        for (int col = centre.col - 1; col <= centre.col + 1; col++) {
+          final position = Position(row: row, col: col);
+          if (Board.contains(position)) touched.add(position);
+        }
+      }
     }
-
-    // O dígito é lido **antes** de a célula ser esvaziada: depois não há de onde
-    // tirar a cor do estilhaço. Célula já vazia fica de fora — não há peça
-    // varrida ali, e um estilhaço sobre o nada mentiria sobre o alcance da onda.
-    final cleared = <Position, int>{
-      for (final position in hit)
-        if (board.getTileAt(position) case final tile?)
-          position: tile.value,
-    };
-
-    // O tipo é o de **antes** da destruição, pela mesma razão do dígito acima:
-    // depois de nula a célula não guarda mais o que havia ali. É o que falta
-    // para o `_mergeObstacleHits` poder emitir o `ObstacleHit` que a onda
-    // sempre devia ter gerado — a pedra cedia na tela sem o objetivo saber.
-    final sweptObstacles = <Position, ObstacleType>{
-      for (final position in hit)
-        if (board.getTileAt(position) case final tile? when tile.isBlocked)
-          position: tile.obstacle,
-    };
 
     var result = board;
-    for (final position in hit) {
-      result = result.updateTile(position, null);
+    final hits = <ObstacleHit>[];
+
+    for (final position in touched) {
+      final tile = result.getTileAt(position);
+      if (tile == null || !tile.isBlocked) continue;
+
+      final damaged = tile.damageObstacle();
+      result = result.updateTile(position, damaged);
+      hits.add(
+        ObstacleHit(
+          position: position,
+          type: tile.obstacle,
+          remainingHp: damaged.obstacleHp,
+        ),
+      );
     }
 
-    // A explosão é o clímax do jogo: vale mais que uma fusão comum. A conta
-    // segue sendo por **célula alcançada**, e não por peça varrida: mudar para
-    // o mapa faria a explosão render menos perto de uma borda já vazia.
-    return (
-      board: result,
-      score: hit.length * 50,
-      swept: hit,
-      cleared: cleared,
-      sweptObstacles: sweptObstacles,
-    );
-  }
-
-  /// Células atingidas por uma explosão centrada em [centre], incluindo ela.
-  Iterable<Position> _blastRadius(Position centre) {
-    final hit = <Position>[];
-
-    switch (explosionShape) {
-      case ExplosionShape.none:
-        break;
-
-      case ExplosionShape.area:
-        for (int row = centre.row - 1; row <= centre.row + 1; row++) {
-          for (int col = centre.col - 1; col <= centre.col + 1; col++) {
-            final position = Position(row: row, col: col);
-            if (Board.contains(position)) hit.add(position);
-          }
-        }
-
-      case ExplosionShape.cross:
-        for (int col = 0; col < Board.boardSize; col++) {
-          hit.add(Position(row: centre.row, col: col));
-        }
-        for (int row = 0; row < Board.boardSize; row++) {
-          if (row != centre.row) hit.add(Position(row: row, col: centre.col));
-        }
-    }
-
-    return hit;
+    return (board: result, hits: hits);
   }
 
   /// Aplica de uma vez todas as combinações presentes em [board].
@@ -906,7 +748,10 @@ class MatchEngine {
             : Tile(id: _newId(), value: value, position: position);
         updates[position] = born;
 
-        if (match.length >= kBigMatch) bigFusions.add(born.id);
+        if (match.length >= kBigMatch) {
+          bigFusions.add(born.id);
+          if (value == kMaxDigit) score += kBigNineScoreBonus;
+        }
 
         score += value * 10;
         produced.add(value);
