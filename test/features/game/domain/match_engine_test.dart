@@ -6,6 +6,7 @@ import 'package:nine_fuse/features/game/domain/fusion_rule.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
+import 'package:nine_fuse/features/game/domain/special_tile.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 
 /// Monta um tabuleiro 8x8 a partir de uma matriz de valores.
@@ -509,6 +510,28 @@ void main() {
       expect(resolution.score, 0);
       expect(valuesOf(resolution.board), valuesOf(board));
     });
+
+    test('o orçamento de cascata para o loop em 4 passos, mesmo com match pendente', () {
+      // Corrente de match-3 que se realimenta: cada fusão de "1" cria um "2"
+      // que completa outro trio na linha de baixo, e assim por diante — sem
+      // limite, isso rodaria mais de 4 vezes.
+      final grid = baseGrid();
+      for (int row = 0; row < 6; row++) {
+        grid[row][0] = 1;
+        grid[row][1] = 1;
+        grid[row][2] = 0;
+      }
+      grid[6][0] = 9;
+      grid[6][1] = 9;
+      grid[6][2] = 9;
+      grid[7][0] = 9;
+      grid[7][1] = 9;
+      grid[7][2] = 9;
+
+      final resolution = engine.resolve(boardFromValues(grid));
+
+      expect(resolution.steps.length, lessThanOrEqualTo(kCascadeBudgetPerTurn));
+    });
   });
 
   group('configuração padrão', () {
@@ -522,13 +545,6 @@ void main() {
       expect(engine.fusionRule.valueMultiplier(5), greaterThanOrEqualTo(1.0));
     });
 
-    test('o dígito máximo explode em área', () {
-      expect(
-        MatchEngine(random: Random(0)).explosionShape,
-        ExplosionShape.area,
-      );
-    });
-
     test('começa sorteando 0-3, como pede o design do MVP', () {
       final engine = MatchEngine(random: Random(0));
 
@@ -537,129 +553,287 @@ void main() {
     });
   });
 
-  group('explosão do dígito máximo', () {
-    /// Trio de 8 no meio do tabuleiro: fundir gera um 9, que deve estourar.
-    /// Fica na linha 3 para que a explosão tenha vizinhança em todos os lados.
-    List<List<int>> nineGrid() {
-      final grid = baseGrid();
+  group('Bloco 9 (fusão que cria o dígito máximo)', () {
+    /// Trio de 8 no meio do tabuleiro, cercado de gelo — fundir gera um 9 e
+    /// deve limpar as coberturas ao redor, sem tocar em nenhum valor.
+    Board nineWithIceAround() {
+      var board = boardFromValues(baseGrid());
       for (final col in [2, 3, 4]) {
-        grid[3][col] = kMaxDigit - 1;
+        final pos = Position(row: 3, col: col);
+        board = board.updateTile(
+          pos,
+          board.getTileAt(pos)!.copyWith(value: kMaxDigit - 1),
+        );
       }
-      grid[3][5] = 0; // impede que o trio se torne uma sequência de 4
-      return grid;
+      // Não precisa de bloqueador em (3,5): o valor natural do grid base ali
+      // já é 2 (diferente de 8), então o trio nunca vira uma sequência de 4
+      // por acidente. Forçá-lo a 0 (como a primeira versão deste teste
+      // fazia) revelava um 0 idêntico ao gelo vizinho quando ele quebra,
+      // encadeando uma cascata espúria — o que o teste abaixo justamente
+      // não quer medir.
+
+      // Gelo nos quatro cantos da vizinhança 3x3 da célula central (3,3),
+      // onde a fusão nasce (âncora ausente, cai no meio da sequência reta).
+      // Não pode usar (3,2)/(3,4): são as próprias células do trio, e uma
+      // peça coberta não participa de combinação — cobri-las quebraria a
+      // fusão que o teste depende de existir.
+      for (final pos in const [
+        Position(row: 2, col: 2),
+        Position(row: 2, col: 4),
+        Position(row: 4, col: 2),
+        Position(row: 4, col: 4),
+      ]) {
+        board = board.updateTile(pos, board.getTileAt(pos)!.withObstacle(ObstacleType.ice));
+      }
+      return board;
     }
 
-    test('a fusão de três 8 realmente cria um 9', () {
-      final engine = MatchEngine(
-        random: Random(1),
-        explosionShape: ExplosionShape.none,
-      );
-
-      final resolution = engine.resolve(boardFromValues(nineGrid()));
+    test('a fusão de três 8 cria um 9 que permanece no tabuleiro', () {
+      final resolution = engine.resolve(nineWithIceAround());
 
       expect(resolution.highestProduced, kMaxDigit);
-    });
-
-    test('sem explosão, o 9 permanece ocupando célula', () {
-      final engine = MatchEngine(
-        random: Random(1),
-        spawnMin: 0,
-        spawnMax: 3,
-        explosionShape: ExplosionShape.none,
-      );
-
-      final resolution = engine.resolve(boardFromValues(nineGrid()));
-
-      expect(resolution.explosions, 0);
-      // O spawn nunca gera 9, então um 9 no tabuleiro só pode ser o da fusão.
       expect(
         resolution.board.getAllTiles().where((t) => t.value == kMaxDigit),
         hasLength(1),
+        reason: 'o Bloco 9 não se consome — só o gelo ao redor cede',
       );
     });
 
-    test('com explosão, o 9 se consome em vez de ficar no tabuleiro', () {
-      final engine = MatchEngine(
-        random: Random(1),
-        spawnMin: 0,
-        spawnMax: 3,
-        explosionShape: ExplosionShape.area,
+    test('limpa as coberturas na vizinhança 3x3 do 9 recém-criado', () {
+      final resolution = engine.resolve(nineWithIceAround());
+
+      expect(resolution.countCleared(ObstacleType.ice), 4);
+    });
+
+    test('não limpa bloqueador fora da vizinhança 3x3', () {
+      var board = nineWithIceAround();
+      const distant = Position(row: 0, col: 0);
+      board = board.updateTile(distant, board.getTileAt(distant)!.withObstacle(ObstacleType.ice));
+
+      final resolution = engine.resolve(board);
+
+      expect(resolution.countCleared(ObstacleType.ice), 4, reason: 'a distante não conta');
+      expect(resolution.board.getTileAt(distant)!.isBlocked, isTrue);
+    });
+
+    test('não dispara cascata própria — resolve em um passo só', () {
+      final resolution = engine.resolve(nineWithIceAround());
+      expect(resolution.cascades, 1);
+    });
+
+    test('4x8 aplica o bônus de score do Bloco 9 aprimorado', () {
+      final base = nineWithIceAround();
+      var big = base;
+      // Estende o trio para um quarteto: (3,1) também vira 8.
+      final extra = const Position(row: 3, col: 1);
+      big = big.updateTile(extra, big.getTileAt(extra)!.copyWith(value: kMaxDigit - 1));
+
+      final threeScore = MatchEngine(random: Random(1)).resolve(base).score;
+      final fourScore = MatchEngine(random: Random(1)).resolve(big).score;
+
+      expect(fourScore, greaterThanOrEqualTo(threeScore + kBigNineScoreBonus));
+    });
+
+    test('peças 8 combinadas numa cascata automática não limpam bloqueador', () {
+      // Duas fusões separadas: a do jogador (cascade 1) não produz 9; a
+      // cascata resultante (cascade 2) sim. O gelo (longe de qualquer célula
+      // tocada por qualquer uma das duas fusões) deve continuar intacto —
+      // provando que nada foi limpo por acidente numa jogada que não devia
+      // acionar o efeito nenhum.
+      //
+      // Nota de implementação: um gelo colado no 9 recém-nascido não serve
+      // para essa prova. Para um match reto (sem âncora, como toda cascata),
+      // a vizinhança ortogonal que `_damageObstacles` já cobre coincide
+      // exatamente com a caixa 3x3 do Bloco 9 — então qualquer gelo dentro
+      // dessa caixa já seria limpo pelo dano comum de fusão, mesmo com o
+      // efeito do Bloco 9 desativado. Só um gelo fora do alcance de **ambos**
+      // os mecanismos prova que a cascata não limpou nada além do de sempre.
+      final grid = baseGrid();
+      // Cascade 1: trio vertical de valor 5 na coluna 2 (linhas 4-6), abaixo
+      // de um 8 solto na linha 3. Ao fundir, libera duas células na coluna e
+      // o 8 cai duas linhas, pousando na linha 5 — a mesma linha onde as
+      // colunas 3 e 4 já têm um 8 parado, formando o trio que a cascata 2
+      // funde em 9.
+      grid[3][2] = kMaxDigit - 1;
+      grid[4][2] = 5;
+      grid[5][2] = 5;
+      grid[6][2] = 5;
+      grid[5][3] = kMaxDigit - 1;
+      grid[5][4] = kMaxDigit - 1;
+
+      var board = boardFromValues(grid);
+      const farFromEverything = Position(row: 0, col: 7);
+      board = board.updateTile(
+        farFromEverything,
+        board.getTileAt(farFromEverything)!.withObstacle(ObstacleType.ice),
       );
 
-      final resolution = engine.resolve(boardFromValues(nineGrid()));
+      final resolution = MatchEngine(random: Random(4)).resolve(board);
 
-      expect(resolution.explosions, 1);
+      // Só é uma prova útil se de fato houve uma cascata (cascade 2) que
+      // produziu o 9 — caso o cenário não force isso, o teste falha alto e
+      // pede ajuste da grade, em vez de passar sem testar nada.
+      final producedInCascade = resolution.steps
+          .where((s) => s.cascade > 1)
+          .any((s) => s.fusions.any((f) => f.value == kMaxDigit));
       expect(
-        resolution.board.getAllTiles().where((t) => t.value == kMaxDigit),
-        isEmpty,
-        reason: 'a peça no topo da escala deveria ter saído do tabuleiro',
-      );
-    });
-
-    test('a explosão em cruz limpa mais que a em área', () {
-      // Mesmo tabuleiro e mesma semente: a diferença é só o formato.
-      var areaScore = 0;
-      var crossScore = 0;
-
-      for (final shape in [ExplosionShape.area, ExplosionShape.cross]) {
-        final resolution = MatchEngine(
-          random: Random(2),
-          explosionShape: shape,
-        ).resolve(boardFromValues(nineGrid()));
-
-        if (shape == ExplosionShape.area) {
-          areaScore = resolution.score;
-        } else {
-          crossScore = resolution.score;
-        }
-      }
-
-      expect(crossScore, greaterThan(areaScore));
-    });
-
-    test('o tabuleiro volta a ficar cheio depois de estourar', () {
-      final engine = MatchEngine(
-        random: Random(3),
-        explosionShape: ExplosionShape.cross,
-      );
-
-      final resolution = engine.resolve(boardFromValues(nineGrid()));
-
-      expect(resolution.explosions, greaterThanOrEqualTo(1));
-      expect(
-        resolution.board.isFull,
+        producedInCascade,
         isTrue,
-        reason: 'a reposição deve preencher o rastro da explosão',
+        reason: 'cenário precisa produzir o 9 numa cascata, não no passo do jogador',
       );
-      expect(engine.detectMatches(resolution.board), isEmpty);
+      expect(resolution.countCleared(ObstacleType.ice), 0);
     });
 
-    test('a explosão não deixa nenhuma peça acima do dígito máximo', () {
-      // Com a regra graduada um match-5 de 8 pediria 10; precisa ser contido.
+    // Achado da revisão final da branch: a vizinhança ortogonal que
+    // `_damageObstacles` já ataca (as combinações consumidas + seus vizinhos
+    // ortogonais) e a caixa 3x3 do Bloco 9 se sobrepõem quase inteiramente
+    // para um trio reto — é literalmente o que o teste anterior documenta
+    // ("a vizinhança ortogonal... coincide exatamente com a caixa 3x3"). Sem
+    // deduplicar por posição, uma cobertura na sobreposição levava DOIS hits
+    // no mesmo passo: um de `_damageObstacles`, outro de
+    // `_clearBlockersAround` — quebrando o "um impacto por passo" que o
+    // projeto documenta como invariante. Com vidro (2 HP) o efeito é visível:
+    // o bug faria `cleared` sair `true` já no primeiro (e único) passo.
+    test(
+      'uma cobertura na sobreposição das duas vizinhanças leva só um hit',
+      () {
+        var board = boardFromValues(baseGrid());
+        for (final col in [2, 3, 4]) {
+          final pos = Position(row: 3, col: col);
+          board = board.updateTile(
+            pos,
+            board.getTileAt(pos)!.copyWith(value: kMaxDigit - 1),
+          );
+        }
+        // (2,2) está nas duas vizinhanças: é canto da caixa 3x3 do Bloco 9
+        // (centro em (3,3)) **e** vizinho ortogonal de (3,2), uma das casas
+        // consumidas pela fusão.
+        const overlap = Position(row: 2, col: 2);
+        board = board.updateTile(
+          overlap,
+          board.getTileAt(overlap)!.withObstacle(ObstacleType.glass),
+        );
+
+        final glassId = board.getTileAt(overlap)!.id;
+        final resolution = engine.resolve(board);
+
+        final hits = resolution.steps
+            .expand((s) => s.obstacleHits)
+            .where((h) => h.position == overlap)
+            .toList();
+
+        expect(
+          hits,
+          hasLength(1),
+          reason: 'um impacto por passo, mesmo em posição tocada por dois '
+              'mecanismos de dano',
+        );
+        // A gravidade move a peça coberta como qualquer outra (é decisão de
+        // projeto registrada em CLAUDE.md: obstáculo cai com o resto), então
+        // procurar o vidro pelo **id** — não pela posição de origem — é o
+        // que garante achar a peça certa depois do assentamento.
+        final glassAfter = resolution.board
+            .getAllTiles()
+            .firstWhere((t) => t.id == glassId);
+        expect(
+          glassAfter.isBlocked,
+          isTrue,
+          reason: 'vidro (2 HP) não pode cair com um hit só',
+        );
+        expect(resolution.countCleared(ObstacleType.glass), 0);
+      },
+    );
+  });
+
+  group('Super 9 (5+ peças de valor 8)', () {
+    Board fiveEights() {
       final grid = baseGrid();
       for (final col in [1, 2, 3, 4, 5]) {
         grid[3][col] = kMaxDigit - 1;
       }
+      return boardFromValues(grid);
+    }
 
-      final resolution = MatchEngine(
-        random: Random(6),
-        fusionRule: const TieredFusion(),
-      ).resolve(boardFromValues(grid));
+    test('match de 5+ peças 8 cria um Super 9, não um 9 comum', () {
+      final resolution = engine.resolve(fiveEights());
 
-      for (final tile in resolution.board.getAllTiles()) {
-        expect(tile.value, lessThanOrEqualTo(kMaxDigit));
-      }
+      final born = resolution.steps.first.fusions.firstWhere((f) => f.value == kMaxDigit);
+      expect(born.specialType, SpecialTileType.superNine);
+
+      final tile = resolution.board
+          .getAllTiles()
+          .firstWhere((t) => t.specialType == SpecialTileType.superNine);
+      expect(tile.value, kMaxDigit);
+      expect(tile.specialTurnsLeft, kSpecialTileLifespan);
     });
 
-    test('nenhuma explosão acontece quando nada alcança o topo', () {
-      final engine = MatchEngine(random: Random(1));
-      final grid = baseGrid();
-      for (final col in [2, 3, 4]) {
-        grid[3][col] = 4;
-      }
+    test('Super 9 também limpa bloqueadores ao nascer, como qualquer Bloco 9', () {
+      var board = fiveEights();
+      const neighbour = Position(row: 2, col: 3);
+      board = board.updateTile(neighbour, board.getTileAt(neighbour)!.withObstacle(ObstacleType.ice));
 
-      expect(engine.resolve(boardFromValues(grid)).explosions, 0);
+      final resolution = engine.resolve(board);
+      expect(resolution.countCleared(ObstacleType.ice), 1);
     });
+
+    test('só existe 1 Super 9 por vez: um segundo match de 5+ vira Bloco 9 comum', () {
+      // Monta um tabuleiro com um Super 9 já presente e força um segundo
+      // match de 5+ peças de valor 8 em outra área do tabuleiro.
+      var board = fiveEights();
+      const existing = Position(row: 6, col: 6);
+      board = board.updateTile(
+        existing,
+        Tile.withSpecial(id: 'existing', value: kMaxDigit, position: existing, specialType: SpecialTileType.superNine),
+      );
+
+      final resolution = engine.resolve(board);
+
+      final superNines = resolution.board
+          .getAllTiles()
+          .where((t) => t.specialType == SpecialTileType.superNine);
+      expect(superNines, hasLength(1), reason: 'nunca mais que um Super 9 no tabuleiro');
+
+      final newNine = resolution.steps.first.fusions.firstWhere((f) => f.value == kMaxDigit);
+      expect(newNine.specialType, isNull, reason: 'vira Bloco 9 comum, não um segundo Super 9');
+    });
+
+    test(
+      'duas combinações de 5+ peças 8 na MESMA resolução: só a primeira vira Super 9',
+      () {
+        // Dois grupos disjuntos de 5+ peças de valor 8, longe o bastante
+        // (linha 0 e linha 7) para não se tocarem, ambos já formados quando
+        // resolve() é chamado — logo processados na MESMA chamada de
+        // _applyFusions, exercitando o ramo do `updates` de
+        // _hasActiveSuperNine (não o do tabuleiro pré-existente).
+        final grid = baseGrid();
+        for (final col in [1, 2, 3, 4, 5]) {
+          grid[0][col] = kMaxDigit - 1;
+          grid[7][col] = kMaxDigit - 1;
+        }
+        final board = boardFromValues(grid);
+
+        final resolution = engine.resolve(board);
+
+        final superNines = resolution.board
+            .getAllTiles()
+            .where((t) => t.specialType == SpecialTileType.superNine);
+        expect(
+          superNines,
+          hasLength(1),
+          reason: 'apenas um Super 9 pode nascer, mesmo com dois matches de 5+ na mesma jogada',
+        );
+
+        final bornNines = resolution.steps.first.fusions
+            .where((f) => f.value == kMaxDigit)
+            .toList();
+        expect(bornNines, hasLength(2), reason: 'os dois matches de 5+ resolvem na mesma chamada');
+
+        final withSuperNine = bornNines.where((f) => f.specialType == SpecialTileType.superNine);
+        final plainNines = bornNines.where((f) => f.specialType == null);
+        expect(withSuperNine, hasLength(1));
+        expect(plainNines, hasLength(1), reason: 'o segundo match vira Bloco 9 comum');
+      },
+    );
   });
 
   group('findHint', () {
@@ -826,47 +1000,6 @@ void main() {
         resolution.score,
         resolution.steps.fold<int>(0, (total, s) => total + s.score),
       );
-    });
-
-    test('a explosão registra o centro e as células varridas', () {
-      final grid = baseGrid();
-      for (final col in [2, 3, 4]) {
-        grid[3][col] = kMaxDigit - 1;
-      }
-      grid[3][5] = 0;
-
-      final resolution = MatchEngine(
-        random: Random(1),
-        explosionShape: ExplosionShape.area,
-      ).resolve(boardFromValues(grid));
-
-      final step = resolution.steps.firstWhere(
-        (s) => s.explosionCentres.isNotEmpty,
-      );
-
-      expect(step.explosionCentres, hasLength(1));
-      // Área 3x3 no meio do tabuleiro.
-      expect(step.clearedByExplosion, hasLength(9));
-      expect(step.clearedByExplosion, contains(step.explosionCentres.first));
-    });
-
-    test('sem explosão configurada, nenhum centro é registrado', () {
-      final grid = baseGrid();
-      for (final col in [2, 3, 4]) {
-        grid[3][col] = kMaxDigit - 1;
-      }
-      grid[3][5] = 0;
-
-      final resolution = MatchEngine(
-        random: Random(1),
-        explosionShape: ExplosionShape.none,
-      ).resolve(boardFromValues(grid));
-
-      expect(resolution.explosions, 0);
-      for (final step in resolution.steps) {
-        expect(step.explosionCentres, isEmpty);
-        expect(step.clearedByExplosion, isEmpty);
-      }
     });
 
     test('tabuleiro sem combinação não gera passo nenhum', () {
@@ -1159,11 +1292,20 @@ void main() {
           board = resolution.board;
 
           expect(board.isFull, isTrue, reason: 'seed $seed: sobrou vazio');
-          expect(
-            e.detectMatches(board),
-            isEmpty,
-            reason: 'seed $seed: o ciclo parou com combinação pendente',
-          );
+          // O orçamento de cascata (kCascadeBudgetPerTurn) pode congelar o
+          // ciclo com uma combinação pendente de propósito — nesse caso
+          // resolve() já gastou o teto de passos da jogada, e o match
+          // restante só volta a ser resolvido na jogada seguinte.
+          final pendingMatch = e.detectMatches(board).isNotEmpty;
+          if (pendingMatch) {
+            expect(
+              resolution.steps.length,
+              kCascadeBudgetPerTurn,
+              reason:
+                  'seed $seed: sobrou combinação sem o orçamento de cascata '
+                  'ter sido totalmente consumido',
+            );
+          }
         }
       }
     });
@@ -1417,88 +1559,6 @@ void main() {
       );
     });
 
-    group('onda de choque do dígito máximo', () {
-      // ExplosionShape.cross varre a linha e a coluna inteiras, bem além da
-      // vizinhança que `_damageObstacles` já cobriu — é o que expõe a lacuna:
-      // a onda alcança uma cobertura distante da combinação, longe de qualquer
-      // impacto de fusão.
-      Board boardWithFarStone({required ObstacleType type}) {
-        final values = baseGrid();
-        values[3][2] = 8;
-        values[3][3] = 8;
-        values[3][4] = 8;
-        var board = boardFromValues(values);
-        // Fica na mesma linha da explosão (centro em (3,3)), mas fora da
-        // vizinhança ortogonal que a fusão já tocou.
-        board = cover(board, const Position(row: 3, col: 7), type);
-        return board;
-      }
-
-      test(
-        'o estouro varre uma cobertura distante e emite o impacto (era o bug)',
-        () {
-          final step = MatchEngine(
-            random: Random(1),
-            explosionShape: ExplosionShape.cross,
-          ).resolve(boardWithFarStone(type: ObstacleType.stone)).steps.first;
-
-          // A peça sumiu do tabuleiro — a onda varreu a célula inteira.
-          expect(
-            step.boardAfterFusion
-                .getTileAt(const Position(row: 3, col: 7))
-                ?.isBlocked,
-            isNot(isTrue),
-          );
-
-          // E o objetivo tem de saber disso: sem o hit, "limpe toda a pedra"
-          // ficaria impossível de vencer nessa jogada.
-          final hit = hitAt(step, const Position(row: 3, col: 7));
-          expect(hit, isNotNull);
-          expect(hit!.cleared, isTrue);
-        },
-      );
-
-      test('o hit do estouro traz o tipo de antes da destruição', () {
-        final step = MatchEngine(
-          random: Random(1),
-          explosionShape: ExplosionShape.cross,
-        ).resolve(boardWithFarStone(type: ObstacleType.glass)).steps.first;
-
-        final hit = hitAt(step, const Position(row: 3, col: 7))!;
-        expect(hit.type, ObstacleType.glass);
-        expect(hit.remainingHp, 0);
-      });
-
-      test(
-        'cobertura atingida por fusão e pelo estouro no mesmo passo recebe '
-        'um impacto só',
-        () {
-          // (3,5) encosta na combinação (leva dano de fusão) e também está na
-          // mesma linha do centro da explosão (leva a varredura). As duas
-          // fontes não podem virar dois impactos.
-          final board = cover(
-            boardWithFarStone(type: ObstacleType.ice),
-            const Position(row: 3, col: 5),
-            ObstacleType.stone,
-          );
-
-          final step = MatchEngine(
-            random: Random(1),
-            explosionShape: ExplosionShape.cross,
-          ).resolve(board).steps.first;
-
-          final hitsAt5 = step.obstacleHits.where(
-            (h) => h.position == const Position(row: 3, col: 5),
-          );
-          expect(hitsAt5, hasLength(1));
-          // A onda destrói por inteiro: o impacto único tem de refletir isso,
-          // e não a vida parcial que a fusão sozinha deixaria — senão a mesma
-          // cobertura some do tabuleiro sem o objetivo contar, que é
-          // exatamente o bug que esta correção fecha.
-          expect(hitsAt5.first.cleared, isTrue);
-        },
-      );
-    });
   });
 
   group('smash (Martelo de Fusão)', () {
@@ -1590,6 +1650,133 @@ void main() {
 
       expect(resolution.steps, isNotEmpty);
       expect(resolution.producedDigits, contains(6));
+    });
+  });
+
+  group('ativação do Super 9', () {
+    Board withSuperNineAt(Position at, {int neighbourValue = 3}) {
+      var board = boardFromValues(baseGrid());
+      board = board.updateTile(
+        at,
+        Tile.withSpecial(
+          id: 'super',
+          value: kMaxDigit,
+          position: at,
+          specialType: SpecialTileType.superNine,
+        ),
+      );
+      final neighbour = Position(row: at.row, col: at.col + 1);
+      board = board.updateTile(
+        neighbour,
+        board.getTileAt(neighbour)!.copyWith(value: neighbourValue),
+      );
+      return board;
+    }
+
+    test('trocar com um vizinho de valor x promove todo x para x+1', () {
+      const at = Position(row: 4, col: 2);
+      final neighbour = Position(row: at.row, col: at.col + 1);
+      var board = withSuperNineAt(at, neighbourValue: 3);
+      // Espalha mais peças de valor 3 pelo tabuleiro, fora da vizinhança do
+      // Super 9, para provar que a conversão é **board-wide**.
+      const distant = Position(row: 0, col: 6);
+      board = board.updateTile(distant, board.getTileAt(distant)!.copyWith(value: 3));
+
+      final result = engine.tryMove(board, at, neighbour);
+
+      expect(result, isA<MoveSuperNineActivated>());
+      final activated = result as MoveSuperNineActivated;
+      expect(activated.convertedFrom, 3);
+      expect(
+        activated.board.getAllTiles().where((t) => t.value == 3),
+        isEmpty,
+        reason: 'todo valor 3 devia virar 4',
+      );
+      expect(
+        activated.board.getTileAt(distant)!.value,
+        4,
+        reason: 'a peça distante também converte — é board-wide',
+      );
+    });
+
+    test('o próprio Super 9 é consumido pela conversão', () {
+      const at = Position(row: 4, col: 2);
+      final neighbour = Position(row: at.row, col: at.col + 1);
+      final board = withSuperNineAt(at);
+
+      final result = engine.tryMove(board, at, neighbour) as MoveSuperNineActivated;
+
+      expect(
+        result.board.getAllTiles().where((t) => t.specialType == SpecialTileType.superNine),
+        isEmpty,
+      );
+    });
+
+    test('preserva os ids das peças promovidas', () {
+      const at = Position(row: 4, col: 2);
+      final neighbour = Position(row: at.row, col: at.col + 1);
+      final board = withSuperNineAt(at, neighbourValue: 3);
+      final neighbourId = board.getTileAt(neighbour)!.id;
+
+      final result = engine.tryMove(board, at, neighbour) as MoveSuperNineActivated;
+
+      expect(result.board.getTileAt(neighbour)!.id, neighbourId);
+    });
+
+    test('não roda resolve() — um match criado pela conversão fica congelado', () {
+      const at = Position(row: 4, col: 2);
+      final neighbour = Position(row: at.row, col: at.col + 1);
+      var board = withSuperNineAt(at, neighbourValue: 3);
+      // Duas outras peças de valor 3 já formam, junto com a do vizinho, um
+      // trio na mesma linha depois da conversão para 4.
+      board = board.updateTile(
+        const Position(row: 4, col: 4),
+        board.getTileAt(const Position(row: 4, col: 4))!.copyWith(value: 3),
+      );
+      board = board.updateTile(
+        const Position(row: 4, col: 5),
+        board.getTileAt(const Position(row: 4, col: 5))!.copyWith(value: 3),
+      );
+
+      final result = engine.tryMove(board, at, neighbour) as MoveSuperNineActivated;
+
+      expect(
+        engine.detectMatches(result.board),
+        isNotEmpty,
+        reason: 'o match ficou pendente, não foi resolvido nem descartado',
+      );
+    });
+  });
+
+  group('MatchEngine.decaySpecials', () {
+    test('decrementa toda peça especial em um turno', () {
+      var board = boardFromValues(baseGrid());
+      const at = Position(row: 0, col: 0);
+      board = board.updateTile(
+        at,
+        Tile.withSpecial(id: 't', value: 5, position: at, specialType: SpecialTileType.wildcard),
+      );
+
+      final decayed = engine.decaySpecials(board);
+      expect(decayed.getTileAt(at)!.specialTurnsLeft, kSpecialTileLifespan - 1);
+    });
+
+    test('reverte para peça normal ao chegar a zero', () {
+      var board = boardFromValues(baseGrid());
+      const at = Position(row: 0, col: 0);
+      board = board.updateTile(
+        at,
+        Tile.withSpecial(id: 't', value: 5, position: at, specialType: SpecialTileType.wildcard),
+      );
+
+      var decayed = board;
+      for (int i = 0; i < kSpecialTileLifespan; i++) {
+        decayed = engine.decaySpecials(decayed);
+      }
+
+      final tile = decayed.getTileAt(at)!;
+      expect(tile.specialType, isNull);
+      expect(tile.value, 5);
     });
   });
 }

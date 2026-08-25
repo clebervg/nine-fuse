@@ -136,7 +136,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String tipApexExplodes(int digit) {
-    return 'O $digit não evolui: ele explode e limpa a área em volta.';
+    return 'O $digit não evolui: ele fica no tabuleiro e limpa os bloqueios ao redor.';
   }
 
   @override
@@ -249,7 +249,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get endlessHighestDigit => 'Maior dígito';
 
   @override
-  String get endlessExplosions => 'Explosões';
+  String get endlessExplosions => 'Super 9 ativados';
 
   @override
   String get endlessRestart => 'Nova corrida';
@@ -468,11 +468,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get storeShortDescription =>
-      'Match-3 de números: três iguais viram o próximo. Chegue ao 9 e detone o tabuleiro.';
+      'Match-3 de números: três iguais viram o próximo. Chegue ao 9 e libere o Super 9.';
 
   @override
   String get storeFullDescription =>
-      'NineFuse é um quebra-cabeça de números em que combinar não é só eliminar.\n\nAlinhe três dígitos iguais e o do meio EVOLUI para o próximo: três 4 viram um 5. Repita a fusão, planeje a cadeia e suba a escala até o clímax do jogo — o dígito 9, que detona numa onda de choque, limpa a vizinhança e devolve movimentos.\n\n• FUSÃO, NÃO SÓ ELIMINAÇÃO — a mecânica do Match-3 com a progressão do merge.\n• O RITUAL DO 9 — o dígito máximo explode, quebra pedras e paga movimentos bônus.\n• GELO, VIDRO E PEDRA — coberturas que cedem a 1, 2 ou 3 fusões encostadas.\n• CAMPANHA COM OBJETIVOS — alcance um dígito, quebre coberturas, limpe o tabuleiro.\n• MODO RECORDE — corrida sem limite de movimentos, com o seu recorde guardado.\n• MARTELO DE FUSÃO — quebre uma célula travada sem gastar jogada.\n• SEM TRAVA DE VIDAS — jogue quantas vezes quiser, na hora que quiser.\n\nVisual escuro, cores vibrantes por dígito e animações de fusão fluídas.';
+      'NineFuse é um quebra-cabeça de números em que combinar não é só eliminar.\n\nAlinhe três dígitos iguais e o do meio EVOLUI para o próximo: três 4 viram um 5. Repita a fusão, planeje a cadeia e suba a escala até o clímax do jogo — o dígito 9, que limpa os bloqueios ao redor, e o raro Super 9 (fusão de 5+), que converte todo um valor do tabuleiro numa única troca.\n\n• FUSÃO, NÃO SÓ ELIMINAÇÃO — a mecânica do Match-3 com a progressão do merge.\n• O RITUAL DO 9 — o dígito máximo limpa bloqueios ao redor, e o Super 9 promove o tabuleiro inteiro.\n• GELO, VIDRO E PEDRA — coberturas que cedem a 1, 2 ou 3 fusões encostadas.\n• CAMPANHA COM OBJETIVOS — alcance um dígito, quebre coberturas, limpe o tabuleiro.\n• MODO RECORDE — corrida sem limite de movimentos, com o seu recorde guardado.\n• MARTELO DE FUSÃO — quebre uma célula travada sem gastar jogada.\n• SEM TRAVA DE VIDAS — jogue quantas vezes quiser, na hora que quiser.\n\nVisual escuro, cores vibrantes por dígito e animações de fusão fluídas.';
 
   @override
   String get storeKeywords =>

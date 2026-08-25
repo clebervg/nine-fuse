@@ -3,8 +3,10 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/endless_progression.dart';
+import 'package:nine_fuse/features/game/domain/match_engine.dart' show kMaxDigit;
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
+import 'package:nine_fuse/features/game/domain/special_tile.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
@@ -485,6 +487,138 @@ void main() {
       expect(hammered.state.score, greaterThan(0));
       expect(storage.highScore, hammered.state.score);
     });
+  });
+
+  group('decaimento do Super 9', () {
+    // Achado do round 2 da revisão final da branch: `GameNotifier` já tinha
+    // teste para o decaimento, mas `EndlessNotifier` — que espelha a mesma
+    // regra em `_finishMove` — não tinha nenhum. Mesma estrutura de tabuleiro
+    // do teste irmão em `game_notifier_test.dart`.
+
+    Board boardFromValues(List<List<int>> values) {
+      var board = Board.empty();
+      for (int row = 0; row < Board.boardSize; row++) {
+        for (int col = 0; col < Board.boardSize; col++) {
+          final position = Position(row: row, col: col);
+          board = board.updateTile(
+            position,
+            Tile(id: 'r${row}c$col', value: values[row][col], position: position),
+          );
+        }
+      }
+      return board;
+    }
+
+    /// Tabuleiro com um trio em L pronto para fundir na troca (3,3)↔(4,3),
+    /// mais um Super 9 fixo em (0,0) que nenhuma das jogadas toca.
+    Board boardWithTrioAndSuperNine(int value, Tile superNine) {
+      final grid = [
+        for (int row = 0; row < Board.boardSize; row++)
+          [for (int col = 0; col < Board.boardSize; col++) (row + col) % 3],
+      ];
+      grid[4][2] = value;
+      grid[4][4] = value;
+      grid[3][3] = value;
+      return boardFromValues(grid).updateTile(superNine.position, superNine);
+    }
+
+    const superNinePosition = Position(row: 0, col: 0);
+    const swapA = Position(row: 3, col: 3);
+    const swapB = Position(row: 4, col: 3);
+
+    test('não usado em 3 jogadas normais, reverte para 9 comum', () async {
+      await notifier.start();
+
+      var superNine = Tile.withSpecial(
+        id: 'super',
+        value: kMaxDigit,
+        position: superNinePosition,
+        specialType: SpecialTileType.superNine,
+      );
+
+      for (int turn = 1; turn <= 3; turn++) {
+        notifier.debugSetBoard(boardWithTrioAndSuperNine(5, superNine));
+        notifier.swapTiles(swapA, swapB);
+
+        superNine = notifier.state.board.getTileAt(superNinePosition)!;
+
+        if (turn < 3) {
+          expect(
+            superNine.specialType,
+            SpecialTileType.superNine,
+            reason: 'só decai depois de 3 turnos, não antes',
+          );
+        }
+      }
+
+      expect(
+        superNine.specialType,
+        isNull,
+        reason: 'decaiu para 9 comum depois de 3 jogadas sem ser usado',
+      );
+      expect(superNine.value, kMaxDigit);
+    });
+
+    test(
+      'nascido NESTA jogada não decai na mesma jogada',
+      () async {
+        await notifier.start();
+
+        // Troca (3,3)↔(4,3) completa uma fileira de 5 peças de valor 8 na
+        // linha 3 — match de 5+, que cria o Super 9.
+        final grid = [
+          for (int row = 0; row < Board.boardSize; row++)
+            [for (int col = 0; col < Board.boardSize; col++) (row + col) % 3],
+        ];
+        for (final col in [1, 2, 4, 5]) {
+          grid[3][col] = kMaxDigit - 1;
+        }
+        grid[3][3] = 0;
+        grid[4][3] = kMaxDigit - 1;
+        notifier.debugSetBoard(boardFromValues(grid));
+
+        notifier.swapTiles(
+          const Position(row: 3, col: 3),
+          const Position(row: 4, col: 3),
+        );
+
+        var superNine = notifier.state.board
+            .getAllTiles()
+            .singleWhere((t) => t.specialType == SpecialTileType.superNine);
+        expect(
+          superNine.specialTurnsLeft,
+          kSpecialTileLifespan,
+          reason:
+              'nasceu nesta jogada — não pode ter decaído antes do jogador '
+              'ganhar o primeiro turno com ele',
+        );
+
+        // As 3 jogadas seguintes (não a que criou) decaem o Super 9.
+        for (int turn = 1; turn <= 3; turn++) {
+          notifier.debugSetBoard(
+            boardWithTrioAndSuperNine(
+              5,
+              superNine.copyWith(position: superNinePosition),
+            ),
+          );
+          notifier.swapTiles(swapA, swapB);
+
+          superNine = notifier.state.board.getTileAt(superNinePosition)!;
+
+          if (turn < 3) {
+            expect(superNine.specialType, SpecialTileType.superNine);
+          }
+        }
+
+        expect(
+          superNine.specialType,
+          isNull,
+          reason:
+              'decaiu para 9 comum depois de 3 jogadas normais separadas da '
+              'que o criou — 3 turnos de vida de verdade, não 2',
+        );
+      },
+    );
   });
 
   group('endlessIsUnlocked', () {

@@ -76,6 +76,7 @@ class GameState {
     this.hammer = const HammerState(),
     this.consecutiveLosses = 0,
     this.endlessOfferShown = false,
+    this.pendingSupernova = false,
   });
 
   final Board board;
@@ -161,16 +162,10 @@ class GameState {
   /// vê o tabuleiro antes e depois.
   final bool apexCelebrated;
 
-  /// Quantos dígitos máximos esta partida já detonou.
-  ///
-  /// Não se confunde com [apexCelebrated], que é um sinal de uma vez só: o
-  /// aviso de "FUSÃO MÁXIMA" aparece uma vez por partida, mas o **tranco** do
-  /// tabuleiro é de cada explosão. Um `bool` que nunca desliga não distingue a
-  /// segunda explosão da primeira, e a segunda não sacudiria nada.
-  ///
-  /// É contado por explosão, e não por jogada: uma cascata que detona dois
-  /// dígitos máximos soma dois — a mesma unidade que já paga o bônus de
-  /// movimentos em `kExplosionBonusMoves`.
+  /// Quantos eventos de clímax (hoje, ativações do Super 9) já aconteceram
+  /// na fase. Alimenta [shakeSerial] — o tranco de tela reage a qualquer
+  /// evento de clímax, e o Bloco 9 deixou de ser um deles (ele só limpa
+  /// bloqueador, sem o peso visual que justificava o tranco).
   final int explosions;
 
   /// O convite de reforço de saldo já foi mostrado nesta partida.
@@ -200,6 +195,12 @@ class GameState {
   /// continuaria verdadeiro a cada nova derrota depois da terceira, e o
   /// convite reabriria sozinho.
   final bool endlessOfferShown;
+
+  /// Aceso por uma jogada em que o Super 9 foi ativado. A tela lê para
+  /// mostrar o banner do Supernova, e apaga na jogada seguinte — mesmo
+  /// padrão de [rejectedSwap]: um sinal de "acabou de acontecer" que a UI lê
+  /// uma vez.
+  final bool pendingSupernova;
 
   /// O Martelo de Fusão: estoque, mira e último golpe.
   ///
@@ -334,6 +335,8 @@ class GameState {
     HammerState? hammer,
     int? consecutiveLosses,
     bool? endlessOfferShown,
+    bool? pendingSupernova,
+    bool clearPendingSupernova = false,
   }) => GameState(
     board: board ?? this.board,
     level: level ?? this.level,
@@ -364,6 +367,9 @@ class GameState {
     hammer: hammer ?? this.hammer,
     consecutiveLosses: consecutiveLosses ?? this.consecutiveLosses,
     endlessOfferShown: endlessOfferShown ?? this.endlessOfferShown,
+    pendingSupernova: clearPendingSupernova
+        ? false
+        : (pendingSupernova ?? this.pendingSupernova),
   );
 
   /// Estado antes de qualquer fase começar.
@@ -399,7 +405,8 @@ class GameState {
           boardObstacleGoal == other.boardObstacleGoal &&
           hammer == other.hammer &&
           consecutiveLosses == other.consecutiveLosses &&
-          endlessOfferShown == other.endlessOfferShown;
+          endlessOfferShown == other.endlessOfferShown &&
+          pendingSupernova == other.pendingSupernova;
 
   // `hashAll` em vez de `hash`: com os campos do martelo o estado passou de 20
   // componentes, que é o teto posicional de `Object.hash`.
@@ -427,6 +434,7 @@ class GameState {
     hammer,
     consecutiveLosses,
     endlessOfferShown,
+    pendingSupernova,
   ]);
 
   @override

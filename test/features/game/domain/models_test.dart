@@ -1,9 +1,48 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
+import 'package:nine_fuse/features/game/domain/special_tile.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 
 void main() {
+  group('peça especial', () {
+    test('Tile.withSpecial nasce com kSpecialTileLifespan turnos de vida', () {
+      final tile = Tile.withSpecial(
+        id: 't0',
+        value: 9,
+        position: const Position(row: 0, col: 0),
+        specialType: SpecialTileType.superNine,
+      );
+
+      expect(tile.specialType, SpecialTileType.superNine);
+      expect(tile.specialTurnsLeft, kSpecialTileLifespan);
+    });
+
+    test('decaySpecial: peça normal não muda', () {
+      const tile = Tile(id: 't0', value: 3, position: Position(row: 0, col: 0));
+      expect(tile.decaySpecial(), tile);
+    });
+
+    test('decaySpecial: decai um turno por chamada, até reverter no zero', () {
+      var tile = Tile.withSpecial(
+        id: 't0',
+        value: 5,
+        position: const Position(row: 0, col: 0),
+        specialType: SpecialTileType.wildcard,
+      );
+
+      tile = tile.decaySpecial();
+      expect(tile.specialTurnsLeft, 2);
+      tile = tile.decaySpecial();
+      expect(tile.specialTurnsLeft, 1);
+      tile = tile.decaySpecial();
+
+      expect(tile.specialType, isNull);
+      expect(tile.specialTurnsLeft, isNull);
+      expect(tile.value, 5, reason: 'reverte para peça normal do mesmo valor');
+    });
+  });
+
   group('Position', () {
     test('isAdjacentTo aceita apenas vizinhos ortogonais', () {
       const origin = Position(row: 4, col: 4);

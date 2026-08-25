@@ -1,11 +1,6 @@
 import 'dart:math';
 
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
-import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
-import 'package:nine_fuse/features/game/presentation/widgets/strike_shake.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
@@ -13,7 +8,6 @@ import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
-import '../../../support/localized.dart';
 
 /// Monta um tabuleiro 8x8 a partir de uma matriz de valores.
 Board _boardFromValues(List<List<int>> values) {
@@ -67,11 +61,17 @@ void main() {
       expect(notifierAt(_boardWithTrio(3)).state.explosions, 0);
     });
 
-    test('criar o dígito máximo conta uma explosão', () {
+    // O Bloco 9 (o 9 criado por uma combinação comum de 3-4 peças) deixou de
+    // contar como evento de clímax: ele só limpa bloqueador ao redor, sem o
+    // peso visual que justificava o tranco. `explosions` fica reservado para
+    // o próximo evento de clímax — a ativação do Super 9 —, que ainda não
+    // liga este sinal nesta task (é polimento de apresentação, fora do
+    // escopo desta integração; ver nota no game_notifier.dart).
+    test('criar o dígito máximo (Bloco 9) não conta mais explosão', () {
       final notifier = notifierAt(_boardWithTrio(kMaxDigit - 1));
       _playTrio(notifier.swapTiles);
 
-      expect(notifier.state.explosions, 1);
+      expect(notifier.state.explosions, 0);
     });
 
     test('uma jogada comum não conta explosão', () {
@@ -80,30 +80,19 @@ void main() {
 
       expect(notifier.state.explosions, 0);
     });
-
-    test('recomeçar a fase zera o contador', () {
-      final notifier = notifierAt(_boardWithTrio(kMaxDigit - 1));
-      _playTrio(notifier.swapTiles);
-      expect(notifier.state.explosions, 1);
-
-      notifier.restartLevel();
-
-      expect(notifier.state.explosions, 0);
-    });
   });
 
   group('sinal de tranco do tabuleiro', () {
     // O `StrikeShake` só sacode quando o serial **cresce**. Golpe de martelo e
-    // explosão do dígito máximo são dois motivos para o mesmo tranco, então o
-    // sinal precisa somar os dois — e nunca regredir dentro da partida, senão o
-    // segundo motivo cancelaria o primeiro em vez de sacudir.
-    test('a explosão faz o sinal de tranco crescer', () {
+    // ativação do Super 9 são os dois motivos do tranco hoje; o Bloco 9
+    // comum não é mais um deles (ver comentário acima).
+    test('criar o dígito máximo (Bloco 9) não mexe mais no sinal', () {
       final notifier = notifierAt(_boardWithTrio(kMaxDigit - 1));
       final before = notifier.state.shakeSerial;
 
       _playTrio(notifier.swapTiles);
 
-      expect(notifier.state.shakeSerial, greaterThan(before));
+      expect(notifier.state.shakeSerial, before);
     });
 
     test('uma jogada comum não mexe no sinal', () {
@@ -113,52 +102,6 @@ void main() {
       _playTrio(notifier.swapTiles);
 
       expect(notifier.state.shakeSerial, before);
-    });
-  });
-
-  group('a tela sacode o tabuleiro no clímax', () {
-    testWidgets('o tranco da campanha escuta o sinal de explosão', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(1200, 2600);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-
-      final notifier = GameNotifier(
-        random: Random(7),
-        storage: InMemoryGameStorage(),
-      );
-      const level = GameLevel(
-        number: 95,
-        objective: Objective(digit: kMaxDigit, count: 9),
-        moveLimit: 500,
-      );
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [gameProvider.overrideWith((ref) => notifier)],
-          child: localizedApp(home: const GameScreen(level: level)),
-        ),
-      );
-      await tester.pumpAndSettle();
-      if (find.byKey(startLevelKey).evaluate().isNotEmpty) {
-        await tester.tap(find.byKey(startLevelKey));
-        await tester.pumpAndSettle();
-      }
-
-      notifier.debugSetBoard(_boardWithTrio(kMaxDigit - 1));
-      _playTrio(notifier.swapTiles);
-      await tester.pump();
-
-      final shake = tester.widget<StrikeShake>(find.byType(StrikeShake));
-      expect(
-        shake.serial,
-        notifier.state.shakeSerial,
-        reason: 'a tela ainda escuta só o martelo, e a explosão não sacode',
-      );
-      expect(shake.serial, greaterThan(0));
-
-      await tester.pumpAndSettle();
     });
   });
 }

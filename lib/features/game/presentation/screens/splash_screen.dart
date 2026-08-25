@@ -21,12 +21,12 @@ const Duration kSplashDuration = Duration(milliseconds: 1800);
 /// para não travar `pumpAndSettle` em teste.
 ///
 /// O design original previa anéis de energia girando e um glow dourado por
-/// trás do logo durante o estágio power-up. O `assets/images/logo.png`
-/// reaproveitado não é a peça `9` dourada isolada: é um cartão "9F" de vidro
-/// ciano/magenta com um redemoinho de energia roxo/laranja já pintado na
-/// própria imagem. Sobrepor os anéis sintéticos duplicava esse redemoinho, e
-/// o glow dourado destoava das cores do cartão — por isso ambos foram
-/// removidos, mantendo o texto "NineFuse" surgindo no mesmo estágio.
+/// trás do logo durante o estágio power-up. Removidos: com o selo dourado
+/// atual (`assets/images/logo.png`, ver
+/// `docs/superpowers/specs/2026-08-25-brand-refresh-design.md`) o glow
+/// duplicaria o brilho que o próprio degradê do selo já sugere. O texto
+/// "NineFuse" continua surgindo no estágio power-up, agora em relevo
+/// (degradê dourado + sombra), no mesmo acabamento dos botões do jogo.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, this.onSplashComplete});
 
@@ -145,16 +145,7 @@ class _SplashScreenState extends State<SplashScreen>
               const SizedBox(height: 24),
               Opacity(
                 opacity: powerUp.clamp(0.0, 1.0),
-                child: const Text(
-                  'NineFuse',
-                  style: TextStyle(
-                    fontFamily: AppFonts.display,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: 1.2,
-                  ),
-                ),
+                child: const _WordmarkNineFuse(),
               ),
               const SizedBox(height: 32),
               SizedBox(
@@ -196,6 +187,58 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Wordmark "NineFuse" em relevo: "Nine" no degradê dourado do dígito 9
+/// (`AppColors.digit9` → `digit9Deep`), "Fuse" em branco sólido.
+///
+/// Não usa `TextStyle(shadows: ...)` porque este widget vive dentro do
+/// `Transform.scale` de saída da splash, e sombra de texto sob `Transform`
+/// se acumula fora de lugar no Impeller (ver o mesmo aviso em
+/// `game_dialog.dart`, `kGameTextShadow`). A sombra aqui é uma cópia do
+/// texto em cinza-escuro, deslocada 2px para baixo, por trás da cópia
+/// colorida — sombra "desenhada", não sombra de framework.
+///
+/// Duas peças de texto (`Row`), não um `Text.rich` com `ShaderMask` único:
+/// um único `Shader` teria de cobrir "NineFuse" inteiro, tingindo "Fuse" com
+/// o mesmo degradê dourado — o mockup aprovado pede "Fuse" branco sólido.
+class _WordmarkNineFuse extends StatelessWidget {
+  const _WordmarkNineFuse();
+
+  static const TextStyle _style = TextStyle(
+    fontFamily: AppFonts.display,
+    fontSize: 28,
+    fontWeight: FontWeight.w900,
+    letterSpacing: 1.2,
+    color: Colors.white,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned(
+          left: 0,
+          top: 2,
+          child: Text('NineFuse', style: _style.copyWith(color: const Color(0x66000000))),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [AppColors.digit9, AppColors.digit9Deep],
+              ).createShader(Rect.fromLTWH(0, 0, bounds.width, bounds.height)),
+              child: const Text('Nine', style: _style),
+            ),
+            const Text('Fuse', style: _style),
+          ],
+        ),
+      ],
     );
   }
 }
