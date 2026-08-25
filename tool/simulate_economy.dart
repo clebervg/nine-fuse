@@ -777,6 +777,11 @@ void main(List<String> args) {
         14, 22, 96, 103, 253, 1003, // dígito: blocos 0, 1, 8, 9, 24 e 99
         18, 108, 1008, // quebre N coberturas: blocos 0, 9 e 99
         20, 100, 1000, // limpe tudo: blocos 0, 8 e 98
+        // Bloco 11: primeiro em que a janela cíclica (`_spawnMinFor`) volta ao
+        // degrau baixo (2-5) depois de já ter subido — é a combinação que
+        // escapava do teto de contagem antes de [kHeavyDigitDistanceThreshold]
+        // existir (fase 124 media 0% mesmo no piso de movimentos escolhido).
+        122, 124,
       ],
     );
   }

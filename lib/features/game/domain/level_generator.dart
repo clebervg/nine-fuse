@@ -42,6 +42,24 @@ const int kMaxObjectiveCount = 6;
 /// ("crie 6 peças 9", medida em 0% até 90 movimentos) existir.
 const int kMaxApexObjectiveCount = 2;
 
+/// Distância (dígito-alvo menos o centro da janela de sorteio) a partir da
+/// qual um objetivo de dígito **não-ápice** também cai sob
+/// [kMaxApexObjectiveCount].
+///
+/// O mesmo efeito composto documentado em [kMaxApexObjectiveCount] — custo por
+/// peça subindo muito mais rápido que a distância linear — não é exclusivo do
+/// `9`. É consequência de a janela de sorteio **ciclar de volta para baixo**
+/// (`_spawnMinFor`): a fase 122 ("crie 6 peças 7", janela 2-5, distância 3,5)
+/// mede 6% de vitória mesmo no limite que a fórmula escolheu (25 movimentos), e
+/// a fase 124 ("crie 6 peças 8", mesma janela, distância 4,5) mede **0%** — os
+/// dois números vieram de `--mode=generated` depois que a fórmula linear já
+/// tinha sido aplicada, ou seja, o piso pesado ([kHeavyDigitMoveFloor]) não
+/// bastou. 3,0 é o corte: a fase 103 ("crie 6 peças 8", janela 4-7, distância
+/// 2,5) mede 100% e fica abaixo dele; a fase 22 ("crie 2 peças 9", distância
+/// 3,5, já protegida pelo teto de ápice) confirma que 3,5 já é território de
+/// ápice mesmo fora do dígito 9.
+const double kHeavyDigitDistanceThreshold = 3.0;
+
 /// Teto de coberturas no tabuleiro.
 ///
 /// `placeObstacles` descarta em silêncio a cobertura que não acha lugar — as
@@ -190,9 +208,21 @@ Objective _finalObjectiveFor(int number) {
       obstacles: obstacles,
     );
 
-    return _avoidRepetition(number: number, candidate: candidate, obstacles: obstacles);
+    return _avoidRepetition(
+      number: number,
+      candidate: candidate,
+      obstacles: obstacles,
+      spawnMax: spawnMax,
+    );
   });
 }
+
+/// Centro da janela de sorteio, a partir de [spawnMax].
+///
+/// `spawnMin` não precisa ser passado à parte: a janela tem sempre
+/// [kSpawnWidth] valores, então `spawnMin = spawnMax - kSpawnWidth + 1` e o
+/// centro cai direto em função de `spawnMax`.
+double _averageBoardTileLevel(int spawnMax) => spawnMax - (kSpawnWidth - 1) / 2;
 
 /// Evita que a fase [number] peça o mesmo `targetValue`/`targetCount` que a
 /// fase anterior ou a retrasada.
@@ -207,6 +237,7 @@ Objective _avoidRepetition({
   required int number,
   required Objective candidate,
   required ObstacleLayout obstacles,
+  required int spawnMax,
 }) {
   if (number <= kHandcraftedLevels + 1) {
     // Fase 11 é a primeira gerada: não há N-1 nem N-2 geradas para comparar.
@@ -229,7 +260,7 @@ Objective _avoidRepetition({
   var result = candidate;
   var attempts = 0;
   while (previous.any((past) => _samePattern(past, result)) && attempts < 10) {
-    result = _varied(result, obstacles, attempt: attempts);
+    result = _varied(result, obstacles, attempt: attempts, spawnMax: spawnMax);
     attempts++;
   }
   return result;
@@ -257,20 +288,35 @@ bool _samePattern(Objective a, Objective b) =>
 /// bloqueios"): vira uma fase de quebra de cobertura sobre o que o bloco já
 /// espalha, que tem seu próprio limite de movimentos calibrado
 /// (`kObstacleMovesPerUnit`) e não herda o custo inflado do dígito.
-Objective _varied(Objective candidate, ObstacleLayout obstacles, {required int attempt}) {
+Objective _varied(
+  Objective candidate,
+  ObstacleLayout obstacles, {
+  required int attempt,
+  required int spawnMax,
+}) {
   switch (candidate.type) {
     case ObjectiveType.reachDigit:
       if (attempt == 0) {
         final digit = candidate.digit!;
         final bumped = digit + 1;
-        // Empilhar para dentro do ápice por este caminho — que, ao contrário
-        // de [_objectiveFor], não sabe a distância até `spawnMax` — reproduziu
-        // a fase 96 ("crie 6 peças 9", janela 3-6, 0% até 90 movimentos): ver a
-        // nota de [kMaxApexObjectiveCount]. O ápice só é seguro quando nasce da
-        // fórmula que já respeita essa distância; aqui ele pula direto para o
-        // escape de cobertura.
-        if (digit < kMaxDigit && bumped < kMaxDigit) {
-          return Objective(digit: bumped, count: candidate.count);
+        // Empilhar para dentro do ápice por este caminho reproduziu a fase 96
+        // ("crie 6 peças 9", janela 3-6, 0% até 90 movimentos): ver a nota de
+        // [kMaxApexObjectiveCount]. Reduzir só o `count` do dígito bumpado não
+        // bastou para consertar o degrau abaixo do ápice: a fase 124 (janela
+        // 2-5, `digit` natural já saturado em `spawnMax + 2 = 7`, bumpado para
+        // 8) media **0%** mesmo em 16 movimentos e `count` já reduzido a 2 pelo
+        // teto — porque `bumped = 8` fica a distância 4,5 do centro da janela,
+        // acima de qualquer distância que [_objectiveFor] algum dia produz
+        // naturalmente ali (o teto natural do dígito é `spawnMax + 2`, ou seja
+        // distância no máximo 3,5). Empilhar para além desse teto natural entra
+        // em território nunca calibrado, e nenhum piso de movimentos cobre —
+        // por isso o bump só é aceito até `spawnMax + 2`; além disso, escapa
+        // para cobertura como o ápice já fazia.
+        final naturalCeiling = spawnMax + 2;
+        if (digit < kMaxDigit && bumped < kMaxDigit && bumped <= naturalCeiling) {
+          final distance = bumped - _averageBoardTileLevel(spawnMax);
+          final count = candidate.count.clamp(1, _maxCountFor(bumped, distance));
+          return Objective(digit: bumped, count: count);
         }
         return _toObstacleGoal(obstacles) ?? candidate;
       }
@@ -381,7 +427,8 @@ Objective _objectiveFor({
   // degrau de janela — uma fusão contra duas — sem precisar de outro eixo.
   final digit0 = position.isOdd ? spawnMax + 2 : spawnMax + 1;
   final digit = digit0 > kMaxDigit ? kMaxDigit : digit0;
-  final count = (1 + position % 3 + block ~/ 2).clamp(1, _maxCountFor(digit));
+  final distance = digit - _averageBoardTileLevel(spawnMax);
+  final count = (1 + position % 3 + block ~/ 2).clamp(1, _maxCountFor(digit, distance));
 
   return Objective(digit: digit, count: count);
 }
@@ -420,12 +467,18 @@ ObstacleLayout _obstaclesFor(int block) {
   return ObstacleLayout(ice: trimmedIce, glass: glass, stone: stone);
 }
 
-/// O teto de contagem que vale para um objetivo de dígito [digit].
+/// O teto de contagem que vale para um objetivo de dígito [digit] a
+/// [distance] de peças acima do centro da janela de sorteio.
 ///
-/// [kMaxApexObjectiveCount] no ápice, [kMaxObjectiveCount] em qualquer outro
-/// dígito — ver a nota de [kMaxApexObjectiveCount] para o porquê do ápice ter
-/// um teto próprio, bem mais baixo.
-int _maxCountFor(int digit) => digit == kMaxDigit ? kMaxApexObjectiveCount : kMaxObjectiveCount;
+/// [kMaxApexObjectiveCount] no ápice **e** em qualquer dígito cuja distância
+/// já esteja no mesmo território caro (ver [kHeavyDigitDistanceThreshold] —
+/// o efeito é o mesmo custo composto por peça, só que a janela cíclica pode
+/// reproduzi-lo em dígitos bem abaixo de 9). [kMaxObjectiveCount] no resto.
+int _maxCountFor(int digit, double distance) {
+  if (digit == kMaxDigit) return kMaxApexObjectiveCount;
+  if (distance >= kHeavyDigitDistanceThreshold) return kMaxApexObjectiveCount;
+  return kMaxObjectiveCount;
+}
 
 /// A cobertura mais dura que [layout] espalha.
 ObstacleType _hardestOf(ObstacleLayout layout) {
@@ -473,7 +526,10 @@ int _movesFor({
   // aperto por bloco.
   final paced = base * tighteningFactor * _pacingFactor(number);
 
-  final floor = _moveFloorFor(objective);
+  final distance = objective.type == ObjectiveType.reachDigit
+      ? objective.digit! - _averageBoardTileLevel(spawnMax)
+      : 0.0;
+  final floor = _moveFloorFor(objective, distance: distance);
   final result = paced.floor();
   return result < floor ? floor : result;
 }
@@ -494,16 +550,27 @@ double _digitMoves(Objective objective, {required int spawnMin, required int spa
   return objective.count * (objective.digit! - averageBoardTileLevel) + 8;
 }
 
-/// O piso de movimentos que vale para [objective].
+/// O piso de movimentos que vale para [objective], a [distance] peças acima
+/// do centro da janela de sorteio.
 ///
-/// [kHeavyDigitMoveFloor] só entra em fases de dígito que pedem mais de
-/// [kHeavyDigitCountThreshold] peças de nível [kHeavyDigitThreshold]+: são as
-/// únicas em que a fórmula linear de [_digitMoves] mediu curto na calibragem.
-/// Todo o resto continua no piso geral [kMinMoveLimit].
-int _moveFloorFor(Objective objective) {
+/// [kHeavyDigitMoveFloor] entra em duas situações, cada uma achada por uma
+/// calibragem diferente: fases de dígito com mais de
+/// [kHeavyDigitCountThreshold] peças de nível [kHeavyDigitThreshold]+ (a
+/// fórmula linear de [_digitMoves] mediu curto para essas na calibragem
+/// original), **e** qualquer fase de dígito cuja [distance] já esteja no
+/// território de [kHeavyDigitDistanceThreshold] — mesmo pedindo só 2 peças. A
+/// segunda faltava: a fase 124 ("crie 2 peças 8", janela 2-5, distância 4,5,
+/// já com `count` reduzido pelo teto de [kMaxApexObjectiveCount|_maxCountFor])
+/// media **0%** em 14 movimentos, porque `count == 2` não passa de
+/// [kHeavyDigitCountThreshold] e o piso pesado não entrava — a distância
+/// grande sozinha já basta para o custo composto por peça, sem precisar de
+/// contagem alta para expor o problema — [_maxCountFor] reduz `count`, mas
+/// não move a fase para fora do território caro. Todo o resto continua no
+/// piso geral [kMinMoveLimit].
+int _moveFloorFor(Objective objective, {required double distance}) {
   final isHeavyDigitGoal = objective.type == ObjectiveType.reachDigit &&
-      objective.count > kHeavyDigitCountThreshold &&
-      (objective.digit ?? 0) >= kHeavyDigitThreshold;
+      (objective.digit ?? 0) >= kHeavyDigitThreshold &&
+      (objective.count > kHeavyDigitCountThreshold || distance >= kHeavyDigitDistanceThreshold);
 
   return isHeavyDigitGoal ? kHeavyDigitMoveFloor : kMinMoveLimit;
 }

@@ -26,8 +26,16 @@ flutter_launcher_icons:
   min_sdk_android: 21
 
   # Android 8+ recorta a frente em círculo, quadrado ou outras máscaras
-  # conforme o aparelho. A frente já vem com a arte encolhida para a zona
-  # segura central.
+  # conforme o aparelho. `app_icon_foreground.png` é editado à mão (não vem do
+  # `prepare_icons.dart`): o logo é um PNG raster sem canal alfa embutido no
+  # SVG, então o `<g id="mark">` que a ferramenta espera para separar arte de
+  # fundo não existe, e o fallback dela usa o quadrado opaco inteiro como
+  # conteúdo — a zona segura de 66% então encolhe pelo raio até o canto do
+  # quadrado (~47% de preenchimento), pequeno demais para ler no launcher.
+  # A frente atual preenche ~90% do canvas, cortando minimamente os quatro
+  # cantos do vidro só em máscaras circulares (a maioria dos launchers atuais
+  # usa squircle/quadrado arredondado, onde não há corte). Preferir "ler bem
+  # na maioria dos aparelhos" a "nunca cortar 2px num aparelho raro".
   adaptive_icon_background: "#000028"
   adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
 
