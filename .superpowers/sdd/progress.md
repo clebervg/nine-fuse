@@ -12,7 +12,7 @@ Baseline: `flutter test` completo — 740 testes passando.
 - [x] 1 SpecialTileType + Tile.withSpecial — completa (commit b4b0360..7976e23, revisão aprovada, 743 testes)
 - [x] 2 CascadeBudget — completa (commit 07db656..8ef97c5, revisão aprovada, 744 testes). Ajuste fora do brief, verificado pelo revisor: teste pré-existente "o ciclo fecha" precisou aceitar match pendente quando steps.length == kCascadeBudgetPerTurn (consequência esperada da mudança de semântica).
 - [x] 3 Bloco 9 — completa (commit fd6e471..099a6e2, revisão aprovada, 86/86 testes do domínio). Duas correções de cenário de teste do brief (posições de gelo em cima do próprio trio; grade que não produzia o 9 em cascata) — verificadas pelo revisor como bugs genuínos do brief, não do motor.
-- [ ] 4 Super 9 — criação e limite de 1 ativo
+- [x] 4 Super 9 — criação e limite de 1 ativo — completa (commit 324508b..3d7899e, revisão aprovada após 1 rodada de fix, 90/90 testes). Fix: faltava teste do caso de duas fusões de 5+ na mesma jogada (cobertura do ramo `updates` de `_hasActiveSuperNine`).
 - [ ] 5 Super 9 — ativação por troca, conversão board-wide, decaimento
 - [ ] 6 Providers e UI — recompilar contra o novo contrato
 - [ ] 7 JuicePriority e JuiceDirector
