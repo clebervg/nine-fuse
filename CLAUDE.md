@@ -1374,3 +1374,40 @@ dois mecanismos alheios ao recurso (o flag só nasce `true` quando
 mudança de `runId` no mesmo listener); a guarda explícita documenta a
 invariante em vez de depender dela ficar de pé por composição de efeitos
 colaterais.
+
+### Recalibragem pós-Bloco 9: fases de pedra em janela alta caem fora do piso (2026-08-25)
+
+**A troca da explosão do 9 pelo Bloco 9 mede como o plano previa: só as fases
+de "pedra" em janela de sorteio alta perdem taxa de vitória de forma
+relevante — o resto da economia não se move fora do ruído de amostragem.**
+Comparação isolada só do efeito da mecânica, rodando `--mode=generated
+--games=200`, `--mode=obstacles --games=200` e `--mode=phases --games=200` no
+mesmo `level_generator.dart` antes (`745bf39`, pré-Bloco 9) e depois (fim da
+Task 8) da troca — sem tocar a fórmula de fases entre as duas medições:
+
+| fase | objetivo         | janela | mov | antes | depois |
+|------|------------------|--------|-----|-------|--------|
+| 1000 | Limpe todo stone | 5-8    | 25  | 63%   | 35%    |
+| 108  | Quebre 3 stone   | 4-7    | 33  | 51%   | 40%    |
+
+As outras nove linhas de `--mode=generated` (dígito, gelo, vidro e as fases de
+pedra em janela baixa) ficaram dentro de ±1-4pt — ruído de 200 partidas, não
+efeito. `--mode=obstacles` (limpe/quebre gelo, vidro, pedra) e `--mode=phases`
+(calibragem por dígito) saíram essencialmente idênticos nas duas medições.
+
+**Por quê:** a explosão antiga varria peças vizinhas fracas além de destruir
+cobertura — era isso que descongestionava um tabuleiro saturado de 9s numa
+janela de sorteio alta, onde quase toda fusão de topo já vira ápice. O
+Bloco 9 mantém a limpeza de cobertura (por isso as fases de pedra não
+zeraram), mas não remove mais peça nenhuma ao redor: sem esse desafogo, o
+tabuleiro em janela 5-8 entope mais rápido e sobra menos jogada útil dentro do
+mesmo limite de movimentos.
+
+**Não recalibrado nesta task, e é decisão explícita.** As duas fases (108 e
+1000, e qualquer fase do mesmo arquétipo/janela que o gerador produzir) já
+eram o piso reconhecido da campanha gerada antes da troca — pedra sempre foi
+a cobertura mais dura, e o bot guloso nunca mira a cobertura de propósito —,
+e agora estão mais abaixo ainda desse piso. Subir `kObstacleMovesPerUnit` para
+compensar é ajuste de constante, fora do escopo desta task (que era medir e
+registrar, não recalibrar); fica registrado como o próximo eixo a mexer se a
+queda se confirmar incômoda num jogador de verdade, e não só no bot.
