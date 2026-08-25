@@ -42,6 +42,37 @@ Baseline: `flutter test` completo — 740 testes passando.
   hoje (o widget não re-anima, já ficou completo), mas é inconsistência latente se
   ganhar um segundo consumidor.
 
+## Revisão final da branch (745bf39..06c1eba)
+
+Achados Critical/Important a corrigir antes do merge:
+1. CRITICAL: `decaySpecials` só é chamado dentro de `_applySuperNineActivation` (na
+   própria jogada que consome o Super 9) — nunca em `_finishMove`. O decaimento de
+   3 turnos nunca roda de verdade, e o limite de 1 Super 9 ativo trava para sempre
+   se o jogador nunca usar o que já nasceu.
+2. IMPORTANT: `_clearBlockersAround` (Bloco 9) soma hits com `_damageObstacles` sem
+   deduplicar posições — cobertura na vizinhança de ambos os raios (comum) leva 2
+   impactos no mesmo passo, quebrando a invariante "um impacto por passo".
+3. IMPORTANT: `objectiveProgress` da ativação do Super 9 mede diferença de contagem
+   no tabuleiro **depois** de `applyGravity`+`refill` — peças sorteadas pelo refill
+   no valor-alvo inflam o ganho. Devia contar só `_countValue(state.board,
+   convertedFrom)` (peças que existiam antes, por construção).
+4. IMPORTANT: `apexCelebrated` ficou morto (nenhum código liga mais) — a celebração
+   do dígito máximo sumiu de campanha e Endless sem decisão registrada.
+5. IMPORTANT: textos de UI/loja ainda descrevem a explosão antiga (`LevelTip.
+   apexExplodes`, ARBs de loja mencionando movimentos bônus).
+6. IMPORTANT: CLAUDE.md (topo do arquivo, "Core Gameplay") ainda descreve a
+   explosão antiga como mecânica atual; não há seção nova para Bloco 9/Super 9/
+   CascadeBudget.
+7. IMPORTANT: `JuiceDirector`/`JuicePriority` não são usados em produção — a
+   criação do Super 9 (5+ peças) não dispara o evento Supernova, só a ativação.
+
+Achados Minor (registrar, não bloqueiam): assimetria Endless sem apresentação
+Supernova (e sem guard/hitstop — risco futuro se alguém adicionar delay lá sem
+replicar o fix da corrida); comentários obsoletos remanescentes em match_engine.dart
+(linhas ~102, ~150, ~626); `_clearBlockersAround` sem comentário sobre célula
+central; `var stepScore` que nunca reatribui (podia ser `final`); sem teste
+end-to-end nascimento→ativação do Super 9 pelo notifier.
+
 ## Notas de execução
 - Ledger anterior deste arquivo (Dynamic Extra Moves, e depois Splash Screen) foi
   commitado sem querer na main de branches antigas; sobrescrito para começar este
