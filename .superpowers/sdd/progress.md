@@ -67,7 +67,9 @@ Achados Critical/Important a corrigir antes do merge:
    criação do Super 9 (5+ peças) não dispara o evento Supernova, só a ativação.
 
 Rodada de fix (commit 0e1c64d) corrigiu 5 dos 7 achados (2,3,4,5,6), verificados pela
-re-revisão. Achados 1 e 7 tiveram efeito colateral introduzido pelo próprio fix:
+re-revisão. Achados 1 e 7 tiveram efeito colateral introduzido pelo próprio fix
+(round 2), corrigido no commit 47e9c4e e confirmado pela terceira rodada de
+revisão: **Ready to merge: Yes**. 757/757 testes, `flutter analyze` limpo.
 - Achado 1 (decay): `decaySpecials` roda sobre `resolution.board`, que já contém o
   Super 9 recém-nascido nesta jogada — ele nasce com 3 turnos e já sai decaído para
   2 antes do jogador ter a chance de agir. Contradiz o spec ("decai a partir da
