@@ -4,6 +4,7 @@ import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/fusion_rule.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
+import 'package:nine_fuse/features/game/domain/special_tile.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 
 /// Dígito máximo do jogo.
@@ -161,6 +162,10 @@ class FusionOutcome {
 /// Quantas peças uma combinação precisa ter para valer efeito especial.
 const int kBigMatch = 4;
 
+/// Tamanho mínimo de combinação que cria um Super 9 em vez de um Bloco 9
+/// comum.
+const int kSuperNineMatchLength = 5;
+
 /// Uma fusão: quais peças foram consumidas, onde nasceu a nova e quanto valeu.
 ///
 /// A UI precisa disto para animar. Só o tabuleiro final não basta: sem saber
@@ -174,6 +179,7 @@ class FusionEvent {
     required this.value,
     required this.matchLength,
     required this.score,
+    this.specialType,
   });
 
   /// Todas as células da combinação, inclusive a que sobrevive.
@@ -188,6 +194,10 @@ class FusionEvent {
   final int value;
   final int matchLength;
   final int score;
+
+  /// Não nulo quando esta fusão criou uma peça especial (hoje, só o Super
+  /// 9). `null` é o caso comum.
+  final SpecialTileType? specialType;
 
   /// Combinação grande merece efeito próprio.
   bool get isBig => matchLength >= kBigMatch;
@@ -696,6 +706,19 @@ class MatchEngine {
   FusionOutcome fuse(Board board, {Position? anchor}) =>
       _applyFusions(board, detectMatches(board), anchor);
 
+  /// Existe um Super 9 no tabuleiro — olhando tanto o que já estava lá quanto
+  /// o que esta mesma passada de fusões já decidiu criar.
+  bool _hasActiveSuperNine(Board board, Map<Position, Tile?> updates) {
+    final inUpdates = updates.values.any(
+      (tile) => tile?.specialType == SpecialTileType.superNine,
+    );
+    if (inUpdates) return true;
+
+    return board
+        .getAllTiles()
+        .any((tile) => tile.specialType == SpecialTileType.superNine);
+  }
+
   FusionOutcome _applyFusions(
     Board board,
     List<List<Position>> matches,
@@ -741,11 +764,27 @@ class MatchEngine {
         }
 
         final value = outcome[i].clamp(0, kMaxDigit);
+        final isSurvivor = i == 0;
+        // Só a peça sobrevivente de uma combinação de 5+ vira Super 9 — e só
+        // quando não há outro no tabuleiro (nem um que esta mesma passada de
+        // fusões já tenha criado).
+        final becomesSuperNine = isSurvivor &&
+            value == kMaxDigit &&
+            match.length >= kSuperNineMatchLength &&
+            !_hasActiveSuperNine(board, updates);
+
         // A peça da fusão preserva a identidade da original, para que as
         // animações possam segui-la; as extras são peças novas.
-        final born = i == 0
-            ? tile.copyWith(value: value)
-            : Tile(id: _newId(), value: value, position: position);
+        final born = switch ((isSurvivor, becomesSuperNine)) {
+          (true, true) => Tile.withSpecial(
+              id: tile.id,
+              value: value,
+              position: position,
+              specialType: SpecialTileType.superNine,
+            ),
+          (true, false) => tile.copyWith(value: value),
+          (false, _) => Tile(id: _newId(), value: value, position: position),
+        };
         updates[position] = born;
 
         if (match.length >= kBigMatch) {
@@ -768,6 +807,7 @@ class MatchEngine {
             value: born.value,
             matchLength: match.length,
             score: score - scoreBefore,
+            specialType: born.specialType,
           ),
         );
       }

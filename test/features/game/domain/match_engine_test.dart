@@ -6,6 +6,7 @@ import 'package:nine_fuse/features/game/domain/fusion_rule.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
+import 'package:nine_fuse/features/game/domain/special_tile.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 
 /// Monta um tabuleiro 8x8 a partir de uma matriz de valores.
@@ -681,6 +682,59 @@ void main() {
         reason: 'cenário precisa produzir o 9 numa cascata, não no passo do jogador',
       );
       expect(resolution.countCleared(ObstacleType.ice), 0);
+    });
+  });
+
+  group('Super 9 (5+ peças de valor 8)', () {
+    Board fiveEights() {
+      final grid = baseGrid();
+      for (final col in [1, 2, 3, 4, 5]) {
+        grid[3][col] = kMaxDigit - 1;
+      }
+      return boardFromValues(grid);
+    }
+
+    test('match de 5+ peças 8 cria um Super 9, não um 9 comum', () {
+      final resolution = engine.resolve(fiveEights());
+
+      final born = resolution.steps.first.fusions.firstWhere((f) => f.value == kMaxDigit);
+      expect(born.specialType, SpecialTileType.superNine);
+
+      final tile = resolution.board
+          .getAllTiles()
+          .firstWhere((t) => t.specialType == SpecialTileType.superNine);
+      expect(tile.value, kMaxDigit);
+      expect(tile.specialTurnsLeft, kSpecialTileLifespan);
+    });
+
+    test('Super 9 também limpa bloqueadores ao nascer, como qualquer Bloco 9', () {
+      var board = fiveEights();
+      const neighbour = Position(row: 2, col: 3);
+      board = board.updateTile(neighbour, board.getTileAt(neighbour)!.withObstacle(ObstacleType.ice));
+
+      final resolution = engine.resolve(board);
+      expect(resolution.countCleared(ObstacleType.ice), 1);
+    });
+
+    test('só existe 1 Super 9 por vez: um segundo match de 5+ vira Bloco 9 comum', () {
+      // Monta um tabuleiro com um Super 9 já presente e força um segundo
+      // match de 5+ peças de valor 8 em outra área do tabuleiro.
+      var board = fiveEights();
+      const existing = Position(row: 6, col: 6);
+      board = board.updateTile(
+        existing,
+        Tile.withSpecial(id: 'existing', value: kMaxDigit, position: existing, specialType: SpecialTileType.superNine),
+      );
+
+      final resolution = engine.resolve(board);
+
+      final superNines = resolution.board
+          .getAllTiles()
+          .where((t) => t.specialType == SpecialTileType.superNine);
+      expect(superNines, hasLength(1), reason: 'nunca mais que um Super 9 no tabuleiro');
+
+      final newNine = resolution.steps.first.fusions.firstWhere((f) => f.value == kMaxDigit);
+      expect(newNine.specialType, isNull, reason: 'vira Bloco 9 comum, não um segundo Super 9');
     });
   });
 
