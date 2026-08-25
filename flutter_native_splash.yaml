@@ -11,20 +11,31 @@
 # transparente que alimenta a frente do ícone adaptativo (recorte do grupo
 # `<g id="mark">` de logo.svg), só que sem o encolhimento de zona segura
 # (`_insetForAdaptive`), que existe só por causa da máscara circular do ícone
-# e não se aplica à splash. Não é mais um recorte manual por flood-fill.
+# e não se aplica à splash legada. Não é mais um recorte manual por
+# flood-fill.
 #
 # A cor É AppColors.darkBackground (0xFF121212, ver
 # lib/core/constants/app_colors.dart) — o scaffoldBackgroundColor real do
 # app —, não uma cor tirada do próprio render: com o fundo do logo removido, a
 # splash deve casar com o primeiro frame de verdade (LevelSelectScreen), não
 # com a paleta do asset.
+#
+# O bloco `android_12:` aponta para um arquivo DIFERENTE do bloco legado, e é
+# de propósito: a splash do Android 12+ usa tratamento de máscara circular,
+# igual ao ícone adaptativo, então precisa da mesma versão já recortada pela
+# zona segura de 66% (`_insetForAdaptive`) — e essa versão já existe, é
+# `assets/icon/app_icon_foreground.png`, a mesma frente que o ícone
+# adaptativo usa. A splash legada usa a arte cheia (~70% do canvas, sem
+# recorte por máscara nenhuma) porque não há máscara ali para respeitar; usar
+# a versão cheia no Android 12+ cortaria os quatro cantos arredondados do
+# selo contra o círculo da máscara.
 flutter_native_splash:
   color: "#121212"
   image: assets/images/logo_splash.png
 
   android_12:
     color: "#121212"
-    image: assets/images/logo_splash.png
+    image: assets/icon/app_icon_foreground.png
 
   android: true
   ios: true

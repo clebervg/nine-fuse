@@ -71,12 +71,11 @@ Image _render(String svgPath, int side) {
 /// Escreve um SVG temporário contendo os `defs` e só o grupo `mark` — a arte
 /// sem o retângulo de fundo.
 ///
-/// Devolve `null` quando a fonte não tem o grupo `mark` — hoje é o caso do
-/// `logo.svg` atual, um export raster embutido em `<image>` sem grupos
-/// nomeados. Sem o grupo não há como separar arte de fundo, então o
-/// chamador cai para o logo inteiro como frente do adaptativo: a zona segura
-/// de 66% ainda é respeitada, mas o fundo (se a arte tiver algum, opaco) vai
-/// junto na frente em vez de vir só do `adaptive_icon_background`.
+/// Devolve `null` quando a fonte não tem o grupo `mark`; sem o grupo não há
+/// como separar arte de fundo, e quem chama cai para o logo inteiro como
+/// frente do adaptativo: a zona segura de 66% ainda é respeitada, mas o
+/// fundo (se a arte tiver algum, opaco) vai junto na frente em vez de vir só
+/// do `adaptive_icon_background`.
 File? _markOnlySvg(String source) {
   final svg = File(source).readAsStringSync();
 
