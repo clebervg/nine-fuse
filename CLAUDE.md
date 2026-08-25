@@ -1413,3 +1413,36 @@ e agora estão mais abaixo ainda desse piso. Subir `kObstacleMovesPerUnit` para
 compensar é ajuste de constante, fora do escopo desta task (que era medir e
 registrar, não recalibrar); fica registrado como o próximo eixo a mexer se a
 queda se confirmar incômoda num jogador de verdade, e não só no bot.
+
+### Refresh de identidade visual: selo vetorial substitui o crachá "9F" (2026-08-25)
+
+**`assets/images/logo.svg` voltou a ser vetor puro, com o grupo `<g
+id="mark">` que `tool/prepare_icons.dart` sempre esperou.** Em algum ponto
+depois da seção "AppIcon" (peça 3D com o glifo desenhado à mão) o arquivo
+tinha virado uma imagem raster embutida — um crachá "9F" de vidro com
+espirais, sem o grupo `mark` — e o pipeline vinha caindo no fallback
+documentado em `flutter_launcher_icons.yaml` (frente do adaptativo = logo
+inteiro, sem separar fundo) com um `app_icon_foreground.png` remendado à
+mão por cima. Ver `docs/superpowers/specs/2026-08-25-brand-refresh-design.md`
+e `docs/superpowers/plans/2026-08-25-brand-refresh.md` para a investigação e
+a reconstrução completas.
+
+**O dígito "9" do selo é um `<path>` exportado da Nunito Black, não mais
+desenhado à mão.** As duas tentativas anteriores registradas na seção
+"AppIcon" leram como `g` e como `a`. `tool/export_glyph_path.py` (novo,
+depende de `fontTools`, só em tempo de build) extrai o contorno real do
+glifo direto da fonte que o próprio jogo já usa — elimina essa classe de erro
+por construção, em vez de calibrar à mão de novo.
+
+**Fundo do ícone adaptativo continua `#000028`** — não mudou, só passou a
+ser o valor literal do retângulo de fundo do SVG (antes era o *stop* externo
+de um gradiente que não existe mais).
+
+**Verificação final (Task 5): um `info` de `flutter analyze` é pré-existente
+e fora de escopo, e não bloqueou o fechamento.** `tool_tmp/probe124.dart:6`
+(`avoid_print`) vem do commit `ff10aab` ("Melhorias"), anterior à base deste
+worktree (`ce3154e`) — um script de debug do gerador de fases (`generateLevel`
+118-126), sem relação nenhuma com logo/ícone/splash. Nenhuma task deste plano
+toca esse arquivo, e o critério real da verificação era "nenhum problema novo
+introduzido pelas Tasks 1-4" — que se confirma. `flutter test` seguiu com
+`760` testes verdes, mesma contagem de antes do plano.
