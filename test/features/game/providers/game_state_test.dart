@@ -249,17 +249,24 @@ void main() {
     });
 
     test(
-      'a onda de choque do dígito máximo também vence "limpe toda a pedra"',
+      'a limpeza do Bloco 9 também vence "limpe todo o gelo"',
       () {
         // Um T de cinco `8`s: braço horizontal em (1,2)-(1,4) e braço vertical
         // descendo por (2,3)-(3,3). A jogada troca (3,2) por (3,3), fechando o
         // braço vertical com a âncora no fundo do T — é ali que a peça
         // evoluída nasce (8+2 = 10, arredondado para o dígito máximo).
         //
-        // A pedra fica em (4,4): dentro do raio 3x3 da explosão centrada em
+        // O gelo fica em (4,4): dentro do raio 3x3 da limpeza centrada em
         // (3,3), mas fora da vizinhança que o dano de fusão já alcançou (essa
-        // vizinhança para de crescer uma linha antes). Só a onda de choque a
-        // atinge — é exatamente o caminho que o bug deixava sem `ObstacleHit`.
+        // vizinhança para de crescer uma linha antes). Só `_clearBlockersAround`
+        // a atinge — é o caminho que credita o objetivo sem passar pelo dano
+        // comum de fusão.
+        //
+        // Gelo, e não pedra: `_clearBlockersAround` bate uma vez por célula,
+        // igual ao dano comum de fusão (não é mais a destruição total que a
+        // antiga explosão do dígito máximo fazia). Um só impacto quebra o
+        // gelo (1 HP), mas só trincaria a pedra (3 HP) — testar "limpa
+        // tudo" com pedra exigiria três jogadas de Bloco 9 separadas.
         final grid = _baseGrid();
         grid[1][2] = 8;
         grid[1][3] = 8;
@@ -272,14 +279,14 @@ void main() {
         board = board.updateTile(
           const Position(row: 4, col: 4),
           board.getTileAt(const Position(row: 4, col: 4))!.withObstacle(
-            ObstacleType.stone,
+            ObstacleType.ice,
           ),
         );
 
         notifier.startLevel(
           const GameLevel(
             number: 99,
-            objective: Objective.clearAllObstacles(ObstacleType.stone),
+            objective: Objective.clearAllObstacles(ObstacleType.ice),
             moveLimit: 50,
           ),
         );

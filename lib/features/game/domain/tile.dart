@@ -1,5 +1,6 @@
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
+import 'package:nine_fuse/features/game/domain/special_tile.dart';
 
 /// Representa um bloco individual no tabuleiro
 /// Imutável e contém todas as informações necessárias para renderizar e lógica do jogo
@@ -16,6 +17,14 @@ class Tile {
   /// não existe: a cobertura some no mesmo instante em que zera.
   final int obstacleHp;
 
+  /// Tipo de peça especial, se houver. Anda sempre junto com
+  /// [specialTurnsLeft] — os dois nascem e morrem juntos.
+  final SpecialTileType? specialType;
+
+  /// Turnos restantes antes da peça especial reverter para uma peça normal
+  /// do mesmo valor.
+  final int? specialTurnsLeft;
+
   const Tile({
     required this.id,
     required this.value,
@@ -23,11 +32,32 @@ class Tile {
     this.isSelected = false,
     this.obstacle = ObstacleType.none,
     this.obstacleHp = 0,
+    this.specialType,
+    this.specialTurnsLeft,
   }) : assert(value >= 0 && value <= 9, 'Value deve estar entre 0 e 9'),
        assert(
          (obstacle == ObstacleType.none) == (obstacleHp == 0),
          'cobertura e resistência andam juntas',
+       ),
+       assert(
+         (specialType == null) == (specialTurnsLeft == null),
+         'peça especial e contador de vida andam juntos',
        );
+
+  /// Único caminho de criação de peça especial: amarra tipo e contador de
+  /// vida, sempre nascendo em [kSpecialTileLifespan].
+  factory Tile.withSpecial({
+    required String id,
+    required int value,
+    required Position position,
+    required SpecialTileType specialType,
+  }) => Tile(
+    id: id,
+    value: value,
+    position: position,
+    specialType: specialType,
+    specialTurnsLeft: kSpecialTileLifespan,
+  );
 
   /// Cria uma nova Tile com valores opcionalmente alterados
   Tile copyWith({
@@ -37,6 +67,9 @@ class Tile {
     bool? isSelected,
     ObstacleType? obstacle,
     int? obstacleHp,
+    SpecialTileType? specialType,
+    int? specialTurnsLeft,
+    bool clearSpecial = false,
   }) => Tile(
     id: id ?? this.id,
     value: value ?? this.value,
@@ -44,6 +77,10 @@ class Tile {
     isSelected: isSelected ?? this.isSelected,
     obstacle: obstacle ?? this.obstacle,
     obstacleHp: obstacleHp ?? this.obstacleHp,
+    specialType: clearSpecial ? null : (specialType ?? this.specialType),
+    specialTurnsLeft: clearSpecial
+        ? null
+        : (specialTurnsLeft ?? this.specialTurnsLeft),
   );
 
   /// A peça está presa por uma cobertura.
@@ -72,6 +109,19 @@ class Tile {
         : copyWith(obstacleHp: remaining);
   }
 
+  /// Um turno do jogador se passou. Decrementa a vida da peça especial; ao
+  /// zerar, ela reverte para uma peça normal do mesmo valor. Peça sem
+  /// [specialType] devolve a si mesma sem efeito.
+  Tile decaySpecial() {
+    if (specialType == null) return this;
+
+    final left = specialTurnsLeft! - 1;
+    if (left <= 0) {
+      return copyWith(clearSpecial: true);
+    }
+    return copyWith(specialTurnsLeft: left);
+  }
+
   /// Cria uma nova Tile com a mesma posição mas em uma linha diferente
   Tile moveToRow(int newRow) =>
       copyWith(position: position.copyWith(row: newRow));
@@ -96,14 +146,25 @@ class Tile {
           position == other.position &&
           isSelected == other.isSelected &&
           obstacle == other.obstacle &&
-          obstacleHp == other.obstacleHp;
+          obstacleHp == other.obstacleHp &&
+          specialType == other.specialType &&
+          specialTurnsLeft == other.specialTurnsLeft;
 
   @override
-  int get hashCode =>
-      Object.hash(id, value, position, isSelected, obstacle, obstacleHp);
+  int get hashCode => Object.hash(
+    id,
+    value,
+    position,
+    isSelected,
+    obstacle,
+    obstacleHp,
+    specialType,
+    specialTurnsLeft,
+  );
 
   @override
   String toString() =>
       'Tile(id: $id, value: $value, position: $position, '
-      'isSelected: $isSelected, obstacle: ${obstacle.name}($obstacleHp))';
+      'isSelected: $isSelected, obstacle: ${obstacle.name}($obstacleHp), '
+      'special: ${specialType?.name}($specialTurnsLeft))';
 }

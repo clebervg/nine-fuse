@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
-import 'package:nine_fuse/l10n/app_localizations.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
@@ -12,8 +11,13 @@ import 'package:nine_fuse/features/game/presentation/widgets/board_geometry.dart
 
 const Key floatingScoreKey = Key('floating_score');
 
-/// Chave do aviso de movimentos ganhos na explosão do dígito máximo.
-const Key bonusMovesKey = Key('bonus_moves');
+/// Marcador do banner/véu do evento Supernova, para a suíte afirmar que ele
+/// aparece e some sozinho. Fica no widget interno (não em `_SupernovaEvent`
+/// em si) porque o segundo é reconstruído pelo `AnimatedBuilder` só enquanto
+/// a animação está em curso — quando ela termina, o `Stack` com esta chave
+/// deixa de ser construído e o finder passa a não achar nada, sem precisar de
+/// nenhum sinal externo dizendo que o evento acabou.
+const Key supernovaBannerKey = Key('supernova_banner');
 
 /// Camada de recompensa visual sobre o tabuleiro.
 ///
@@ -30,6 +34,7 @@ class JuiceOverlay extends StatelessWidget {
     required this.comboCount,
     this.hammerStrike,
     this.strikeSerial = 0,
+    this.showSupernova = false,
   });
 
   /// Passo da cascata sendo encenado. Nulo fora de uma jogada.
@@ -49,11 +54,18 @@ class JuiceOverlay extends StatelessWidget {
   /// mesmo dígito, não reacenderiam a animação sem ele.
   final int strikeSerial;
 
+  /// Aceso por uma jogada em que o Super 9 nasceu ou foi ativado — a
+  /// hierarquia de `JuiceDirector` já garantiu que nenhum outro efeito
+  /// concorre com ele nesta jogada.
+  final bool showSupernova;
+
   @override
   Widget build(BuildContext context) {
     final current = step;
     final strike = hammerStrike;
-    if (current == null && strike == null) return const SizedBox.shrink();
+    if (current == null && strike == null && !showSupernova) {
+      return const SizedBox.shrink();
+    }
 
     return IgnorePointer(
       child: LayoutBuilder(
@@ -96,47 +108,6 @@ class JuiceOverlay extends StatelessWidget {
                       ),
                     ),
 
-                for (final centre in current.explosionCentres)
-                  Positioned(
-                    left: geometry.centerOf(centre).dx - tileSize * 1.8,
-                    top: geometry.centerOf(centre).dy - tileSize * 1.8,
-                    width: tileSize * 3.6,
-                    height: tileSize * 3.6,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        _ExplosionFlash(
-                          key: ValueKey('boom_${centre.row}_${centre.col}'),
-                        ),
-                        // As faíscas vêm por cima do clarão: sob ele elas seriam
-                        // lavadas pelo branco justamente no quadro mais forte.
-                        _ExplosionParticles(
-                          key: ValueKey('sparks_${centre.row}_${centre.col}'),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // Cada peça varrida pela onda de choque estilhaça na própria
-                // cor. Sob o clarão branco do centro elas apenas sumiriam, e o
-                // jogador veria o tabuleiro mudar sem ver o que a onda levou.
-                for (final MapEntry(key: at, value: digit)
-                    in current.clearedDigits.entries)
-                  Positioned(
-                    left: geometry.centerOf(at).dx - tileSize * 0.9,
-                    top: geometry.centerOf(at).dy - tileSize * 0.9,
-                    width: tileSize * 1.8,
-                    height: tileSize * 1.8,
-                    child: ShatterEffect(
-                      // A cascata entra na chave porque a mesma célula pode ser
-                      // varrida de novo num passo seguinte, e sem isso o segundo
-                      // estilhaço reaproveitaria o estado do primeiro — que já
-                      // terminou — em vez de reacender.
-                      key: ValueKey('blast_${current.cascade}_${at.row}_${at.col}'),
-                      color: AppColors.getColorByDigit(digit),
-                    ),
-                  ),
-
                 // A quebra da cobertura acontece na célula do obstáculo, não na
                 // da fusão: é ali que o jogador precisa olhar para entender que
                 // o golpe alcançou o que ele estava mirando.
@@ -155,22 +126,6 @@ class JuiceOverlay extends StatelessWidget {
                       destroyed: hit.cleared,
                     ),
                   ),
-
-                // O prêmio em movimentos aparece no topo do tabuleiro, longe da
-                // explosão: no centro ele competiria com o clarão e ninguém leria
-                // o texto justamente no quadro em que ele importa.
-                if (current.explosionCentres.isNotEmpty)
-                  Positioned(
-                    top: -tileSize * 0.2,
-                    left: 0,
-                    right: 0,
-                    child: _BonusMovesFlash(
-                      key: ValueKey('bonus_${current.cascade}'),
-                      moves:
-                          current.explosionCentres.length *
-                          kExplosionBonusMoves,
-                    ),
-                  ),
               ],
 
               // O estilhaço do martelo vive fora do bloco do passo: quando a
@@ -187,6 +142,10 @@ class JuiceOverlay extends StatelessWidget {
                     color: AppColors.getColorByDigit(strike.$2),
                   ),
                 ),
+
+              // Por cima de tudo: o Supernova é o clímax da jogada, e nada
+              // mais deve competir com ele.
+              if (showSupernova) const Positioned.fill(child: _SupernovaEvent()),
             ],
           );
         },
@@ -331,70 +290,6 @@ class _ImpactWaveState extends State<_ImpactWave>
         children: [ring(0.25, 1.3, 1), ring(0.15, 0.8, 0.55)],
       );
     },
-  );
-}
-
-/// Faíscas brancas e prateadas jogadas para fora da célula do dígito máximo.
-///
-/// Num `CustomPainter` e não num widget por partícula: são dezenas, e cada
-/// widget custaria layout a cada quadro para algo puramente decorativo.
-class _ExplosionParticles extends StatefulWidget {
-  const _ExplosionParticles({super.key});
-
-  @override
-  State<_ExplosionParticles> createState() => _ExplosionParticlesState();
-}
-
-class _ExplosionParticlesState extends State<_ExplosionParticles>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _c;
-
-  /// Direções sorteadas uma vez. Sorteadas no `build`, as faíscas saltariam de
-  /// lugar a cada quadro em vez de voar em linha.
-  late final List<_Spark> _sparks;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Semente fixa: o efeito não precisa ser diferente a cada explosão, e assim
-    // um golden desta cena não treme entre rodadas.
-    final random = Random(19);
-    const count = 22;
-    _sparks = [
-      for (int i = 0; i < count; i++)
-        _Spark(
-          // Distribuídas em volta do círculo, com um empurrão aleatório para
-          // não formarem um leque perfeito.
-          angle: (i / count) * 2 * pi + (random.nextDouble() - 0.5) * 0.5,
-          distance: 0.55 + random.nextDouble() * 0.45,
-          size: 1.8 + random.nextDouble() * 2.6,
-          silver: random.nextBool(),
-        ),
-    ];
-
-    // Criado aqui, e não como `late final`: um campo preguiçoso pode acabar
-    // sendo inicializado pelo próprio `dispose()`, construindo um controlador
-    // no meio do desmonte da árvore.
-    _c = AnimationController(
-      vsync: this,
-      duration: JuiceTimings.explosionParticles,
-    )..forward();
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _c,
-    builder: (context, _) => CustomPaint(
-      painter: _ParticlePainter(sparks: _sparks, t: _c.value),
-      size: Size.infinite,
-    ),
   );
 }
 
@@ -613,134 +508,93 @@ class _ParticlePainter extends CustomPainter {
       oldDelegate.t != t || oldDelegate.tint != tint;
 }
 
-/// "+3 Movimentos!" subindo no topo do tabuleiro.
-class _BonusMovesFlash extends StatefulWidget {
-  const _BonusMovesFlash({super.key, required this.moves});
-
-  final int moves;
+/// Hitstop + focus-fade + banner do evento Supernova. Uma animação só,
+/// finita, dividida em dois trechos de tempo: segura (hitstop) e mostra o
+/// véu escuro com o texto, que sobe, fica e desvanece sozinho.
+class _SupernovaEvent extends StatefulWidget {
+  const _SupernovaEvent();
 
   @override
-  State<_BonusMovesFlash> createState() => _BonusMovesFlashState();
+  State<_SupernovaEvent> createState() => _SupernovaEventState();
 }
 
-class _BonusMovesFlashState extends State<_BonusMovesFlash>
+class _SupernovaEventState extends State<_SupernovaEvent>
     with SingleTickerProviderStateMixin {
-  late AnimationController _c;
+  late final AnimationController _controller;
+  late final Animation<double> _scrimOpacity;
+  late final Animation<double> _bannerOpacity;
 
   @override
   void initState() {
     super.initState();
-    // Criado aqui, e não como `late final`: um campo preguiçoso pode acabar
-    // sendo inicializado pelo próprio `dispose()`, construindo um controlador
-    // no meio do desmonte da árvore.
-    _c = AnimationController(vsync: this, duration: JuiceTimings.bonusMoves)
+    final total = JuiceTimings.supernovaHitstop + JuiceTimings.supernovaPayoff;
+    _controller = AnimationController(vsync: this, duration: total)
       ..forward();
-  }
 
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
+    final hitstopFraction =
+        JuiceTimings.supernovaHitstop.inMilliseconds / total.inMilliseconds;
 
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _c,
-    builder: (context, child) {
-      final t = _c.value;
-      // Entra crescendo, fica legível no meio, some no fim. Aparecer e
-      // sumir ao mesmo tempo deixaria o texto ilegível justamente na
-      // recompensa mais rara do jogo.
-      final grow = Curves.easeOutBack.transform((t / 0.25).clamp(0.0, 1.0));
-      final opacity = t < 0.7 ? 1.0 : 1 - (t - 0.7) / 0.3;
-
-      return Opacity(
-        opacity: opacity.clamp(0, 1),
-        child: Transform.translate(
-          offset: Offset(0, -14 * Curves.easeOut.transform(t)),
-          child: Transform.scale(scale: 0.6 + grow * 0.4, child: child),
-        ),
-      );
-    },
-    child: Center(
-      child: Container(
-        key: bonusMovesKey,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.darkSurface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.digit9, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.digit9.withValues(alpha: 0.5),
-              blurRadius: 18,
-              spreadRadius: 1,
-            ),
-          ],
-        ),
-        child: Text(
-          AppLocalizations.of(context).bonusMoves(widget.moves),
-          style: const TextStyle(
-            fontFamily: AppFonts.display,
-            fontSize: 17,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-          ),
+    // Focus-fade: escurece o fundo a 30% de opacidade assim que o hitstop
+    // termina, e mantém até o fim.
+    _scrimOpacity = Tween<double>(begin: 0, end: 0.3).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Interval(
+          hitstopFraction,
+          hitstopFraction + 0.15,
+          curve: Curves.easeOut,
         ),
       ),
-    ),
-  );
-}
+    );
 
-/// Clarão branco da explosão do dígito máximo.
-class _ExplosionFlash extends StatefulWidget {
-  const _ExplosionFlash({super.key});
-
-  @override
-  State<_ExplosionFlash> createState() => _ExplosionFlashState();
-}
-
-class _ExplosionFlashState extends State<_ExplosionFlash>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _c;
-
-  @override
-  void initState() {
-    super.initState();
-    // Criado aqui, e não como `late final`: um campo preguiçoso pode acabar
-    // sendo inicializado pelo próprio `dispose()`, construindo um controlador
-    // no meio do desmonte da árvore.
-    _c = AnimationController(vsync: this, duration: JuiceTimings.explosionFlash)
-      ..forward();
+    // O banner aparece com o escurecimento e some nos últimos 20% da
+    // duração total — nunca fica em loop, some sozinho.
+    _bannerOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 20),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 60),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 20),
+    ]).animate(
+      CurvedAnimation(parent: _controller, curve: Interval(hitstopFraction, 1.0)),
+    );
   }
 
   @override
   void dispose() {
-    _c.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _c,
-    builder: (context, _) {
-      final t = Curves.easeOut.transform(_c.value);
-      return Transform.scale(
-        scale: 0.4 + t * 0.8,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                Colors.white.withValues(alpha: (1 - t) * 0.95),
-                Colors.white.withValues(alpha: (1 - t) * 0.35),
-                Colors.white.withValues(alpha: 0),
-              ],
-              stops: const [0, 0.55, 1],
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        // Uma vez completa, a animação não constrói mais nada — nem o véu,
+        // nem a chave que a suíte procura. É o que faz `supernovaBannerKey`
+        // sumir da árvore sozinho, sem depender de `showSupernova` mudar de
+        // fora: o próprio widget encerra o evento que ele começou.
+        if (_controller.isCompleted) return const SizedBox.shrink();
+
+        return Stack(
+          key: supernovaBannerKey,
+          children: [
+            ColoredBox(color: Colors.black.withValues(alpha: _scrimOpacity.value)),
+            Center(
+              child: Text(
+                'SUPERNOVA',
+                style: TextStyle(
+                  fontFamily: AppFonts.display,
+                  fontSize: 40,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 4,
+                  color: Colors.white.withValues(alpha: _bannerOpacity.value),
+                ),
+              ),
             ),
-          ),
-        ),
-      );
-    },
-  );
+          ],
+        );
+      },
+    );
+  }
 }
+

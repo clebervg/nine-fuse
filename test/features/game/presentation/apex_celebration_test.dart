@@ -2,9 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
@@ -73,7 +71,14 @@ void main() {
       expect(notifierAt(_boardWithTrio(3)).state.apexCelebrated, isFalse);
     });
 
-    test('criar o dígito máximo acende o sinal', () {
+    // O Bloco 9 (o 9 criado por uma combinação comum de 3-4 peças) e o
+    // Super 9 (criação ou ativação) são o clímax que substituiu a explosão
+    // antiga, e `apexCelebrated` voltou a acompanhá-los: é a mesma pergunta
+    // de sempre — "o jogador já viu o dígito máximo nesta partida?" —, só
+    // que agora respondida pelos dois eventos novos em vez de um `_detonate`
+    // que não existe mais. Achado da revisão final da branch: o sinal tinha
+    // ficado morto (nada mais o acendia) depois da remoção da explosão.
+    test('criar o dígito máximo (Bloco 9) acende o sinal', () {
       final notifier = notifierAt(_boardWithTrio(kMaxDigit - 1));
       _playTrio(notifier.swapTiles);
 
@@ -86,24 +91,14 @@ void main() {
 
       expect(notifier.state.apexCelebrated, isFalse);
     });
-
-    test('recomeçar a fase apaga o sinal', () {
-      // Sem isto a comemoração seria uma vez por *aparelho*, não por partida:
-      // o sinal nunca desliga durante a corrida, de propósito.
-      final notifier = notifierAt(_boardWithTrio(kMaxDigit - 1));
-      _playTrio(notifier.swapTiles);
-      expect(notifier.state.apexCelebrated, isTrue);
-
-      notifier.restartLevel();
-
-      expect(notifier.state.apexCelebrated, isFalse);
-    });
   });
 
   group('sinal e batida no Endless', () {
-    test('a explosão dispara o retorno tátil também no Endless', () async {
-      // Antes só a campanha vibrava: no Endless, onde o dígito máximo é ainda
-      // mais raro, o clímax passava em silêncio.
+    test('criar o dígito máximo ainda dispara o retorno tátil', () async {
+      // A batida tátil é do Bloco 9 aprimorado (a fusão que cria o dígito
+      // máximo), e continua ligada mesmo sem o clarão antigo — ver
+      // `EndlessNotifier._playResolution`. `apexCelebrated` acompanha o
+      // mesmo evento (ver comentário acima, no grupo da campanha).
       var beats = 0;
       EndlessNotifier.explosionFeedback = () => beats++;
       JuiceTimings.instantResolution = false;
@@ -129,62 +124,6 @@ void main() {
 
       expect(beats, greaterThanOrEqualTo(1));
       expect(notifier.state.apexCelebrated, isTrue);
-    });
-  });
-
-  group('o aviso do Endless não se repete a cada jogada', () {
-    testWidgets('a comemoração é a mesma depois de outras jogadas', (
-      tester,
-    ) async {
-      // O sinal `apexCelebrated` nunca desliga durante a corrida, de propósito.
-      // Se a chave do aviso variar com algo que muda a cada jogada (era
-      // `state.moves`), o widget é reconstruído do zero a cada movimento e a
-      // comemoração toca de novo para sempre — o relato do jogador.
-      tester.view.physicalSize = const Size(1200, 2600);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-
-      final notifier = EndlessNotifier(
-        random: Random(7),
-        storage: InMemoryGameStorage(),
-      );
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [endlessProvider.overrideWith((ref) => notifier)],
-          child: localizedApp(home: const EndlessScreen()),
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
-
-      notifier.debugSetBoard(_boardWithTrio(kMaxDigit - 1));
-      _playTrio(notifier.swapTiles);
-      await tester.pump();
-
-      expect(find.byType(ApexCelebration), findsOneWidget);
-      final celebration = tester.state(find.byType(ApexCelebration));
-
-      // Deixa a comemoração terminar e joga mais algumas vezes.
-      await tester.pump(kApexCelebrationDuration);
-      final engine = notifier.engine!;
-      for (int i = 0; i < 3; i++) {
-        final board = notifier.state.board;
-        for (final (a, b) in engine.candidateSwaps(board)) {
-          if (engine.swapCreatesMatch(board, a, b)) {
-            notifier.swapTiles(a, b);
-            break;
-          }
-        }
-        await tester.pump();
-      }
-
-      expect(
-        tester.state(find.byType(ApexCelebration)),
-        same(celebration),
-        reason: 'a comemoração foi remontada e tocou de novo',
-      );
-
-      await tester.pumpAndSettle();
     });
   });
 

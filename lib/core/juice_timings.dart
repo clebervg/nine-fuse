@@ -49,4 +49,12 @@ class JuiceTimings {
   /// Aviso de movimentos ganhos na explosão. É a recompensa mais rara do jogo e
   /// a única que muda o saldo da fase — precisa de tempo para ser lida.
   static const Duration bonusMoves = Duration(milliseconds: 1400);
+
+  /// Hitstop do evento Supernova: o jogo "segura a respiração" antes do
+  /// payoff. 250ms, conforme o desenho do clímax do Super 9.
+  static const Duration supernovaHitstop = Duration(milliseconds: 250);
+
+  /// Quanto tempo o banner e o véu do Supernova ficam na tela depois do
+  /// hitstop.
+  static const Duration supernovaPayoff = Duration(milliseconds: 900);
 }

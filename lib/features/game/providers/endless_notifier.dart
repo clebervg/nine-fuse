@@ -194,6 +194,9 @@ class EndlessNotifier extends StateNotifier<EndlessState>
           rejectedSwap: (from, to),
         );
 
+      case MoveSuperNineActivated(:final board, :final convertedFrom):
+        _applySuperNineActivation(engine, board, convertedFrom);
+
       case MoveResolved(:final resolution):
         if (JuiceTimings.instantResolution) {
           _finishMove(engine, resolution, extraScore: resolution.score);
@@ -201,6 +204,38 @@ class EndlessNotifier extends StateNotifier<EndlessState>
           _playResolution(engine, resolution);
         }
     }
+  }
+
+  /// Aplica o desfecho da ativação do Super 9, espelhando
+  /// `GameNotifier._applySuperNineActivation`: consome 1 movimento, decai as
+  /// peças especiais do turno e conta como evento de clímax para o tranco de
+  /// tela. Não há objetivo nem limite de movimentos no Endless — o único
+  /// desfecho possível além de continuar jogando é o tabuleiro travar.
+  void _applySuperNineActivation(
+    MatchEngine engine,
+    Board board,
+    int convertedFrom,
+  ) {
+    final decayed = engine.decaySpecials(board);
+    final hint = engine.findHint(decayed);
+    final stuck = hint == null;
+
+    state = state.copyWith(
+      board: decayed,
+      moves: state.moves + 1,
+      clearSelectedTile: true,
+      clearRejectedSwap: true,
+      hint: hint,
+      clearHint: stuck,
+      explosions: state.explosions + 1,
+      status: stuck ? EndlessStatus.stuck : EndlessStatus.playing,
+      isRecord: stuck && state.score > _highScore,
+      // Ativar o Super 9 sempre produz um 9 — mesma régua de
+      // `GameNotifier._applySuperNineActivation`.
+      apexCelebrated: state.apexCelebrated || convertedFrom + 1 == kMaxDigit,
+    );
+
+    if (stuck) _saveIfRecord(state.score);
   }
 
   /// Encena a jogada quadro a quadro. Ver `GameNotifier._playResolution`: a
@@ -225,8 +260,9 @@ class EndlessNotifier extends StateNotifier<EndlessState>
 
       // O clímax do jogo merece ser sentido, não só visto — e no Endless ele é
       // ainda mais raro que na campanha. Fica na encenação e não em
-      // `_finishMove` porque a batida tem de coincidir com o clarão.
-      if (step.explosionCentres.isNotEmpty) explosionFeedback();
+      // `_finishMove` porque a batida tem de coincidir com o clarão. O Bloco 9
+      // aprimorado (o que cria o dígito máximo) ainda merece a mesma ênfase.
+      if (step.fusions.any((f) => f.value == kMaxDigit)) explosionFeedback();
 
       state = state.copyWith(
         board: step.boardAfterFusion,
@@ -237,10 +273,6 @@ class EndlessNotifier extends StateNotifier<EndlessState>
           for (final fusion in step.fusions)
             if (fusion.isBig) fusion.tileId,
         },
-        // Uma vez ligado, nunca desliga: a comemoração é da **primeira** fusão
-        // máxima da partida.
-        apexCelebrated:
-            state.apexCelebrated || step.explosionCentres.isNotEmpty,
       );
       await _delay(JuiceTimings.fusion);
       if (!mounted) return;
@@ -281,6 +313,19 @@ class EndlessNotifier extends StateNotifier<EndlessState>
       board = engine.placeObstacles(board, progression.obstaclesFor(step));
     }
 
+    // O decaimento das peças especiais só roda em jogada que **conta** como
+    // turno do jogador — o golpe de martelo não decai, mesma régua de
+    // `GameNotifier._finishMove`. E peça nascida NESTA jogada fica de fora do
+    // decaimento (mesma correção de `GameNotifier._finishMove`): sem isso um
+    // Super 9 recém-formado perderia 1 dos seus 3 turnos de vida antes de o
+    // jogador sequer poder usá-lo.
+    if (countsAsMove) {
+      board = engine.decaySpecials(
+        board,
+        newbornIds: resolution.newbornSpecialTileIds,
+      );
+    }
+
     final score = state.score + extraScore;
 
     // Uma varredura só serve às duas perguntas: ainda dá para jogar e qual é
@@ -294,7 +339,6 @@ class EndlessNotifier extends StateNotifier<EndlessState>
       moves: state.moves + (countsAsMove ? 1 : 0),
       step: step,
       highestDigit: max(state.highestDigit, resolution.highestProduced),
-      explosions: state.explosions + resolution.explosions,
       status: stuck ? EndlessStatus.stuck : EndlessStatus.playing,
       isRecord: stuck && score > _highScore,
       hint: hint,
@@ -305,8 +349,10 @@ class EndlessNotifier extends StateNotifier<EndlessState>
       isResolving: false,
       clearSelectedTile: true,
       clearRejectedSwap: true,
-      // Na resolução instantânea não há encenação para ligar o sinal.
-      apexCelebrated: state.apexCelebrated || resolution.explosions > 0,
+      // O clímax (Bloco 9/Super 9) é o que `apexCelebrated` celebra agora:
+      // primeira vez que o dígito máximo nasce nesta corrida.
+      apexCelebrated:
+          state.apexCelebrated || resolution.producedDigits.contains(kMaxDigit),
     );
 
     if (stuck) _saveIfRecord(score);

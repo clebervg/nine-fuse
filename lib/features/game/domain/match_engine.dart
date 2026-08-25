@@ -4,10 +4,15 @@ import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/fusion_rule.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
+import 'package:nine_fuse/features/game/domain/special_tile.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 
 /// Dígito máximo do jogo.
 const int kMaxDigit = 9;
+
+/// Bônus de score estático do Bloco 9 aprimorado (fusão de 4 peças de valor
+/// 8). Não muda a mecânica de limpeza — só o placar.
+const int kBigNineScoreBonus = 200;
 
 /// Menor e maior valor sorteados na criação do tabuleiro e na reposição do
 /// topo. O MVP usa 0-3 para facilitar os primeiros movimentos.
@@ -27,36 +32,26 @@ const int kSpawnWidth = 4;
 /// Comprimento mínimo de uma combinação.
 const int kMinMatch = 3;
 
-/// Movimentos devolvidos ao jogador por cada dígito máximo criado.
-///
-/// A explosão já limpa o tabuleiro, mas isso é recompensa de *espaço*, não de
-/// *fase*: quem gastou jogadas montando o 9 continuava perdendo no saldo. Três
-/// é o suficiente para pagar o investimento sem transformar a fase em infinita
-/// — na campanha o 9 só é alcançável nas fases finais, e uma vez por partida.
-const int kExplosionBonusMoves = 3;
-
 /// Teto de cascatas por movimento. É rede de segurança contra loop, não
 /// regra de jogo — em partida normal nunca deve ser alcançado.
 const int _maxCascades = 64;
 
-/// O que acontece quando uma fusão cria o dígito máximo.
-///
-/// A peça no topo da escala não tem para onde evoluir, e não há como juntar
-/// três dela com facilidade. Sem uma saída, peças de valor alto acumulam sem
-/// parceiro e o tabuleiro assoreia até não haver mais troca válida — foi o que
-/// a simulação mostrou ser o verdadeiro limite do jogo, não a economia da
-/// fusão. A explosão é essa saída: o dígito máximo se consome levando
-/// vizinhança com ele, devolvendo espaço.
-enum ExplosionShape {
-  /// Sem explosão: a peça fica no tabuleiro. Serve de linha de base para
-  /// medir o efeito das outras opções.
-  none,
+/// Teto de cascatas por jogada, como regra de jogo — não rede de segurança.
+/// Ao ser atingido com match ainda pendente no tabuleiro, `resolve()` para
+/// ali: o match não é perdido, fica congelado até a jogada seguinte.
+const int kCascadeBudgetPerTurn = 4;
 
-  /// Limpa o quadrado 3x3 centrado na peça (até 9 células).
-  area,
+/// Orçamento de reações consumido por `resolve()` dentro de uma única
+/// jogada. Existe como objeto (em vez de um contador solto) para o dia em
+/// que a origem da reação importar ao orçamento — hoje todo passo custa 1.
+class CascadeBudget {
+  CascadeBudget([this.remaining = kCascadeBudgetPerTurn]);
 
-  /// Limpa a linha e a coluna inteiras (até 15 células).
-  cross,
+  int remaining;
+
+  bool get isExhausted => remaining <= 0;
+
+  void consume() => remaining--;
 }
 
 /// Tentativas de gerar um tabuleiro inicial jogável antes de desistir.
@@ -81,11 +76,6 @@ class Resolution {
   late final int fusions = steps.fold(
     0,
     (total, step) => total + step.fusions.length,
-  );
-
-  late final int explosions = steps.fold(
-    0,
-    (total, step) => total + step.explosionCentres.length,
   );
 
   /// Coberturas destruídas nesta resolução. É o que um objetivo de fase do
@@ -134,6 +124,16 @@ class Resolution {
   /// Quantas peças de [digit] foram criadas nesta resolução.
   int countProduced(int digit) =>
       producedDigits.where((value) => value == digit).length;
+
+  /// Ids de peças especiais (hoje só o Super 9) nascidas **nesta mesma
+  /// resolução** — usado por `decaySpecials` para não descontar o turno de
+  /// vida de uma peça que ainda não existia no início da jogada. Espelha
+  /// [bigFusionTileIds]: identidade por id, não por posição.
+  late final Set<String> newbornSpecialTileIds = {
+    for (final step in steps)
+      for (final fusion in step.fusions)
+        if (fusion.specialType != null) fusion.tileId,
+  };
 }
 
 /// Resultado de aplicar as combinações de um tabuleiro **uma vez**, sem
@@ -172,6 +172,10 @@ class FusionOutcome {
 /// Quantas peças uma combinação precisa ter para valer efeito especial.
 const int kBigMatch = 4;
 
+/// Tamanho mínimo de combinação que cria um Super 9 em vez de um Bloco 9
+/// comum.
+const int kSuperNineMatchLength = 5;
+
 /// Uma fusão: quais peças foram consumidas, onde nasceu a nova e quanto valeu.
 ///
 /// A UI precisa disto para animar. Só o tabuleiro final não basta: sem saber
@@ -185,6 +189,7 @@ class FusionEvent {
     required this.value,
     required this.matchLength,
     required this.score,
+    this.specialType,
   });
 
   /// Todas as células da combinação, inclusive a que sobrevive.
@@ -199,6 +204,10 @@ class FusionEvent {
   final int value;
   final int matchLength;
   final int score;
+
+  /// Não nulo quando esta fusão criou uma peça especial (hoje, só o Super
+  /// 9). `null` é o caso comum.
+  final SpecialTileType? specialType;
 
   /// Combinação grande merece efeito próprio.
   bool get isBig => matchLength >= kBigMatch;
@@ -216,9 +225,6 @@ class ResolutionStep {
   const ResolutionStep({
     required this.cascade,
     required this.fusions,
-    required this.explosionCentres,
-    required this.clearedDigits,
-    this.clearedByExplosion = const {},
     required this.boardAfterFusion,
     required this.boardAfterSettle,
     required this.score,
@@ -229,30 +235,6 @@ class ResolutionStep {
   final int cascade;
 
   final List<FusionEvent> fusions;
-
-  /// Peças que alcançaram o dígito máximo e explodiram.
-  final List<Position> explosionCentres;
-
-  /// Peças que a explosão **destruiu**, e o dígito que cada uma tinha.
-  ///
-  /// Guarda o dígito de **antes** do estouro pelo mesmo motivo que `ObstacleHit`
-  /// guarda o tipo de antes do impacto: depois da explosão a célula está vazia,
-  /// e a UI não saberia de que cor pintar o estilhaço. Sem a cor, as peças
-  /// varridas somem sob o clarão branco e o jogador vê o tabuleiro mudar sem ver
-  /// o que a onda levou.
-  ///
-  /// É **subconjunto** de [clearedByExplosion], e a diferença é real: a fusão
-  /// que criou o dígito máximo já esvaziou as células das peças absorvidas, e a
-  /// onda passa por cima delas sem destruir nada. Um estilhaço ali mentiria
-  /// sobre o que a onda levou.
-  final Map<Position, int> clearedDigits;
-
-  /// Células **alcançadas** pela onda, com ou sem peça em cima.
-  ///
-  /// É o raio da explosão, e é o que a pontuação do clímax remunera: medir pelo
-  /// que havia de peça faria a mesma explosão render menos perto de uma borda
-  /// já vazia, punindo justamente quem montou o dígito máximo no canto.
-  final Set<Position> clearedByExplosion;
 
   /// Tabuleiro logo após fundir, **antes** de cair. É o quadro em que as peças
   /// absorvidas ainda estão visíveis encolhendo.
@@ -301,6 +283,15 @@ class MoveResolved extends MoveResult {
   final Resolution resolution;
 }
 
+/// A troca ativou um Super 9: todo o tabuleiro que tinha o valor
+/// [convertedFrom] foi promovido, sem cascata automática.
+class MoveSuperNineActivated extends MoveResult {
+  const MoveSuperNineActivated(this.board, this.convertedFrom);
+
+  final Board board;
+  final int convertedFrom;
+}
+
 /// Motor puro do Match-3 com fusão. Não conhece Riverpod nem widgets:
 /// recebe um [Board] e devolve outro, o que torna cada regra testável
 /// isoladamente com tabuleiros montados à mão.
@@ -310,7 +301,6 @@ class MatchEngine {
     this.spawnMin = kSpawnMin,
     this.spawnMax = kSpawnMax,
     this.fusionRule = const TieredFusion(),
-    this.explosionShape = ExplosionShape.area,
     this.allowWideSpawn = false,
   }) : assert(spawnMin <= spawnMax),
        assert(
@@ -355,9 +345,6 @@ class MatchEngine {
 
   /// Economia do jogo: o que cada combinação produz.
   final FusionRule fusionRule;
-
-  /// O que acontece ao criar o dígito máximo.
-  final ExplosionShape explosionShape;
 
   /// Quantidade de valores distintos que podem ser sorteados.
   int get spawnWidth => spawnMax - spawnMin + 1;
@@ -519,10 +506,64 @@ class MatchEngine {
     // destino da troca.
     if (tileA.isBlocked || tileB.isBlocked) return const MoveImpossible();
 
+    final superNine = tileA.specialType == SpecialTileType.superNine
+        ? tileA
+        : (tileB.specialType == SpecialTileType.superNine ? tileB : null);
+    if (superNine != null) {
+      final other = identical(superNine, tileA) ? tileB : tileA;
+      if (other.value < kMaxDigit) {
+        return MoveSuperNineActivated(
+          _activateSuperNine(board, at: superNine.position, targetValue: other.value),
+          other.value,
+        );
+      }
+      // Vizinho já é 9 (ou outro Super 9, impossível pelo limite de 1): a
+      // troca não é uma conversão válida, cai no fluxo comum — que a
+      // recusa por não formar combinação, como qualquer troca sem efeito.
+    }
+
     final swapped = swap(board, a, b);
     if (detectMatches(swapped).isEmpty) return MoveRejected(a, b);
 
     return MoveResolved(resolve(swapped, anchor: b));
+  }
+
+  /// Promove todo tile de valor [targetValue] para `targetValue + 1`,
+  /// consome o Super 9 em [at] e reassenta o buraco. Não chama `resolve()`:
+  /// a conversão é passiva e estática — qualquer match que ela alinhe fica
+  /// congelado até a jogada seguinte, a mesma semântica do orçamento de
+  /// cascata para o match que sobra ao fim do turno.
+  Board _activateSuperNine(Board board, {required Position at, required int targetValue}) {
+    var result = board;
+    for (final tile in board.getAllTiles()) {
+      if (tile.value == targetValue) {
+        result = result.updateTile(tile.position, tile.copyWith(value: targetValue + 1));
+      }
+    }
+
+    result = result.updateTile(at, null);
+    result = refill(applyGravity(result));
+    return result;
+  }
+
+  /// Um turno do jogador se passou: toda peça especial no tabuleiro decai
+  /// uma unidade de vida. Chamado pelo notifier ao final de uma jogada bem
+  /// sucedida — não faz parte de `tryMove` porque o notifier decide quando
+  /// uma jogada "conta" como turno (o golpe de martelo, por exemplo, não).
+  ///
+  /// [newbornIds] são os `id`s de peças especiais **nascidas nesta mesma
+  /// jogada** (fusão/cascata dentro do próprio turno): o spec pede que elas
+  /// decaiam "a partir da jogada seguinte", não da que as criou. Sem essa
+  /// exclusão, um Super 9 recém-formado perderia 1 dos seus 3 turnos de vida
+  /// antes de o jogador sequer poder usá-lo.
+  Board decaySpecials(Board board, {Set<String> newbornIds = const {}}) {
+    var result = board;
+    for (final tile in board.getAllTiles()) {
+      if (tile.specialType == null) continue;
+      if (newbornIds.contains(tile.id)) continue;
+      result = result.updateTile(tile.position, tile.decaySpecial());
+    }
+    return result;
   }
 
   // ---------------------------------------------------------------------------
@@ -554,8 +595,6 @@ class MatchEngine {
     final strike = ResolutionStep(
       cascade: 0,
       fusions: const [],
-      explosionCentres: const [],
-      clearedDigits: const {},
       boardAfterFusion: struck,
       boardAfterSettle: settled,
       score: 0,
@@ -589,10 +628,12 @@ class MatchEngine {
     var current = board;
     final steps = <ResolutionStep>[];
     Position? currentAnchor = anchor;
+    final budget = CascadeBudget();
 
-    while (steps.length < _maxCascades) {
+    while (!budget.isExhausted && steps.length < _maxCascades) {
       final matches = detectMatches(current);
       if (matches.isEmpty) break;
+      budget.consume();
 
       final fused = _applyFusions(current, matches, currentAnchor);
       current = fused.board;
@@ -605,33 +646,28 @@ class MatchEngine {
       final damage = _damageObstacles(current, fused.events);
       current = damage.board;
 
-      // A âncora vale só para a combinação do movimento do jogador.
-      currentAnchor = null;
-
-      // A explosão vem antes da queda: ela abre os vazios que a gravidade
-      // então preenche, no mesmo passo da cascata.
-      var cleared = <Position, int>{};
-      var swept = <Position>{};
-      // Só conta como explosão o que de fato estourou: com
-      // ExplosionShape.none a peça alcança o topo mas permanece no tabuleiro.
-      var detonated = const <Position>[];
-      // Todo passo começa só com os impactos da fusão; a explosão, quando
-      // existir, se junta a eles em vez de substituí-los.
       var obstacleHits = damage.hits;
 
-      if (fused.maxed.isNotEmpty && explosionShape != ExplosionShape.none) {
-        final blast = _detonate(current, fused.maxed);
-        current = blast.board;
-        stepScore += blast.score;
-        cleared = blast.cleared;
-        swept = blast.swept;
-        detonated = fused.maxed;
-        // A onda varre a célula inteira, cobertura incluída — e quem paga
-        // por "limpe toda a pedra" é o `ObstacleHit`, não o sumiço silencioso
-        // da peça. Era exatamente essa emissão que faltava: a pedra cedia na
-        // tela e o objetivo não via nada acontecer.
-        obstacleHits = _mergeObstacleHits(damage.hits, blast.sweptObstacles);
+      // Bloco 9: só a fusão do jogador (primeiro passo da resolução) limpa
+      // bloqueadores ao redor do 9 recém-criado. Cascatas automáticas
+      // seguintes (steps já não está vazio) não disparam o efeito.
+      if (steps.isEmpty && fused.maxed.isNotEmpty) {
+        // Uma cobertura já atingida por `_damageObstacles` neste mesmo passo
+        // não pode levar um segundo hit aqui: as duas vizinhanças (ortogonal
+        // da fusão, 3x3 do Bloco 9) costumam se sobrepor, e "um impacto por
+        // passo" é invariante do projeto.
+        final alreadyHit = {for (final hit in obstacleHits) hit.position};
+        final cleared = _clearBlockersAround(
+          current,
+          fused.maxed,
+          skip: alreadyHit,
+        );
+        current = cleared.board;
+        obstacleHits = [...obstacleHits, ...cleared.hits];
       }
+
+      // A âncora vale só para a combinação do movimento do jogador.
+      currentAnchor = null;
 
       // Guardado antes da queda: é o quadro em que as peças absorvidas ainda
       // aparecem, e é o que a UI precisa para animar a fusão.
@@ -644,9 +680,6 @@ class MatchEngine {
         ResolutionStep(
           cascade: steps.length + 1,
           fusions: fused.events,
-          explosionCentres: detonated,
-          clearedDigits: cleared,
-          clearedByExplosion: swept,
           boardAfterFusion: afterFusion,
           boardAfterSettle: current,
           score: stepScore,
@@ -656,39 +689,6 @@ class MatchEngine {
     }
 
     return Resolution(board: current, steps: steps);
-  }
-
-  /// Junta os impactos da fusão com os da onda de choque no mesmo passo, sem
-  /// duplicar impacto em cobertura que as duas alcançaram.
-  ///
-  /// A regra do obstáculo é **um impacto por passo**, e a onda não é exceção
-  /// — mas ela destrói por inteiro, sempre. Uma cobertura já danificada pela
-  /// fusão e depois varrida pela explosão não pode continuar aparecendo como
-  /// "só trincada": ela sumiu do tabuleiro, e um hit que ainda diga
-  /// `cleared: false` é o mesmo bug de origem, só que disfarçado — o
-  /// objetivo ficaria devendo essa cobertura para sempre.
-  List<ObstacleHit> _mergeObstacleHits(
-    List<ObstacleHit> fusionHits,
-    Map<Position, ObstacleType> sweptObstacles,
-  ) {
-    if (sweptObstacles.isEmpty) return fusionHits;
-
-    final merged = [
-      for (final hit in fusionHits)
-        sweptObstacles.containsKey(hit.position)
-            ? ObstacleHit(position: hit.position, type: hit.type, remainingHp: 0)
-            : hit,
-    ];
-
-    final alreadyHit = fusionHits.map((h) => h.position).toSet();
-    for (final entry in sweptObstacles.entries) {
-      if (alreadyHit.contains(entry.key)) continue;
-      merged.add(
-        ObstacleHit(position: entry.key, type: entry.value, remainingHp: 0),
-      );
-    }
-
-    return merged;
   }
 
   /// Bate uma vez em cada cobertura encostada nas combinações de [events].
@@ -742,88 +742,45 @@ class MatchEngine {
   Iterable<Position> _orthogonalNeighbours(Position at) =>
       at.orthogonalNeighbours.where(Board.contains);
 
-  /// Limpa a vizinhança de cada peça que alcançou o dígito máximo, e a própria
-  /// peça. Explosões não encadeiam: uma peça destruída pelo estouro não
-  /// dispara o seu.
-  ({
+  /// Limpa as coberturas na vizinhança 3x3 de cada posição onde nasceu o
+  /// dígito máximo. Não remove peça nenhuma — só a cobertura, um impacto por
+  /// célula, igual a [_damageObstacles].
+  ({Board board, List<ObstacleHit> hits}) _clearBlockersAround(
     Board board,
-    int score,
-    Set<Position> swept,
-    Map<Position, int> cleared,
-    Map<Position, ObstacleType> sweptObstacles,
-  })
-  _detonate(
-    Board board,
-    List<Position> centres,
-  ) {
-    final hit = <Position>{};
-
+    Iterable<Position> centres, {
+    Set<Position> skip = const {},
+  }) {
+    final touched = <Position>{};
     for (final centre in centres) {
-      hit.addAll(_blastRadius(centre));
-    }
-
-    // O dígito é lido **antes** de a célula ser esvaziada: depois não há de onde
-    // tirar a cor do estilhaço. Célula já vazia fica de fora — não há peça
-    // varrida ali, e um estilhaço sobre o nada mentiria sobre o alcance da onda.
-    final cleared = <Position, int>{
-      for (final position in hit)
-        if (board.getTileAt(position) case final tile?)
-          position: tile.value,
-    };
-
-    // O tipo é o de **antes** da destruição, pela mesma razão do dígito acima:
-    // depois de nula a célula não guarda mais o que havia ali. É o que falta
-    // para o `_mergeObstacleHits` poder emitir o `ObstacleHit` que a onda
-    // sempre devia ter gerado — a pedra cedia na tela sem o objetivo saber.
-    final sweptObstacles = <Position, ObstacleType>{
-      for (final position in hit)
-        if (board.getTileAt(position) case final tile? when tile.isBlocked)
-          position: tile.obstacle,
-    };
-
-    var result = board;
-    for (final position in hit) {
-      result = result.updateTile(position, null);
-    }
-
-    // A explosão é o clímax do jogo: vale mais que uma fusão comum. A conta
-    // segue sendo por **célula alcançada**, e não por peça varrida: mudar para
-    // o mapa faria a explosão render menos perto de uma borda já vazia.
-    return (
-      board: result,
-      score: hit.length * 50,
-      swept: hit,
-      cleared: cleared,
-      sweptObstacles: sweptObstacles,
-    );
-  }
-
-  /// Células atingidas por uma explosão centrada em [centre], incluindo ela.
-  Iterable<Position> _blastRadius(Position centre) {
-    final hit = <Position>[];
-
-    switch (explosionShape) {
-      case ExplosionShape.none:
-        break;
-
-      case ExplosionShape.area:
-        for (int row = centre.row - 1; row <= centre.row + 1; row++) {
-          for (int col = centre.col - 1; col <= centre.col + 1; col++) {
-            final position = Position(row: row, col: col);
-            if (Board.contains(position)) hit.add(position);
+      for (int row = centre.row - 1; row <= centre.row + 1; row++) {
+        for (int col = centre.col - 1; col <= centre.col + 1; col++) {
+          final position = Position(row: row, col: col);
+          if (Board.contains(position) && !skip.contains(position)) {
+            touched.add(position);
           }
         }
-
-      case ExplosionShape.cross:
-        for (int col = 0; col < Board.boardSize; col++) {
-          hit.add(Position(row: centre.row, col: col));
-        }
-        for (int row = 0; row < Board.boardSize; row++) {
-          if (row != centre.row) hit.add(Position(row: row, col: centre.col));
-        }
+      }
     }
 
-    return hit;
+    var result = board;
+    final hits = <ObstacleHit>[];
+
+    for (final position in touched) {
+      final tile = result.getTileAt(position);
+      if (tile == null || !tile.isBlocked) continue;
+
+      final damaged = tile.damageObstacle();
+      result = result.updateTile(position, damaged);
+      hits.add(
+        ObstacleHit(
+          position: position,
+          type: tile.obstacle,
+          remainingHp: damaged.obstacleHp,
+        ),
+      );
+    }
+
+    return (board: result, hits: hits);
   }
 
   /// Aplica de uma vez todas as combinações presentes em [board].
@@ -833,6 +790,19 @@ class MatchEngine {
   /// Não move nada: gravidade e reposição são passos separados.
   FusionOutcome fuse(Board board, {Position? anchor}) =>
       _applyFusions(board, detectMatches(board), anchor);
+
+  /// Existe um Super 9 no tabuleiro — olhando tanto o que já estava lá quanto
+  /// o que esta mesma passada de fusões já decidiu criar.
+  bool _hasActiveSuperNine(Board board, Map<Position, Tile?> updates) {
+    final inUpdates = updates.values.any(
+      (tile) => tile?.specialType == SpecialTileType.superNine,
+    );
+    if (inUpdates) return true;
+
+    return board
+        .getAllTiles()
+        .any((tile) => tile.specialType == SpecialTileType.superNine);
+  }
 
   FusionOutcome _applyFusions(
     Board board,
@@ -879,14 +849,33 @@ class MatchEngine {
         }
 
         final value = outcome[i].clamp(0, kMaxDigit);
+        final isSurvivor = i == 0;
+        // Só a peça sobrevivente de uma combinação de 5+ vira Super 9 — e só
+        // quando não há outro no tabuleiro (nem um que esta mesma passada de
+        // fusões já tenha criado).
+        final becomesSuperNine = isSurvivor &&
+            value == kMaxDigit &&
+            match.length >= kSuperNineMatchLength &&
+            !_hasActiveSuperNine(board, updates);
+
         // A peça da fusão preserva a identidade da original, para que as
         // animações possam segui-la; as extras são peças novas.
-        final born = i == 0
-            ? tile.copyWith(value: value)
-            : Tile(id: _newId(), value: value, position: position);
+        final born = switch ((isSurvivor, becomesSuperNine)) {
+          (true, true) => Tile.withSpecial(
+              id: tile.id,
+              value: value,
+              position: position,
+              specialType: SpecialTileType.superNine,
+            ),
+          (true, false) => tile.copyWith(value: value),
+          (false, _) => Tile(id: _newId(), value: value, position: position),
+        };
         updates[position] = born;
 
-        if (match.length >= kBigMatch) bigFusions.add(born.id);
+        if (match.length >= kBigMatch) {
+          bigFusions.add(born.id);
+          if (value == kMaxDigit) score += kBigNineScoreBonus;
+        }
 
         score += value * 10;
         produced.add(value);
@@ -903,6 +892,7 @@ class MatchEngine {
             value: born.value,
             matchLength: match.length,
             score: score - scoreBefore,
+            specialType: born.specialType,
           ),
         );
       }
