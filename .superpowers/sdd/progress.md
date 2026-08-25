@@ -9,7 +9,7 @@ Base: 745bf39
 Baseline: `flutter test` completo — 740 testes passando.
 
 ## Tarefas
-- [ ] 1 SpecialTileType + Tile.withSpecial (pré-requisito peça especial)
+- [x] 1 SpecialTileType + Tile.withSpecial — completa (commit b4b0360..7976e23, revisão aprovada, 743 testes)
 - [ ] 2 CascadeBudget
 - [ ] 3 Bloco 9 — remove explosão antiga, limpa bloqueadores
 - [ ] 4 Super 9 — criação e limite de 1 ativo
