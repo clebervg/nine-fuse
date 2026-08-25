@@ -10,7 +10,7 @@ Baseline: `flutter test` completo — 740 testes passando.
 
 ## Tarefas
 - [x] 1 SpecialTileType + Tile.withSpecial — completa (commit b4b0360..7976e23, revisão aprovada, 743 testes)
-- [ ] 2 CascadeBudget
+- [x] 2 CascadeBudget — completa (commit 07db656..8ef97c5, revisão aprovada, 744 testes). Ajuste fora do brief, verificado pelo revisor: teste pré-existente "o ciclo fecha" precisou aceitar match pendente quando steps.length == kCascadeBudgetPerTurn (consequência esperada da mudança de semântica).
 - [ ] 3 Bloco 9 — remove explosão antiga, limpa bloqueadores
 - [ ] 4 Super 9 — criação e limite de 1 ativo
 - [ ] 5 Super 9 — ativação por troca, conversão board-wide, decaimento
