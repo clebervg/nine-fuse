@@ -66,12 +66,32 @@ Achados Critical/Important a corrigir antes do merge:
 7. IMPORTANT: `JuiceDirector`/`JuicePriority` não são usados em produção — a
    criação do Super 9 (5+ peças) não dispara o evento Supernova, só a ativação.
 
+Rodada de fix (commit 0e1c64d) corrigiu 5 dos 7 achados (2,3,4,5,6), verificados pela
+re-revisão. Achados 1 e 7 tiveram efeito colateral introduzido pelo próprio fix:
+- Achado 1 (decay): `decaySpecials` roda sobre `resolution.board`, que já contém o
+  Super 9 recém-nascido nesta jogada — ele nasce com 3 turnos e já sai decaído para
+  2 antes do jogador ter a chance de agir. Contradiz o spec ("decai a partir da
+  jogada seguinte"). Precisa excluir da varredura de decaimento as peças nascidas
+  nesta própria resolução.
+- Achado 7 (Supernova na criação): `pendingSupernova` é limpo por `_finishMove`
+  (`clearPendingSupernova: true`) no mesmo fluxo que a ativação usa para MANTER o
+  sinal aceso até a próxima interação. Na criação (caso comum: match único, sem
+  cascata) o banner é desmontado aos 62% da animação, no auge do brilho. Precisa
+  não limpar `pendingSupernova` em `_finishMove` quando esta jogada criou um Super 9
+  — mesma convenção que a ativação já usa.
+
 Achados Minor (registrar, não bloqueiam): assimetria Endless sem apresentação
 Supernova (e sem guard/hitstop — risco futuro se alguém adicionar delay lá sem
 replicar o fix da corrida); comentários obsoletos remanescentes em match_engine.dart
 (linhas ~102, ~150, ~626); `_clearBlockersAround` sem comentário sobre célula
 central; `var stepScore` que nunca reatribui (podia ser `final`); sem teste
-end-to-end nascimento→ativação do Super 9 pelo notifier.
+end-to-end nascimento→ativação do Super 9 pelo notifier; `JuiceDirector`/
+`JuicePriority` confirmados código morto em produção (achado 7 usa checagem direta
+em vez deles) — comentário em `juice_overlay.dart:58` ficou desatualizado citando a
+hierarquia deles; Endless sem teste de decaimento (só a suíte passando cobre);
+criação do Super 9 não é travada em `cascade == 1` (herdado da Task 4) — um Super 9
+nascido numa cascata ou num golpe de martelo dispara o evento Supernova também;
+`pendingSupernova` ainda não é limpo no ramo `MoveRejected`.
 
 ## Notas de execução
 - Ledger anterior deste arquivo (Dynamic Extra Moves, e depois Splash Screen) foi
