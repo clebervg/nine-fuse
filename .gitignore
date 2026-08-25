@@ -50,3 +50,4 @@ app.*.map.json
 # a falha está na tela, e são regerados na próxima execução. Quatro deles
 # chegaram a ser commitados por acidente — daí a regra existir.
 test/**/failures/
+.worktrees/
