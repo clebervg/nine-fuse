@@ -17,7 +17,7 @@ Baseline: `flutter test` completo — 740 testes passando.
 - [x] 6 Providers e UI — recompilar contra o novo contrato — completa (commit 964c52a..599fa11, revisão aprovada após 1 rodada de fix, 739/739 testes). Fix: ativação do Super 9 não atualizava objectiveProgress (contagem por diff de tabuleiro antes/depois) nem consecutiveLosses/endlessOfferShown. Endless confirmado sem sistema de objetivo/loss-streak — nada a corrigir lá.
 - [x] 7 JuicePriority e JuiceDirector — completa (commit 5107c79..d20c2a8, revisão aprovada, 745/745 testes).
 - [x] 8 Apresentação do evento Supernova — completa (commit d7e0d7e..7677599, revisão aprovada após 1 rodada de fix, 748/748 testes). Fix: janela de corrida de 250ms sem `isResolving` travando `swapTiles` durante o hitstop (gap herdado do próprio brief). Endless mode NÃO ganhou o evento Supernova nesta task — decisão de escopo do brief, registrada.
-- [ ] 9 Recalibrar economia e registrar achado
+- [x] 9 Recalibrar economia e registrar achado — completa (commit f535e55..f0a3f08, revisão aprovada, docs-only). Fase 1000 "limpe todo stone" caiu de 63%→35% e fase 108 "quebre 3 stone" de 51%→40% (janela de spawn alta, medição isolada contra 745bf39 para não confundir com outro commit não relacionado já mergeado). Registrado em CLAUDE.md; recalibragem explicitamente fora do escopo desta task.
 
 ## Achados menores (para a revisão final triar)
 - T3: comentários obsoletos mencionando "explosão" removida (match_engine.dart, hoje
