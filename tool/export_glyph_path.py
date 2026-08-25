@@ -7,16 +7,16 @@ histórico do projeto (ver CLAUDE.md, seção "AppIcon") registra duas
 tentativas de desenho manual que saíram lendo como "g" e como "a".
 
 As coordenadas da fonte são Y-para-cima (origem na linha de base); SVG é
-Y-para-baixo. O path sai com um `transform="scale(1,-1)"` já embutido nas
-coordenadas (Y invertido diretamente nos comandos), para poder ser colado
-direto num `<path d="...">` sem precisar de atributo de transform adicional.
+Y-para-baixo. O path sai com o Y já invertido nos comandos, para poder ser
+colado direto num `<path d="...">` sem precisar de atributo de transform
+adicional para a inversão de eixo.
 
 Uso:
     python3 tool/export_glyph_path.py <fonte.ttf> <caractere>
 
 Imprime, em stdout:
     d="..."            — atributo pronto para colar num <path>
-    viewBox equivalente — unitsPerEm e bounds, para posicionar o path no selo
+    metadados de bounds/unitsPerEm — para posicionar o path no selo
 """
 import sys
 
