@@ -14,7 +14,7 @@ Baseline: `flutter test` completo — 740 testes passando.
 - [x] 3 Bloco 9 — completa (commit fd6e471..099a6e2, revisão aprovada, 86/86 testes do domínio). Duas correções de cenário de teste do brief (posições de gelo em cima do próprio trio; grade que não produzia o 9 em cascata) — verificadas pelo revisor como bugs genuínos do brief, não do motor.
 - [x] 4 Super 9 — criação e limite de 1 ativo — completa (commit 324508b..3d7899e, revisão aprovada após 1 rodada de fix, 90/90 testes). Fix: faltava teste do caso de duas fusões de 5+ na mesma jogada (cobertura do ramo `updates` de `_hasActiveSuperNine`).
 - [x] 5 Super 9 — ativação por troca, conversão board-wide, decaimento — completa (commit e6d3481..4254a6a, revisão aprovada, 96/96 testes).
-- [ ] 6 Providers e UI — recompilar contra o novo contrato
+- [x] 6 Providers e UI — recompilar contra o novo contrato — completa (commit 964c52a..599fa11, revisão aprovada após 1 rodada de fix, 739/739 testes). Fix: ativação do Super 9 não atualizava objectiveProgress (contagem por diff de tabuleiro antes/depois) nem consecutiveLosses/endlessOfferShown. Endless confirmado sem sistema de objetivo/loss-streak — nada a corrigir lá.
 - [ ] 7 JuicePriority e JuiceDirector
 - [ ] 8 Apresentação do evento Supernova
 - [ ] 9 Recalibrar economia e registrar achado
@@ -28,6 +28,13 @@ Baseline: `flutter test` completo — 740 testes passando.
 - T5: sem teste explícito de Super 9 num canto/borda do tabuleiro interagindo com
   gravidade/refill, nem de trocar o Super 9 com um vizinho de valor 9 (só coberto
   por leitura de código, `match_engine.dart` linhas ~498-500).
+- T6: `apexCelebrated` ficou um sinal morto (nenhum caminho de código o liga mais) —
+  esperado ficar vivo de novo na Task 8 (evento Supernova).
+- T6: `convertedFrom` chega a `_applySuperNineActivation` e agora é usado para o
+  cálculo de objectiveProgress — não é mais parâmetro morto.
+- T6: sem teste explícito de contagem de peças pré-existentes no valor-alvo antes da
+  troca do Super 9 (a fórmula por diff é correta por construção, mas o caso não tem
+  teste dedicado provando isso).
 
 ## Notas de execução
 - Ledger anterior deste arquivo (Dynamic Extra Moves, e depois Splash Screen) foi
