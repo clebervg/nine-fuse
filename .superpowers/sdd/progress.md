@@ -1,8 +1,28 @@
-# Splash Screen — Progress Ledger
+# Bloco 9, Super 9 e Cascade Budget — progresso
 
-Plan: docs/superpowers/plans/2026-08-20-splash-screen.md
-Worktree: /Users/cleber/projects/nine_fuse/.claude/worktrees/splash-screen (branch worktree-splash-screen)
-Task 1: complete (commits b469fa5..95778f0, review clean)
-Task 2: complete (commits 6442ce2..c7a67ce, review clean)
-Final whole-branch review: round 1 found 3 Important issues (asset color mismatch, ClipOval clipping, missing cacheWidth); fixed in 1087b55.
-Final whole-branch review: round 2 — Ready to merge: Yes. Minor items left unfixed (not blocking): shimmer still uses ClipOval (splash_screen.dart:183), Transform.scale inside ClipRRect ordering, stale `haloSize` name, gold progress bar vs. cyan palette comment, cacheWidth doesn't account for exitScale, no mounted guard in _onStatusChanged, no skip affordance, no Semantics label.
+Plano: docs/superpowers/plans/2026-08-25-bloco-9-super-9.md
+Spec: docs/superpowers/specs/2026-08-25-bloco-9-super-9-design.md
+Worktree: /Users/cleber/projects/nine_fuse/.claude/worktrees/bloco9-super9
+Branch: worktree-bloco9-super9
+Base: 745bf39
+
+Baseline: `flutter test` completo — 740 testes passando.
+
+## Tarefas
+- [ ] 1 SpecialTileType + Tile.withSpecial (pré-requisito peça especial)
+- [ ] 2 CascadeBudget
+- [ ] 3 Bloco 9 — remove explosão antiga, limpa bloqueadores
+- [ ] 4 Super 9 — criação e limite de 1 ativo
+- [ ] 5 Super 9 — ativação por troca, conversão board-wide, decaimento
+- [ ] 6 Providers e UI — recompilar contra o novo contrato
+- [ ] 7 JuicePriority e JuiceDirector
+- [ ] 8 Apresentação do evento Supernova
+- [ ] 9 Recalibrar economia e registrar achado
+
+## Achados menores (para a revisão final triar)
+
+## Notas de execução
+- Ledger anterior deste arquivo (Dynamic Extra Moves, e depois Splash Screen) foi
+  commitado sem querer na main de branches antigas; sobrescrito para começar este
+  trabalho do zero.
+- Trabalhando em worktree isolado — não mergear/dar push sem autorização explícita.
