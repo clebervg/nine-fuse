@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -673,6 +674,65 @@ void main() {
 
       expect(notifier.state.pendingSupernova, isFalse);
     });
+
+    test(
+      'rejeita um segundo swapTiles enquanto o hitstop está pendente',
+      () async {
+        // Notifier próprio: precisa de um `delay` que fica pendurado até o
+        // teste liberar, para simular o toque duplo caindo dentro da janela
+        // de 250ms do hitstop.
+        final hitstop = Completer<void>();
+        final duplicateNotifier = GameNotifier(
+          random: Random(42),
+          storage: InMemoryGameStorage(),
+          delay: (_) => hitstop.future,
+        );
+
+        const level = GameLevel(
+          number: 94,
+          objective: Objective(digit: 6, count: 10),
+          moveLimit: 500,
+        );
+        duplicateNotifier.startLevel(level);
+        final board = superNineBoard(
+          at: at,
+          neighbourValue: 5,
+          baseline: 2,
+          count: 4,
+        );
+        duplicateNotifier.debugSetBoard(board);
+
+        duplicateNotifier.swapTiles(at, neighbour);
+        // O `unawaited` já rodou até o primeiro `await`: `isResolving` deve
+        // estar `true` mesmo sem o hitstop ter avançado nenhum microtask.
+        expect(duplicateNotifier.state.isResolving, isTrue);
+        final midFlightState = duplicateNotifier.state;
+
+        // Segundo toque: duas peças vizinhas de valor 5, que formariam uma
+        // troca válida se o guard não existisse.
+        final secondA = Position(row: 0, col: 0);
+        final secondB = Position(row: 0, col: 1);
+        duplicateNotifier.swapTiles(secondA, secondB);
+
+        // Rejeitado em silêncio: o estado não mudou nem um pouco — nem
+        // `rejectedSwap`, nem `moves`, nem o tabuleiro.
+        expect(duplicateNotifier.state, same(midFlightState));
+
+        hitstop.complete();
+        await Future<void>.delayed(Duration.zero);
+
+        // Só a primeira ativação foi aplicada.
+        expect(duplicateNotifier.state.isResolving, isFalse);
+        expect(duplicateNotifier.state.moves, 1);
+        expect(
+          duplicateNotifier.state.board.getAllTiles().where(
+            (t) => t.value == 5,
+          ),
+          isEmpty,
+          reason: 'a promoção do Super 9 é a única jogada que valeu',
+        );
+      },
+    );
   });
 
   group('navegação entre fases', () {

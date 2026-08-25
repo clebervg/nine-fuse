@@ -377,6 +377,10 @@ class GameNotifier extends StateNotifier<GameState>
     Board board,
     int convertedFrom,
   ) async {
+    // Mesma trava de `_playResolution`: precisa ir ANTES do `await`, senão o
+    // guard de `swapTiles` (`state.isResolving`) não enxerga nada durante o
+    // hitstop e um segundo toque roda `tryMove` contra o tabuleiro velho.
+    state = state.copyWith(isResolving: true);
     await _delay(JuiceTimings.supernovaHitstop);
     if (!mounted) return;
 
@@ -432,6 +436,7 @@ class GameNotifier extends StateNotifier<GameState>
       consecutiveLosses: consecutiveLosses,
       endlessOfferShown: endlessOfferShown,
       pendingSupernova: true,
+      isResolving: false,
     );
   }
 
