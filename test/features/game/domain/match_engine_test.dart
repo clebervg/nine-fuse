@@ -736,6 +736,44 @@ void main() {
       final newNine = resolution.steps.first.fusions.firstWhere((f) => f.value == kMaxDigit);
       expect(newNine.specialType, isNull, reason: 'vira Bloco 9 comum, não um segundo Super 9');
     });
+
+    test(
+      'duas combinações de 5+ peças 8 na MESMA resolução: só a primeira vira Super 9',
+      () {
+        // Dois grupos disjuntos de 5+ peças de valor 8, longe o bastante
+        // (linha 0 e linha 7) para não se tocarem, ambos já formados quando
+        // resolve() é chamado — logo processados na MESMA chamada de
+        // _applyFusions, exercitando o ramo do `updates` de
+        // _hasActiveSuperNine (não o do tabuleiro pré-existente).
+        final grid = baseGrid();
+        for (final col in [1, 2, 3, 4, 5]) {
+          grid[0][col] = kMaxDigit - 1;
+          grid[7][col] = kMaxDigit - 1;
+        }
+        final board = boardFromValues(grid);
+
+        final resolution = engine.resolve(board);
+
+        final superNines = resolution.board
+            .getAllTiles()
+            .where((t) => t.specialType == SpecialTileType.superNine);
+        expect(
+          superNines,
+          hasLength(1),
+          reason: 'apenas um Super 9 pode nascer, mesmo com dois matches de 5+ na mesma jogada',
+        );
+
+        final bornNines = resolution.steps.first.fusions
+            .where((f) => f.value == kMaxDigit)
+            .toList();
+        expect(bornNines, hasLength(2), reason: 'os dois matches de 5+ resolvem na mesma chamada');
+
+        final withSuperNine = bornNines.where((f) => f.specialType == SpecialTileType.superNine);
+        final plainNines = bornNines.where((f) => f.specialType == null);
+        expect(withSuperNine, hasLength(1));
+        expect(plainNines, hasLength(1), reason: 'o segundo match vira Bloco 9 comum');
+      },
+    );
   });
 
   group('findHint', () {
