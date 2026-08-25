@@ -1592,4 +1592,131 @@ void main() {
       expect(resolution.producedDigits, contains(6));
     });
   });
+
+  group('ativação do Super 9', () {
+    Board withSuperNineAt(Position at, {int neighbourValue = 3}) {
+      var board = boardFromValues(baseGrid());
+      board = board.updateTile(
+        at,
+        Tile.withSpecial(
+          id: 'super',
+          value: kMaxDigit,
+          position: at,
+          specialType: SpecialTileType.superNine,
+        ),
+      );
+      final neighbour = Position(row: at.row, col: at.col + 1);
+      board = board.updateTile(
+        neighbour,
+        board.getTileAt(neighbour)!.copyWith(value: neighbourValue),
+      );
+      return board;
+    }
+
+    test('trocar com um vizinho de valor x promove todo x para x+1', () {
+      const at = Position(row: 4, col: 2);
+      final neighbour = Position(row: at.row, col: at.col + 1);
+      var board = withSuperNineAt(at, neighbourValue: 3);
+      // Espalha mais peças de valor 3 pelo tabuleiro, fora da vizinhança do
+      // Super 9, para provar que a conversão é **board-wide**.
+      const distant = Position(row: 0, col: 6);
+      board = board.updateTile(distant, board.getTileAt(distant)!.copyWith(value: 3));
+
+      final result = engine.tryMove(board, at, neighbour);
+
+      expect(result, isA<MoveSuperNineActivated>());
+      final activated = result as MoveSuperNineActivated;
+      expect(activated.convertedFrom, 3);
+      expect(
+        activated.board.getAllTiles().where((t) => t.value == 3),
+        isEmpty,
+        reason: 'todo valor 3 devia virar 4',
+      );
+      expect(
+        activated.board.getTileAt(distant)!.value,
+        4,
+        reason: 'a peça distante também converte — é board-wide',
+      );
+    });
+
+    test('o próprio Super 9 é consumido pela conversão', () {
+      const at = Position(row: 4, col: 2);
+      final neighbour = Position(row: at.row, col: at.col + 1);
+      final board = withSuperNineAt(at);
+
+      final result = engine.tryMove(board, at, neighbour) as MoveSuperNineActivated;
+
+      expect(
+        result.board.getAllTiles().where((t) => t.specialType == SpecialTileType.superNine),
+        isEmpty,
+      );
+    });
+
+    test('preserva os ids das peças promovidas', () {
+      const at = Position(row: 4, col: 2);
+      final neighbour = Position(row: at.row, col: at.col + 1);
+      final board = withSuperNineAt(at, neighbourValue: 3);
+      final neighbourId = board.getTileAt(neighbour)!.id;
+
+      final result = engine.tryMove(board, at, neighbour) as MoveSuperNineActivated;
+
+      expect(result.board.getTileAt(neighbour)!.id, neighbourId);
+    });
+
+    test('não roda resolve() — um match criado pela conversão fica congelado', () {
+      const at = Position(row: 4, col: 2);
+      final neighbour = Position(row: at.row, col: at.col + 1);
+      var board = withSuperNineAt(at, neighbourValue: 3);
+      // Duas outras peças de valor 3 já formam, junto com a do vizinho, um
+      // trio na mesma linha depois da conversão para 4.
+      board = board.updateTile(
+        const Position(row: 4, col: 4),
+        board.getTileAt(const Position(row: 4, col: 4))!.copyWith(value: 3),
+      );
+      board = board.updateTile(
+        const Position(row: 4, col: 5),
+        board.getTileAt(const Position(row: 4, col: 5))!.copyWith(value: 3),
+      );
+
+      final result = engine.tryMove(board, at, neighbour) as MoveSuperNineActivated;
+
+      expect(
+        engine.detectMatches(result.board),
+        isNotEmpty,
+        reason: 'o match ficou pendente, não foi resolvido nem descartado',
+      );
+    });
+  });
+
+  group('MatchEngine.decaySpecials', () {
+    test('decrementa toda peça especial em um turno', () {
+      var board = boardFromValues(baseGrid());
+      const at = Position(row: 0, col: 0);
+      board = board.updateTile(
+        at,
+        Tile.withSpecial(id: 't', value: 5, position: at, specialType: SpecialTileType.wildcard),
+      );
+
+      final decayed = engine.decaySpecials(board);
+      expect(decayed.getTileAt(at)!.specialTurnsLeft, kSpecialTileLifespan - 1);
+    });
+
+    test('reverte para peça normal ao chegar a zero', () {
+      var board = boardFromValues(baseGrid());
+      const at = Position(row: 0, col: 0);
+      board = board.updateTile(
+        at,
+        Tile.withSpecial(id: 't', value: 5, position: at, specialType: SpecialTileType.wildcard),
+      );
+
+      var decayed = board;
+      for (int i = 0; i < kSpecialTileLifespan; i++) {
+        decayed = engine.decaySpecials(decayed);
+      }
+
+      final tile = decayed.getTileAt(at)!;
+      expect(tile.specialType, isNull);
+      expect(tile.value, 5);
+    });
+  });
 }

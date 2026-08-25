@@ -273,6 +273,15 @@ class MoveResolved extends MoveResult {
   final Resolution resolution;
 }
 
+/// A troca ativou um Super 9: todo o tabuleiro que tinha o valor
+/// [convertedFrom] foi promovido, sem cascata automática.
+class MoveSuperNineActivated extends MoveResult {
+  const MoveSuperNineActivated(this.board, this.convertedFrom);
+
+  final Board board;
+  final int convertedFrom;
+}
+
 /// Motor puro do Match-3 com fusão. Não conhece Riverpod nem widgets:
 /// recebe um [Board] e devolve outro, o que torna cada regra testável
 /// isoladamente com tabuleiros montados à mão.
@@ -487,10 +496,57 @@ class MatchEngine {
     // destino da troca.
     if (tileA.isBlocked || tileB.isBlocked) return const MoveImpossible();
 
+    final superNine = tileA.specialType == SpecialTileType.superNine
+        ? tileA
+        : (tileB.specialType == SpecialTileType.superNine ? tileB : null);
+    if (superNine != null) {
+      final other = identical(superNine, tileA) ? tileB : tileA;
+      if (other.value < kMaxDigit) {
+        return MoveSuperNineActivated(
+          _activateSuperNine(board, at: superNine.position, targetValue: other.value),
+          other.value,
+        );
+      }
+      // Vizinho já é 9 (ou outro Super 9, impossível pelo limite de 1): a
+      // troca não é uma conversão válida, cai no fluxo comum — que a
+      // recusa por não formar combinação, como qualquer troca sem efeito.
+    }
+
     final swapped = swap(board, a, b);
     if (detectMatches(swapped).isEmpty) return MoveRejected(a, b);
 
     return MoveResolved(resolve(swapped, anchor: b));
+  }
+
+  /// Promove todo tile de valor [targetValue] para `targetValue + 1`,
+  /// consome o Super 9 em [at] e reassenta o buraco. Não chama `resolve()`:
+  /// a conversão é passiva e estática — qualquer match que ela alinhe fica
+  /// congelado até a jogada seguinte, a mesma semântica do orçamento de
+  /// cascata para o match que sobra ao fim do turno.
+  Board _activateSuperNine(Board board, {required Position at, required int targetValue}) {
+    var result = board;
+    for (final tile in board.getAllTiles()) {
+      if (tile.value == targetValue) {
+        result = result.updateTile(tile.position, tile.copyWith(value: targetValue + 1));
+      }
+    }
+
+    result = result.updateTile(at, null);
+    result = refill(applyGravity(result));
+    return result;
+  }
+
+  /// Um turno do jogador se passou: toda peça especial no tabuleiro decai
+  /// uma unidade de vida. Chamado pelo notifier ao final de uma jogada bem
+  /// sucedida — não faz parte de `tryMove` porque o notifier decide quando
+  /// uma jogada "conta" como turno (o golpe de martelo, por exemplo, não).
+  Board decaySpecials(Board board) {
+    var result = board;
+    for (final tile in board.getAllTiles()) {
+      if (tile.specialType == null) continue;
+      result = result.updateTile(tile.position, tile.decaySpecial());
+    }
+    return result;
   }
 
   // ---------------------------------------------------------------------------
