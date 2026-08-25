@@ -142,6 +142,18 @@ void main() {
     'frente do adaptativo (Android, sem fundo)',
   );
 
+  // A splash nativa (flutter_native_splash) compõe sobre uma cor de tela
+  // sólida, então precisa do mesmo selo com fundo transparente que alimenta a
+  // frente do adaptativo. A diferença é que aqui NÃO se aplica o encolhimento
+  // de zona segura (`_insetForAdaptive`): esse encolhimento existe só por
+  // causa da máscara circular do ícone, e a splash não é recortada por
+  // máscara nenhuma — o selo vai no tamanho cheio do canvas.
+  _write(
+    'assets/images/logo_splash.png',
+    mark,
+    'selo com fundo transparente, para a splash nativa (flutter_native_splash)',
+  );
+
   // A ficha da Play Store pede um 512x512 enviado à parte — ele não vai dentro
   // do APK, então nenhuma ferramenta de build o produz.
   _write(

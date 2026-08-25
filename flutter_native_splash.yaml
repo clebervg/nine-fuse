@@ -2,16 +2,16 @@
 # equivalente no pubspec.yaml, pela mesma razão do flutter_launcher_icons.yaml:
 # arquivo próprio do pacote, uma fonte da verdade só.
 #
-# Regerar depois de qualquer mudança aqui ou em assets/images/logo.png:
+# Regerar depois de qualquer mudança em assets/images/logo.svg:
+#   dart run tool/prepare_icons.dart
 #   dart run flutter_native_splash:create
 #
-# assets/images/logo_splash.png é derivado de logo.svg (a versão corrigida,
-# fundo quase-uniforme #00041a), com o fundo removido por flood-fill de cor a
-# partir dos quatro cantos + pena de 4px na borda — não é o logo.png/logo.svg
-# usados no resto do app, que têm fundo opaco embutido e não servem para
-# compor sobre uma cor de tela sólida sem deixar um retângulo visível. Gerar de
-# novo exige refazer esse recorte a partir do render fonte, não é um passo
-# automático do prepare_icons.dart.
+# assets/images/logo_splash.png agora É gerado automaticamente por
+# tool/prepare_icons.dart, junto dos outros mestres — é o mesmo selo com fundo
+# transparente que alimenta a frente do ícone adaptativo (recorte do grupo
+# `<g id="mark">` de logo.svg), só que sem o encolhimento de zona segura
+# (`_insetForAdaptive`), que existe só por causa da máscara circular do ícone
+# e não se aplica à splash. Não é mais um recorte manual por flood-fill.
 #
 # A cor É AppColors.darkBackground (0xFF121212, ver
 # lib/core/constants/app_colors.dart) — o scaffoldBackgroundColor real do
