@@ -16,7 +16,7 @@ Baseline: `flutter test` completo — 740 testes passando.
 - [x] 5 Super 9 — ativação por troca, conversão board-wide, decaimento — completa (commit e6d3481..4254a6a, revisão aprovada, 96/96 testes).
 - [x] 6 Providers e UI — recompilar contra o novo contrato — completa (commit 964c52a..599fa11, revisão aprovada após 1 rodada de fix, 739/739 testes). Fix: ativação do Super 9 não atualizava objectiveProgress (contagem por diff de tabuleiro antes/depois) nem consecutiveLosses/endlessOfferShown. Endless confirmado sem sistema de objetivo/loss-streak — nada a corrigir lá.
 - [x] 7 JuicePriority e JuiceDirector — completa (commit 5107c79..d20c2a8, revisão aprovada, 745/745 testes).
-- [ ] 8 Apresentação do evento Supernova
+- [x] 8 Apresentação do evento Supernova — completa (commit d7e0d7e..7677599, revisão aprovada após 1 rodada de fix, 748/748 testes). Fix: janela de corrida de 250ms sem `isResolving` travando `swapTiles` durante o hitstop (gap herdado do próprio brief). Endless mode NÃO ganhou o evento Supernova nesta task — decisão de escopo do brief, registrada.
 - [ ] 9 Recalibrar economia e registrar achado
 
 ## Achados menores (para a revisão final triar)
@@ -35,6 +35,12 @@ Baseline: `flutter test` completo — 740 testes passando.
 - T6: sem teste explícito de contagem de peças pré-existentes no valor-alvo antes da
   troca do Super 9 (a fórmula por diff é correta por construção, mas o caso não tem
   teste dedicado provando isso).
+- T8: Endless não tem o evento Supernova (banner/hitstop/focus-fade) — só campanha.
+  Ativação do Super 9 no Endless continua funcionando (converte, some, etc.), só sem
+  a apresentação nova. Fica para uma task futura se o dono do produto quiser paridade.
+- T8: `pendingSupernova` não é limpo no ramo `MoveRejected` de `swapTiles` — inofensivo
+  hoje (o widget não re-anima, já ficou completo), mas é inconsistência latente se
+  ganhar um segundo consumidor.
 
 ## Notas de execução
 - Ledger anterior deste arquivo (Dynamic Extra Moves, e depois Splash Screen) foi
