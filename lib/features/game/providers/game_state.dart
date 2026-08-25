@@ -161,16 +161,10 @@ class GameState {
   /// vê o tabuleiro antes e depois.
   final bool apexCelebrated;
 
-  /// Quantos dígitos máximos esta partida já detonou.
-  ///
-  /// Não se confunde com [apexCelebrated], que é um sinal de uma vez só: o
-  /// aviso de "FUSÃO MÁXIMA" aparece uma vez por partida, mas o **tranco** do
-  /// tabuleiro é de cada explosão. Um `bool` que nunca desliga não distingue a
-  /// segunda explosão da primeira, e a segunda não sacudiria nada.
-  ///
-  /// É contado por explosão, e não por jogada: uma cascata que detona dois
-  /// dígitos máximos soma dois — a mesma unidade que já paga o bônus de
-  /// movimentos em `kExplosionBonusMoves`.
+  /// Quantos eventos de clímax (hoje, ativações do Super 9) já aconteceram
+  /// na fase. Alimenta [shakeSerial] — o tranco de tela reage a qualquer
+  /// evento de clímax, e o Bloco 9 deixou de ser um deles (ele só limpa
+  /// bloqueador, sem o peso visual que justificava o tranco).
   final int explosions;
 
   /// O convite de reforço de saldo já foi mostrado nesta partida.

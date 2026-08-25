@@ -270,6 +270,9 @@ class GameNotifier extends StateNotifier<GameState>
           rejectedSwap: (from, to),
         );
 
+      case MoveSuperNineActivated(:final board, :final convertedFrom):
+        _applySuperNineActivation(engine, board, convertedFrom);
+
       case MoveResolved(:final resolution):
         if (JuiceTimings.instantResolution) {
           _finishMove(engine, resolution, extraScore: resolution.score);
@@ -307,8 +310,10 @@ class GameNotifier extends StateNotifier<GameState>
 
       // O clímax do jogo merece ser sentido, não só visto. Fica na encenação e
       // não em `_finishMove` porque o momento importa: a batida tem de coincidir
-      // com o clarão, e não com o fim da cascata inteira.
-      if (step.explosionCentres.isNotEmpty) {
+      // com o clarão, e não com o fim da cascata inteira. O Bloco 9 aprimorado
+      // (o que cria o dígito máximo) ainda merece a mesma ênfase tátil, mesmo
+      // sem o clarão que a explosão antiga desenhava.
+      if (step.fusions.any((f) => f.value == kMaxDigit)) {
         _explosionFeedback();
       }
 
@@ -317,14 +322,6 @@ class GameNotifier extends StateNotifier<GameState>
         score: runningScore,
         activeStep: step,
         comboCount: step.cascade,
-        // Uma vez ligado, nunca desliga: a comemoração é da **primeira** fusão
-        // máxima da partida.
-        apexCelebrated:
-            state.apexCelebrated || step.explosionCentres.isNotEmpty,
-        // O tranco do tabuleiro nasce aqui, e não em `_finishMove`, pelo mesmo
-        // motivo da batida tátil: a sacudida tem de coincidir com o clarão, e
-        // não com o fim da cascata inteira.
-        explosions: state.explosions + step.explosionCentres.length,
         bigFusionTileIds: {
           for (final fusion in step.fusions)
             if (fusion.isBig) fusion.tileId,
@@ -339,15 +336,8 @@ class GameNotifier extends StateNotifier<GameState>
     }
 
     if (!mounted) return;
-    // A pontuação e o contador de explosões já subiram quadro a quadro durante
-    // a encenação.
-    _finishMove(
-      engine,
-      resolution,
-      extraScore: 0,
-      extraExplosions: 0,
-      countsAsMove: countsAsMove,
-    );
+    // A pontuação já subiu quadro a quadro durante a encenação.
+    _finishMove(engine, resolution, extraScore: 0, countsAsMove: countsAsMove);
   }
 
   /// Batida forte da explosão do dígito máximo.
@@ -359,6 +349,41 @@ class GameNotifier extends StateNotifier<GameState>
 
   void _explosionFeedback() => explosionFeedback();
 
+  /// Aplica o desfecho da ativação do Super 9: consome 1 movimento (é uma
+  /// jogada como qualquer swap), decai as peças especiais do turno e conta
+  /// como um evento de clímax para o tranco de tela — mesmo sinal que a
+  /// explosão do 9 já usava.
+  void _applySuperNineActivation(
+    MatchEngine engine,
+    Board board,
+    int convertedFrom,
+  ) {
+    final decayed = engine.decaySpecials(board);
+    final moves = state.moves + 1;
+    final hint = engine.findHint(decayed);
+
+    final outcome = _outcomeAfterMove(
+      progress: state.objectiveProgress,
+      target: state.objectiveTarget,
+      moves: moves,
+      movesAvailable: state.level.moveLimit + state.bonusMoves,
+      hasMove: hint != null,
+    );
+
+    state = state.copyWith(
+      board: decayed,
+      moves: moves,
+      clearSelectedTile: true,
+      clearRejectedSwap: true,
+      hint: hint,
+      clearHint: hint == null,
+      explosions: state.explosions + 1,
+      status: outcome.status,
+      lossReason: outcome.loss,
+      clearLossReason: outcome.loss == null,
+    );
+  }
+
   /// Aplica o desfecho da jogada: objetivo, movimento, dica e situação da fase.
   ///
   /// [extraScore] é a pontuação que ainda não foi contabilizada. Na encenação
@@ -369,24 +394,19 @@ class GameNotifier extends StateNotifier<GameState>
   /// justamente o que o jogador está comprando. O desfecho continua sendo
   /// reavaliado — uma cascata do golpe pode cumprir o objetivo, e a queda pode
   /// travar o tabuleiro.
-  /// [extraExplosions] segue a mesma regra de [extraScore]: nulo significa "o
-  /// caminho que me chamou ainda não contou", e a resolução instantânea — que
-  /// não tem encenação para contar quadro a quadro — cai nesse caso.
   void _finishMove(
     MatchEngine engine,
     Resolution resolution, {
     required int extraScore,
-    int? extraExplosions,
     bool countsAsMove = true,
   }) {
     final progress = state.objectiveProgress + _gainedThisMove(resolution);
     final moves = state.moves + (countsAsMove ? 1 : 0);
 
-    // Cada dígito máximo criado devolve movimentos. É o que faz a explosão ser
-    // uma conquista de fase, e não só um efeito bonito: sem isso o jogador que
-    // gasta jogadas montando o 9 é punido por ter feito a jogada mais difícil.
-    final bonusMoves =
-        state.bonusMoves + resolution.explosions * kExplosionBonusMoves;
+    // O Bloco 9 não paga mais movimentos de bônus — decisão do spec: ele só
+    // limpa bloqueador, e quem devolve saldo agora é a ativação do Super 9
+    // (ver `_applySuperNineActivation`, que não passa por `_finishMove`).
+    final bonusMoves = state.bonusMoves;
 
     // Uma varredura só serve às duas perguntas: existe jogada (senão a fase
     // acabou) e qual é ela (para a dica).
@@ -435,10 +455,9 @@ class GameNotifier extends StateNotifier<GameState>
       isResolving: false,
       clearSelectedTile: true,
       clearRejectedSwap: true,
-      // Na resolução instantânea não há encenação para ligar o sinal, e sem
-      // isto a comemoração só existiria no caminho animado.
-      apexCelebrated: state.apexCelebrated || resolution.explosions > 0,
-      explosions: state.explosions + (extraExplosions ?? resolution.explosions),
+      // `apexCelebrated`/`explosions` não mudam aqui: nenhuma fusão comum
+      // (Bloco 9 incluso) os altera mais — só a ativação do Super 9
+      // (`_applySuperNineActivation`) e o martelo os tocam.
       consecutiveLosses: consecutiveLosses,
       endlessOfferShown: endlessOfferShown,
     );

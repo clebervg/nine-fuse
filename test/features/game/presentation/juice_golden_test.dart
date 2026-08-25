@@ -83,8 +83,6 @@ void main() {
           score: 210,
         ),
       ],
-      explosionCentres: const [Position(row: 6, col: 2)],
-      clearedDigits: const {},
       boardAfterFusion: Board.empty(),
       boardAfterSettle: Board.empty(),
       score: 270,
@@ -150,8 +148,6 @@ void main() {
     final step = ResolutionStep(
       cascade: 3,
       fusions: const [],
-      explosionCentres: const [],
-      clearedDigits: const {},
       boardAfterFusion: Board.empty(),
       boardAfterSettle: Board.empty(),
       score: 0,
