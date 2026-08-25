@@ -509,8 +509,14 @@ class GameNotifier extends StateNotifier<GameState>
     // já vale para `moves`. Sem isto, um Super 9 nunca criado por decaimento
     // ficaria preso no tabuleiro para sempre, bloqueando qualquer outro (o
     // limite é de 1 por vez).
+    // Peça especial nascida NESTA jogada (ex.: Super 9 fundido agora) fica de
+    // fora do decaimento: o spec conta a vida a partir da jogada seguinte, e
+    // decair no mesmo turno em que nasceu cortaria 1 dos seus 3 turnos úteis.
     final board = countsAsMove
-        ? engine.decaySpecials(resolution.board)
+        ? engine.decaySpecials(
+            resolution.board,
+            newbornIds: resolution.newbornSpecialTileIds,
+          )
         : resolution.board;
 
     // Uma varredura só serve às duas perguntas: existe jogada (senão a fase
@@ -560,7 +566,14 @@ class GameNotifier extends StateNotifier<GameState>
       isResolving: false,
       clearSelectedTile: true,
       clearRejectedSwap: true,
-      clearPendingSupernova: true,
+      // Se esta jogada CRIOU um Super 9, `pendingSupernova` já está `true`
+      // (setado em `_playResolution`) e não pode ser derrubado aqui: o banner
+      // de Supernova segue a mesma convenção da ativação — só sai de cena na
+      // PRÓXIMA interação do jogador (`_select`, `deselectTile`, etc.), não
+      // no fim do próprio movimento que o acendeu. Limpar incondicionalmente
+      // cortava a animação (~1150ms) no meio, porque um movimento de um passo
+      // resolve por `_finishMove` bem antes disso.
+      clearPendingSupernova: resolution.newbornSpecialTileIds.isEmpty,
       // O clímax (Bloco 9/Super 9) substituiu a explosão antiga como o que
       // `apexCelebrated` celebra: dispara na primeira vez que o dígito
       // máximo nasce nesta partida, criado por Bloco 9 ou Super 9 — os dois

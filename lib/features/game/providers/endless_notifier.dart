@@ -315,8 +315,16 @@ class EndlessNotifier extends StateNotifier<EndlessState>
 
     // O decaimento das peças especiais só roda em jogada que **conta** como
     // turno do jogador — o golpe de martelo não decai, mesma régua de
-    // `GameNotifier._finishMove`.
-    if (countsAsMove) board = engine.decaySpecials(board);
+    // `GameNotifier._finishMove`. E peça nascida NESTA jogada fica de fora do
+    // decaimento (mesma correção de `GameNotifier._finishMove`): sem isso um
+    // Super 9 recém-formado perderia 1 dos seus 3 turnos de vida antes de o
+    // jogador sequer poder usá-lo.
+    if (countsAsMove) {
+      board = engine.decaySpecials(
+        board,
+        newbornIds: resolution.newbornSpecialTileIds,
+      );
+    }
 
     final score = state.score + extraScore;
 

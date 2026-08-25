@@ -902,10 +902,26 @@ void main() {
           hasLength(1),
           reason: 'a jogada precisa mesmo ter criado o Super 9',
         );
-        // `_finishMove` limpa o sinal ao fim da jogada — a mesma régua que já
-        // vale para a ativação.
-        expect(creationNotifier.state.pendingSupernova, isFalse);
+        // Achado do round 2: `_finishMove` limpava `pendingSupernova`
+        // incondicionalmente ao fim de TODA jogada — inclusive a que acabou
+        // de acendê-lo, cortando a animação do banner (~1150ms) no meio,
+        // porque um movimento de um passo só resolve bem antes disso. O
+        // sinal segue a mesma convenção da ativação: só sai de cena na
+        // PRÓXIMA interação do jogador, não no fim do próprio movimento que
+        // o acendeu.
+        expect(
+          creationNotifier.state.pendingSupernova,
+          isTrue,
+          reason:
+              'o banner de Supernova da CRIAÇÃO tem de sobreviver ao fim do '
+              'próprio movimento, igual à ativação',
+        );
         expect(creationNotifier.state.apexCelebrated, isTrue);
+
+        // A próxima interação do jogador (aqui, selecionar uma peça) é quem
+        // apaga o sinal — mesma régua de `_select`/`deselectTile`.
+        creationNotifier.selectTile(const Position(row: 0, col: 0));
+        expect(creationNotifier.state.pendingSupernova, isFalse);
       },
     );
   });
@@ -1108,6 +1124,89 @@ void main() {
           isEmpty,
           reason: 'a ativação consome o Super 9 — não sobra nada para decair',
         );
+      },
+    );
+
+    test(
+      'nascido NESTA jogada não decai na mesma jogada — 3 turnos cheios só '
+      'começam a contar a partir da PRÓXIMA',
+      () {
+        // Achado do round 2 da revisão final: `decaySpecials` rodava sobre
+        // `resolution.board`, que já contém o Super 9 que a própria jogada
+        // acabou de criar — cortando 1 dos 3 turnos de vida do spec antes de
+        // o jogador sequer ter uma chance de usá-lo.
+        final decayNotifier = GameNotifier(
+          random: Random(7),
+          storage: InMemoryGameStorage(),
+        );
+        decayNotifier.startLevel(
+          const GameLevel(
+            number: 101,
+            objective: Objective(digit: 8, count: 99),
+            moveLimit: 20,
+          ),
+        );
+
+        // Mesmo desenho de `boardAboutToCreateSuperNine` do grupo de
+        // apresentação: a troca (3,3)↔(4,3) completa uma fileira de 5 peças
+        // de valor 8 na linha 3, o match de 5+ que cria o Super 9.
+        final grid = [
+          for (int row = 0; row < Board.boardSize; row++)
+            [for (int col = 0; col < Board.boardSize; col++) (row + col) % 3],
+        ];
+        for (final col in [1, 2, 4, 5]) {
+          grid[3][col] = kMaxDigit - 1;
+        }
+        grid[3][3] = 0;
+        grid[4][3] = kMaxDigit - 1;
+        decayNotifier.debugSetBoard(boardFromValues(grid));
+
+        decayNotifier.swapTiles(
+          const Position(row: 3, col: 3),
+          const Position(row: 4, col: 3),
+        );
+
+        var superNine = decayNotifier.state.board
+            .getAllTiles()
+            .singleWhere((t) => t.specialType == SpecialTileType.superNine);
+        expect(
+          superNine.specialTurnsLeft,
+          kSpecialTileLifespan,
+          reason:
+              'nasceu nesta jogada — não pode ter decaído antes do jogador '
+              'ganhar o primeiro turno com ele',
+        );
+
+        // As 3 jogadas seguintes (não a que criou) é que decaem o Super 9,
+        // uma por turno, até reverter para 9 comum.
+        for (int turn = 1; turn <= 3; turn++) {
+          decayNotifier.debugSetBoard(
+            boardWithTrioAndSuperNine(
+              5,
+              superNine.copyWith(position: superNinePosition),
+            ),
+          );
+          decayNotifier.swapTiles(swapA, swapB);
+
+          superNine = decayNotifier.state.board.getTileAt(superNinePosition)!;
+
+          if (turn < 3) {
+            expect(
+              superNine.specialType,
+              SpecialTileType.superNine,
+              reason: 'só decai depois de 3 turnos completos, não antes',
+            );
+          }
+        }
+
+        expect(
+          superNine.specialType,
+          isNull,
+          reason:
+              'decaiu para 9 comum depois de 3 jogadas normais separadas da '
+              'que o criou — 3 turnos de vida de verdade, não 2',
+        );
+        expect(superNine.value, kMaxDigit);
       },
     );
   });

@@ -124,6 +124,16 @@ class Resolution {
   /// Quantas peças de [digit] foram criadas nesta resolução.
   int countProduced(int digit) =>
       producedDigits.where((value) => value == digit).length;
+
+  /// Ids de peças especiais (hoje só o Super 9) nascidas **nesta mesma
+  /// resolução** — usado por `decaySpecials` para não descontar o turno de
+  /// vida de uma peça que ainda não existia no início da jogada. Espelha
+  /// [bigFusionTileIds]: identidade por id, não por posição.
+  late final Set<String> newbornSpecialTileIds = {
+    for (final step in steps)
+      for (final fusion in step.fusions)
+        if (fusion.specialType != null) fusion.tileId,
+  };
 }
 
 /// Resultado de aplicar as combinações de um tabuleiro **uma vez**, sem
@@ -540,10 +550,17 @@ class MatchEngine {
   /// uma unidade de vida. Chamado pelo notifier ao final de uma jogada bem
   /// sucedida — não faz parte de `tryMove` porque o notifier decide quando
   /// uma jogada "conta" como turno (o golpe de martelo, por exemplo, não).
-  Board decaySpecials(Board board) {
+  ///
+  /// [newbornIds] são os `id`s de peças especiais **nascidas nesta mesma
+  /// jogada** (fusão/cascata dentro do próprio turno): o spec pede que elas
+  /// decaiam "a partir da jogada seguinte", não da que as criou. Sem essa
+  /// exclusão, um Super 9 recém-formado perderia 1 dos seus 3 turnos de vida
+  /// antes de o jogador sequer poder usá-lo.
+  Board decaySpecials(Board board, {Set<String> newbornIds = const {}}) {
     var result = board;
     for (final tile in board.getAllTiles()) {
       if (tile.specialType == null) continue;
+      if (newbornIds.contains(tile.id)) continue;
       result = result.updateTile(tile.position, tile.decaySpecial());
     }
     return result;
