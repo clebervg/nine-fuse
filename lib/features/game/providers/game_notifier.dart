@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -60,7 +61,11 @@ class GameNotifier extends StateNotifier<GameState>
   /// o dedo vai martelar, diz duas coisas ao mesmo tempo.
   @override
   void onHammerTargetingStarted() {
-    state = state.copyWith(clearSelectedTile: true, clearRejectedSwap: true);
+    state = state.copyWith(
+      clearSelectedTile: true,
+      clearRejectedSwap: true,
+      clearPendingSupernova: true,
+    );
   }
 
   @override
@@ -242,11 +247,16 @@ class GameNotifier extends StateNotifier<GameState>
     state = state.copyWith(
       selectedTile: tile.copyWith(isSelected: true),
       clearRejectedSwap: true,
+      clearPendingSupernova: true,
     );
   }
 
   void deselectTile() {
-    state = state.copyWith(clearSelectedTile: true, clearRejectedSwap: true);
+    state = state.copyWith(
+      clearSelectedTile: true,
+      clearRejectedSwap: true,
+      clearPendingSupernova: true,
+    );
   }
 
   /// Troca duas peças adjacentes.
@@ -271,7 +281,9 @@ class GameNotifier extends StateNotifier<GameState>
         );
 
       case MoveSuperNineActivated(:final board, :final convertedFrom):
-        _applySuperNineActivation(engine, board, convertedFrom);
+        // O `switch` não é `async`: travar a UI esperando o hitstop antes de
+        // devolver o controle ao chamador não é necessário aqui.
+        unawaited(_applySuperNineActivation(engine, board, convertedFrom));
 
       case MoveResolved(:final resolution):
         if (JuiceTimings.instantResolution) {
@@ -297,6 +309,7 @@ class GameNotifier extends StateNotifier<GameState>
       isResolving: true,
       clearSelectedTile: true,
       clearRejectedSwap: true,
+      clearPendingSupernova: true,
     );
 
     var runningScore = state.score;
@@ -353,11 +366,20 @@ class GameNotifier extends StateNotifier<GameState>
   /// jogada como qualquer swap), decai as peças especiais do turno e conta
   /// como um evento de clímax para o tranco de tela — mesmo sinal que a
   /// explosão do 9 já usava.
-  void _applySuperNineActivation(
+  ///
+  /// Vira `Future<void>` por causa do hitstop: o jogo "segura a respiração"
+  /// por [JuiceTimings.supernovaHitstop] antes de aplicar o estado final —
+  /// é a pausa que dá peso ao payoff do Supernova, e usa o mesmo `_delay`
+  /// injetável que já paceia a encenação da cascata, em vez de um segundo
+  /// mecanismo de espera.
+  Future<void> _applySuperNineActivation(
     MatchEngine engine,
     Board board,
     int convertedFrom,
-  ) {
+  ) async {
+    await _delay(JuiceTimings.supernovaHitstop);
+    if (!mounted) return;
+
     final decayed = engine.decaySpecials(board);
     final moves = state.moves + 1;
     final hint = engine.findHint(decayed);
@@ -409,6 +431,7 @@ class GameNotifier extends StateNotifier<GameState>
       clearLossReason: outcome.loss == null,
       consecutiveLosses: consecutiveLosses,
       endlessOfferShown: endlessOfferShown,
+      pendingSupernova: true,
     );
   }
 
@@ -491,6 +514,7 @@ class GameNotifier extends StateNotifier<GameState>
       isResolving: false,
       clearSelectedTile: true,
       clearRejectedSwap: true,
+      clearPendingSupernova: true,
       // `apexCelebrated`/`explosions` não mudam aqui: nenhuma fusão comum
       // (Bloco 9 incluso) os altera mais — só a ativação do Super 9
       // (`_applySuperNineActivation`) e o martelo os tocam.

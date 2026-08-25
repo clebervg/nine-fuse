@@ -309,6 +309,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     comboCount: state.comboCount,
                                     hammerStrike: state.hammerStrike,
                                     strikeSerial: state.hammerStrikes,
+                                    showSupernova: state.pendingSupernova,
                                   ),
                                 ),
                               ],

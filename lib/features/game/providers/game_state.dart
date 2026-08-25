@@ -76,6 +76,7 @@ class GameState {
     this.hammer = const HammerState(),
     this.consecutiveLosses = 0,
     this.endlessOfferShown = false,
+    this.pendingSupernova = false,
   });
 
   final Board board;
@@ -194,6 +195,12 @@ class GameState {
   /// continuaria verdadeiro a cada nova derrota depois da terceira, e o
   /// convite reabriria sozinho.
   final bool endlessOfferShown;
+
+  /// Aceso por uma jogada em que o Super 9 foi ativado. A tela lê para
+  /// mostrar o banner do Supernova, e apaga na jogada seguinte — mesmo
+  /// padrão de [rejectedSwap]: um sinal de "acabou de acontecer" que a UI lê
+  /// uma vez.
+  final bool pendingSupernova;
 
   /// O Martelo de Fusão: estoque, mira e último golpe.
   ///
@@ -328,6 +335,8 @@ class GameState {
     HammerState? hammer,
     int? consecutiveLosses,
     bool? endlessOfferShown,
+    bool? pendingSupernova,
+    bool clearPendingSupernova = false,
   }) => GameState(
     board: board ?? this.board,
     level: level ?? this.level,
@@ -358,6 +367,9 @@ class GameState {
     hammer: hammer ?? this.hammer,
     consecutiveLosses: consecutiveLosses ?? this.consecutiveLosses,
     endlessOfferShown: endlessOfferShown ?? this.endlessOfferShown,
+    pendingSupernova: clearPendingSupernova
+        ? false
+        : (pendingSupernova ?? this.pendingSupernova),
   );
 
   /// Estado antes de qualquer fase começar.
@@ -393,7 +405,8 @@ class GameState {
           boardObstacleGoal == other.boardObstacleGoal &&
           hammer == other.hammer &&
           consecutiveLosses == other.consecutiveLosses &&
-          endlessOfferShown == other.endlessOfferShown;
+          endlessOfferShown == other.endlessOfferShown &&
+          pendingSupernova == other.pendingSupernova;
 
   // `hashAll` em vez de `hash`: com os campos do martelo o estado passou de 20
   // componentes, que é o teto posicional de `Object.hash`.
@@ -421,6 +434,7 @@ class GameState {
     hammer,
     consecutiveLosses,
     endlessOfferShown,
+    pendingSupernova,
   ]);
 
   @override

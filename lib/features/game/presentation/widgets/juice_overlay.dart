@@ -11,6 +11,14 @@ import 'package:nine_fuse/features/game/presentation/widgets/board_geometry.dart
 
 const Key floatingScoreKey = Key('floating_score');
 
+/// Marcador do banner/véu do evento Supernova, para a suíte afirmar que ele
+/// aparece e some sozinho. Fica no widget interno (não em `_SupernovaEvent`
+/// em si) porque o segundo é reconstruído pelo `AnimatedBuilder` só enquanto
+/// a animação está em curso — quando ela termina, o `Stack` com esta chave
+/// deixa de ser construído e o finder passa a não achar nada, sem precisar de
+/// nenhum sinal externo dizendo que o evento acabou.
+const Key supernovaBannerKey = Key('supernova_banner');
+
 /// Camada de recompensa visual sobre o tabuleiro.
 ///
 /// Fica separada do tabuleiro de propósito: são efeitos efêmeros que nascem,
@@ -26,6 +34,7 @@ class JuiceOverlay extends StatelessWidget {
     required this.comboCount,
     this.hammerStrike,
     this.strikeSerial = 0,
+    this.showSupernova = false,
   });
 
   /// Passo da cascata sendo encenado. Nulo fora de uma jogada.
@@ -45,11 +54,18 @@ class JuiceOverlay extends StatelessWidget {
   /// mesmo dígito, não reacenderiam a animação sem ele.
   final int strikeSerial;
 
+  /// Aceso por uma jogada em que o Super 9 nasceu ou foi ativado — a
+  /// hierarquia de `JuiceDirector` já garantiu que nenhum outro efeito
+  /// concorre com ele nesta jogada.
+  final bool showSupernova;
+
   @override
   Widget build(BuildContext context) {
     final current = step;
     final strike = hammerStrike;
-    if (current == null && strike == null) return const SizedBox.shrink();
+    if (current == null && strike == null && !showSupernova) {
+      return const SizedBox.shrink();
+    }
 
     return IgnorePointer(
       child: LayoutBuilder(
@@ -126,6 +142,10 @@ class JuiceOverlay extends StatelessWidget {
                     color: AppColors.getColorByDigit(strike.$2),
                   ),
                 ),
+
+              // Por cima de tudo: o Supernova é o clímax da jogada, e nada
+              // mais deve competir com ele.
+              if (showSupernova) const Positioned.fill(child: _SupernovaEvent()),
             ],
           );
         },
@@ -486,5 +506,95 @@ class _ParticlePainter extends CustomPainter {
   @override
   bool shouldRepaint(_ParticlePainter oldDelegate) =>
       oldDelegate.t != t || oldDelegate.tint != tint;
+}
+
+/// Hitstop + focus-fade + banner do evento Supernova. Uma animação só,
+/// finita, dividida em dois trechos de tempo: segura (hitstop) e mostra o
+/// véu escuro com o texto, que sobe, fica e desvanece sozinho.
+class _SupernovaEvent extends StatefulWidget {
+  const _SupernovaEvent();
+
+  @override
+  State<_SupernovaEvent> createState() => _SupernovaEventState();
+}
+
+class _SupernovaEventState extends State<_SupernovaEvent>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scrimOpacity;
+  late final Animation<double> _bannerOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    final total = JuiceTimings.supernovaHitstop + JuiceTimings.supernovaPayoff;
+    _controller = AnimationController(vsync: this, duration: total)
+      ..forward();
+
+    final hitstopFraction =
+        JuiceTimings.supernovaHitstop.inMilliseconds / total.inMilliseconds;
+
+    // Focus-fade: escurece o fundo a 30% de opacidade assim que o hitstop
+    // termina, e mantém até o fim.
+    _scrimOpacity = Tween<double>(begin: 0, end: 0.3).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Interval(
+          hitstopFraction,
+          hitstopFraction + 0.15,
+          curve: Curves.easeOut,
+        ),
+      ),
+    );
+
+    // O banner aparece com o escurecimento e some nos últimos 20% da
+    // duração total — nunca fica em loop, some sozinho.
+    _bannerOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 20),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 60),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 20),
+    ]).animate(
+      CurvedAnimation(parent: _controller, curve: Interval(hitstopFraction, 1.0)),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        // Uma vez completa, a animação não constrói mais nada — nem o véu,
+        // nem a chave que a suíte procura. É o que faz `supernovaBannerKey`
+        // sumir da árvore sozinho, sem depender de `showSupernova` mudar de
+        // fora: o próprio widget encerra o evento que ele começou.
+        if (_controller.isCompleted) return const SizedBox.shrink();
+
+        return Stack(
+          key: supernovaBannerKey,
+          children: [
+            ColoredBox(color: Colors.black.withValues(alpha: _scrimOpacity.value)),
+            Center(
+              child: Text(
+                'SUPERNOVA',
+                style: TextStyle(
+                  fontFamily: AppFonts.display,
+                  fontSize: 40,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 4,
+                  color: Colors.white.withValues(alpha: _bannerOpacity.value),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 

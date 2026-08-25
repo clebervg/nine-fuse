@@ -503,6 +503,20 @@ void main() {
   });
 
   group('ativação do Super 9', () {
+    // `_applySuperNineActivation` agora tem um hitstop (Task 8) antes de
+    // aplicar o estado final — o notifier do grupo precisa de um `delay`
+    // instantâneo, senão os testes esperariam 250ms reais, ou pior, nunca
+    // veriam o estado atualizado num `test()` síncrono.
+    late GameNotifier notifier;
+
+    setUp(() {
+      notifier = GameNotifier(
+        random: Random(42),
+        storage: InMemoryGameStorage(),
+        delay: (_) async {},
+      );
+    });
+
     /// Tabuleiro 8x8 todo em [baseline], com [count] peças de [neighbourValue]
     /// espalhadas (uma delas vizinha ao Super 9) e um Super 9 em [at].
     ///
@@ -560,7 +574,7 @@ void main() {
 
     test(
       'promove todas as peças de X para X+1 e credita o objetivo de dígito',
-      () {
+      () async {
         const level = GameLevel(
           number: 90,
           objective: Objective(digit: 6, count: 10),
@@ -572,6 +586,10 @@ void main() {
         );
 
         notifier.swapTiles(at, neighbour);
+        // O `unawaited` no notifier dispara a ativação sem bloquear o
+        // chamador — o teste precisa de um giro do event loop para o hitstop
+        // (`delay` instantâneo, mas ainda um `Future`) resolver.
+        await Future<void>.delayed(Duration.zero);
 
         expect(notifier.state.status, GameStatus.playing);
         expect(
@@ -588,13 +606,57 @@ void main() {
       },
     );
 
-    test('não credita objetivo de cobertura — a ativação não toca obstáculo', () {
+    test(
+      'não credita objetivo de cobertura — a ativação não toca obstáculo',
+      () async {
+        const level = GameLevel(
+          number: 91,
+          objective: Objective.clearObstacles(
+            obstacle: ObstacleType.ice,
+            count: 1,
+          ),
+          moveLimit: 500,
+        );
+        notifier.startLevel(level);
+        notifier.debugSetBoard(
+          superNineBoard(at: at, neighbourValue: 5, baseline: 2, count: 4),
+        );
+
+        notifier.swapTiles(at, neighbour);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(notifier.state.objectiveProgress, 0);
+      },
+    );
+
+    test(
+      'uma derrota causada pela ativação incrementa consecutiveLosses',
+      () async {
+        // Uma jogada só: a ativação consome o único movimento disponível, e o
+        // objetivo (inalcançável) segue longe — a mesma armadilha do grupo
+        // "sugestão de migração para o Endless".
+        const stuck = GameLevel(
+          number: 92,
+          objective: Objective(digit: kMaxDigit, count: 9),
+          moveLimit: 1,
+        );
+        notifier.startLevel(stuck);
+        notifier.debugSetBoard(
+          superNineBoard(at: at, neighbourValue: 5, baseline: 2, count: 4),
+        );
+
+        notifier.swapTiles(at, neighbour);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(notifier.state.status, GameStatus.lost);
+        expect(notifier.state.consecutiveLosses, 1);
+      },
+    );
+
+    test('acende pendingSupernova, e a jogada seguinte apaga', () async {
       const level = GameLevel(
-        number: 91,
-        objective: Objective.clearObstacles(
-          obstacle: ObstacleType.ice,
-          count: 1,
-        ),
+        number: 93,
+        objective: Objective(digit: 6, count: 10),
         moveLimit: 500,
       );
       notifier.startLevel(level);
@@ -603,28 +665,13 @@ void main() {
       );
 
       notifier.swapTiles(at, neighbour);
+      await Future<void>.delayed(Duration.zero);
 
-      expect(notifier.state.objectiveProgress, 0);
-    });
+      expect(notifier.state.pendingSupernova, isTrue);
 
-    test('uma derrota causada pela ativação incrementa consecutiveLosses', () {
-      // Uma jogada só: a ativação consome o único movimento disponível, e o
-      // objetivo (inalcançável) segue longe — a mesma armadilha do grupo
-      // "sugestão de migração para o Endless".
-      const stuck = GameLevel(
-        number: 92,
-        objective: Objective(digit: kMaxDigit, count: 9),
-        moveLimit: 1,
-      );
-      notifier.startLevel(stuck);
-      notifier.debugSetBoard(
-        superNineBoard(at: at, neighbourValue: 5, baseline: 2, count: 4),
-      );
+      notifier.deselectTile();
 
-      notifier.swapTiles(at, neighbour);
-
-      expect(notifier.state.status, GameStatus.lost);
-      expect(notifier.state.consecutiveLosses, 1);
+      expect(notifier.state.pendingSupernova, isFalse);
     });
   });
 

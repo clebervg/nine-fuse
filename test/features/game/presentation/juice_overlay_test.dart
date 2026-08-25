@@ -373,4 +373,17 @@ void main() {
       expect(find.byType(ObstacleShatter), findsNothing);
     });
   });
+
+  group('evento Supernova', () {
+    testWidgets('mostra o banner e some sozinho', (tester) async {
+      await tester.pumpWidget(
+        host(const JuiceOverlay(step: null, comboCount: 0, showSupernova: true)),
+      );
+
+      expect(find.byKey(supernovaBannerKey), findsOneWidget);
+
+      await tester.pumpAndSettle();
+      expect(find.byKey(supernovaBannerKey), findsNothing);
+    });
+  });
 }
