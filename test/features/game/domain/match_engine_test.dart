@@ -1008,6 +1008,59 @@ void main() {
       final step = resolution.steps.firstWhere((s) => s.novaEvents.isNotEmpty);
       expect(step.score, greaterThanOrEqualTo(kNovaScoreTier3));
     });
+
+    test('Super 9 dentro do núcleo não é destruído', () {
+      var board = threeNinesInRow();
+      // (2,2): canto do núcleo 3x3 centrado em (3,3).
+      const superNinePos = Position(row: 2, col: 2);
+      board = board.updateTile(
+        superNinePos,
+        Tile.withSpecial(
+          id: 'super',
+          value: kMaxDigit,
+          position: superNinePos,
+          specialType: SpecialTileType.superNine,
+        ),
+      );
+
+      final resolution = engine.resolve(board);
+
+      expect(
+        resolution.novaEvents.single.clearedTiles.contains(superNinePos),
+        isFalse,
+      );
+      final survivor = resolution.board
+          .getAllTiles()
+          .where((t) => t.specialType == SpecialTileType.superNine);
+      expect(survivor, hasLength(1), reason: 'o Super 9 sobrevive à Nova');
+    });
+
+    test('Super 9 dentro do anel não é promovido', () {
+      var board = threeNinesInRow();
+      // (1,3): dentro da zona 5x5, fora do núcleo 3x3 (mesma posição do
+      // teste de promoção comum da Task 3, agora ocupada por um Super 9).
+      const superNinePos = Position(row: 1, col: 3);
+      board = board.updateTile(
+        superNinePos,
+        Tile.withSpecial(
+          id: 'super',
+          value: kMaxDigit,
+          position: superNinePos,
+          specialType: SpecialTileType.superNine,
+        ),
+      );
+
+      final resolution = engine.resolve(board);
+
+      expect(
+        resolution.novaEvents.single.promoted.containsKey(superNinePos),
+        isFalse,
+      );
+      final tile = resolution.board
+          .getAllTiles()
+          .firstWhere((t) => t.specialType == SpecialTileType.superNine);
+      expect(tile.value, kMaxDigit, reason: 'não foi promovido além do teto');
+    });
   });
 
   group('findHint', () {
