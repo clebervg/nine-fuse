@@ -937,6 +937,77 @@ void main() {
         reason: 'só a primeira combinação de 9s vira Nova nesta jogada',
       );
     });
+
+    Board fourNinesInRow() {
+      final grid = baseGrid();
+      for (final col in [1, 2, 3, 4]) {
+        grid[3][col] = kMaxDigit;
+      }
+      return boardFromValues(grid);
+    }
+
+    Board fiveNinesInRow() {
+      final grid = baseGrid();
+      for (final col in [1, 2, 3, 4, 5]) {
+        grid[3][col] = kMaxDigit;
+      }
+      return boardFromValues(grid);
+    }
+
+    test('quarteto de 9 dispara tier 2 e consome as 4 peças do match', () {
+      final resolution = engine.resolve(fourNinesInRow());
+
+      expect(resolution.novaEvents.single.tier, 2);
+      for (final col in [1, 2, 3, 4]) {
+        expect(
+          resolution.novaEvents.single.clearedTiles,
+          contains(Position(row: 3, col: col)),
+          reason: 'toda peça do match de 4 precisa estar no núcleo, mesmo '
+              'a ponta mais distante do centro geométrico',
+        );
+      }
+    });
+
+    test('quarteto de 9: peça na zona 7x7 fora do núcleo é promovida', () {
+      var board = fourNinesInRow();
+      // Sobrevivente do match reto de 4 (sem âncora) é o índice 2: coluna 3.
+      // (0,3): 3 linhas acima — fora do núcleo (linhas 2-4), dentro da 7x7
+      // (linhas 0-6).
+      const inRing = Position(row: 0, col: 3);
+      board = board.updateTile(inRing, board.getTileAt(inRing)!.copyWith(value: 2));
+
+      final resolution = engine.resolve(board);
+
+      expect(resolution.novaEvents.single.promoted[inRing], 3);
+    });
+
+    test('cinco ou mais 9: tier 3, tabuleiro inteiro é o núcleo, sem anel', () {
+      final resolution = engine.resolve(fiveNinesInRow());
+
+      final event = resolution.novaEvents.single;
+      expect(event.tier, 3);
+      expect(event.promoted, isEmpty, reason: 'tier 3 não tem anel de promoção');
+    });
+
+    test('cinco ou mais 9: peça normal em qualquer canto do tabuleiro é destruída', () {
+      final resolution = engine.resolve(fiveNinesInRow());
+
+      const corner = Position(row: 7, col: 7);
+      expect(resolution.novaEvents.single.clearedTiles, contains(corner));
+      // A checagem usa `boardAfterFusion` (antes da gravidade/refill), não
+      // `resolution.board`: os tiles refilled aparecem no board final.
+      expect(
+        resolution.steps.first.boardAfterFusion.getTileAt(corner),
+        isNull,
+        reason: 'canto foi destruído pela onda de choque do tier 3',
+      );
+    });
+
+    test('cinco ou mais 9: soma kNovaScoreTier3 ao placar', () {
+      final resolution = engine.resolve(fiveNinesInRow());
+      final step = resolution.steps.firstWhere((s) => s.novaEvents.isNotEmpty);
+      expect(step.score, greaterThanOrEqualTo(kNovaScoreTier3));
+    });
   });
 
   group('findHint', () {
