@@ -1779,4 +1779,11 @@ void main() {
       expect(tile.value, 5);
     });
   });
+
+  group('Resolution.novaEvents (plumbing, sem Nova disparando ainda)', () {
+    test('resolução sem Nova tem novaEvents vazio', () {
+      final resolution = engine.resolve(boardFromValues(baseGrid()));
+      expect(resolution.novaEvents, isEmpty);
+    });
+  });
 }

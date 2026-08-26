@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/fusion_rule.dart';
+import 'package:nine_fuse/features/game/domain/nova_event.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/special_tile.dart';
@@ -134,6 +135,11 @@ class Resolution {
       for (final fusion in step.fusions)
         if (fusion.specialType != null) fusion.tileId,
   };
+
+  /// Todos os eventos Nova desta resolução, na ordem em que ocorreram.
+  late final List<NovaEvent> novaEvents = [
+    for (final step in steps) ...step.novaEvents,
+  ];
 }
 
 /// Resultado de aplicar as combinações de um tabuleiro **uma vez**, sem
@@ -149,6 +155,7 @@ class FusionOutcome {
     required this.maxed,
     this.events = const [],
     this.bigFusionTileIds = const {},
+    this.novaEvents = const [],
   });
 
   final Board board;
@@ -165,6 +172,10 @@ class FusionOutcome {
 
   /// Ids das peças nascidas de combinação de [kBigMatch]+ peças.
   final Set<String> bigFusionTileIds;
+
+  /// Eventos Nova produzidos por esta passada de fusões (0 ou 1 — o cap de
+  /// 1 por jogada é responsabilidade de `resolve()`, não desta classe).
+  final List<NovaEvent> novaEvents;
 
   bool get isEmpty => produced.isEmpty && maxed.isEmpty;
 }
@@ -229,6 +240,7 @@ class ResolutionStep {
     required this.boardAfterSettle,
     required this.score,
     this.obstacleHits = const [],
+    this.novaEvents = const [],
   });
 
   /// 1 para o movimento do jogador, 2+ para as cascatas que ele desencadeou.
@@ -250,6 +262,10 @@ class ResolutionStep {
   /// Posições são as de **antes da gravidade**: é onde a quebra acontece na
   /// tela, no mesmo quadro em que as peças da combinação ainda estão visíveis.
   final List<ObstacleHit> obstacleHits;
+
+  /// Eventos Nova deste passo — normalmente 0, no máximo 1 por jogada
+  /// inteira (várias cascatas incluídas).
+  final List<NovaEvent> novaEvents;
 
   bool get hasBigFusion => fusions.any((f) => f.isBig);
 }
