@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/fusion_rule.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
+import 'package:nine_fuse/features/game/domain/nova_event.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/special_tile.dart';
@@ -834,6 +835,108 @@ void main() {
         expect(plainNines, hasLength(1), reason: 'o segundo match vira Bloco 9 comum');
       },
     );
+  });
+
+  group('Evento Nova (fusão de 3+ peças de valor 9)', () {
+    /// Três peças 9 já prontas no tabuleiro, lado a lado na linha 3, colunas
+    /// 2-4 — o alinhamento acontece sozinho, sem precisar de troca do
+    /// jogador, porque o cenário de teste já nasce com o trio formado.
+    Board threeNinesInRow() {
+      final grid = baseGrid();
+      for (final col in [2, 3, 4]) {
+        grid[3][col] = kMaxDigit;
+      }
+      return boardFromValues(grid);
+    }
+
+    test('trio de 9 dispara um NovaEvent de tier 1', () {
+      final resolution = engine.resolve(threeNinesInRow());
+
+      expect(resolution.novaEvents, hasLength(1));
+      expect(resolution.novaEvents.single.tier, 1);
+    });
+
+    test('núcleo 3x3 destrói as peças do trio', () {
+      final resolution = engine.resolve(threeNinesInRow());
+
+      for (final col in [2, 3, 4]) {
+        final pos = Position(row: 3, col: col);
+        expect(
+          resolution.novaEvents.single.clearedTiles,
+          contains(pos),
+          reason: '$pos era parte do trio consumido',
+        );
+      }
+    });
+
+    test('peça sobrevivente no anel (fora do núcleo, dentro da 5x5) é promovida', () {
+      var board = threeNinesInRow();
+      // (1,3): duas linhas acima do centro (3,3) — fora do núcleo 3x3
+      // (linhas 2-4), dentro da zona 5x5 (linhas 1-5).
+      const inRing = Position(row: 1, col: 3);
+      board = board.updateTile(inRing, board.getTileAt(inRing)!.copyWith(value: 4));
+
+      final resolution = engine.resolve(board);
+
+      expect(resolution.novaEvents.single.promoted[inRing], 5);
+      // A checagem de valor final usa o quadro *antes* da gravidade
+      // (`boardAfterFusion`), não `resolution.board`: toda resolução aplica
+      // queda logo depois da fusão, então a peça promovida em (1,3) escorrega
+      // para baixo até preencher o buraco deixado pelo núcleo destruído — o
+      // valor promovido é real, só não fica na mesma posição depois de cair.
+      expect(
+        resolution.steps.first.boardAfterFusion.getTileAt(inRing)!.value,
+        5,
+      );
+    });
+
+    test('peça fora da zona 5x5 não é tocada', () {
+      var board = threeNinesInRow();
+      // (0,3): três linhas acima do centro (3,3) — fora da zona 5x5
+      // (linhas 1-5).
+      const outside = Position(row: 0, col: 3);
+      board = board.updateTile(outside, board.getTileAt(outside)!.copyWith(value: 4));
+
+      final resolution = engine.resolve(board);
+
+      expect(resolution.novaEvents.single.promoted.containsKey(outside), isFalse);
+      expect(resolution.novaEvents.single.clearedTiles.contains(outside), isFalse);
+      // Mesma ressalva da checagem de anel acima: `resolution.board` já
+      // passou pela gravidade/refill do passo, então o valor original de uma
+      // célula intocada pode ter sido substituído por outra peça que caiu por
+      // cima dela. `boardAfterFusion` é o quadro imediatamente após a Nova,
+      // antes de qualquer peça se mexer.
+      expect(
+        resolution.steps.first.boardAfterFusion.getTileAt(outside)!.value,
+        4,
+      );
+    });
+
+    test('soma kNovaScoreTier1 ao placar do passo', () {
+      final resolution = engine.resolve(threeNinesInRow());
+      final step = resolution.steps.firstWhere((s) => s.novaEvents.isNotEmpty);
+      expect(step.score, greaterThanOrEqualTo(kNovaScoreTier1));
+    });
+
+    test('cap de 1 Nova por jogada: um segundo trio de 9 na mesma jogada não gera evento', () {
+      var board = threeNinesInRow();
+      // Segundo trio de 9, longe do primeiro, já formado no mesmo tabuleiro
+      // — ambos processados na mesma chamada de resolve()/_applyFusions.
+      for (final col in [2, 3, 4]) {
+        board = board.updateTile(
+          Position(row: 6, col: col),
+          board.getTileAt(Position(row: 6, col: col))!.copyWith(value: kMaxDigit),
+        );
+      }
+
+      final resolution = engine.resolve(board);
+
+      expect(
+        resolution.novaEvents,
+        hasLength(1),
+        reason: 'só a primeira combinação de 9s vira Nova nesta jogada',
+      );
+    });
   });
 
   group('findHint', () {

@@ -645,15 +645,25 @@ class MatchEngine {
     final steps = <ResolutionStep>[];
     Position? currentAnchor = anchor;
     final budget = CascadeBudget();
+    // Cap de 1 Nova por jogada: vale para a chamada inteira de resolve(),
+    // não por passo — é o que impede uma Nova promovida no anel formar
+    // outra Nova na cascata seguinte (autoplay em cadeia).
+    var novaUsedThisTurn = false;
 
     while (!budget.isExhausted && steps.length < _maxCascades) {
       final matches = detectMatches(current);
       if (matches.isEmpty) break;
       budget.consume();
 
-      final fused = _applyFusions(current, matches, currentAnchor);
+      final fused = _applyFusions(
+        current,
+        matches,
+        currentAnchor,
+        novaAlreadyTriggered: novaUsedThisTurn,
+      );
       current = fused.board;
       var stepScore = fused.score;
+      if (fused.novaEvents.isNotEmpty) novaUsedThisTurn = true;
 
       // A onda de choque da fusão bate nas coberturas encostadas nela. Vem
       // antes da explosão e da queda de propósito: uma cobertura liberada
@@ -700,6 +710,7 @@ class MatchEngine {
           boardAfterSettle: current,
           score: stepScore,
           obstacleHits: obstacleHits,
+          novaEvents: fused.novaEvents,
         ),
       );
     }
@@ -799,13 +810,99 @@ class MatchEngine {
     return (board: result, hits: hits);
   }
 
+  /// Todas as posições dentro do tabuleiro a até [radius] casas de [centre],
+  /// nas duas direções (um quadrado de lado `2*radius + 1`). `radius: 1` é o
+  /// mesmo 3x3 que `_clearBlockersAround` já usa para o Bloco 9.
+  Set<Position> _zoneAround(Position centre, int radius) => {
+    for (int row = centre.row - radius; row <= centre.row + radius; row++)
+      for (int col = centre.col - radius; col <= centre.col + radius; col++)
+        if (Board.contains(Position(row: row, col: col)))
+          Position(row: row, col: col),
+  };
+
+  /// Dispara o evento Nova: a combinação de 9s em [match] se consome e abre
+  /// uma zona de efeito centrada em [survivor] (a mesma posição de
+  /// sobrevivente que qualquer fusão normal usaria). Escreve as remoções e
+  /// promoções direto em [updates] — o mesmo mapa que o resto de
+  /// `_applyFusions` usa para o tabuleiro final — e devolve o [NovaEvent]
+  /// para placar/UI.
+  ///
+  /// O núcleo sempre inclui as próprias células de [match]: numa combinação
+  /// reta de 4+ peças, o quadrado 3x3 ao redor do sobrevivente nem sempre
+  /// cobre a ponta mais distante da fila, e a Nova nunca deixa peça do
+  /// próprio match para trás.
+  NovaEvent _triggerNova(
+    Board board,
+    Map<Position, Tile?> updates,
+    List<Position> match,
+    Position survivor,
+  ) {
+    final tier = match.length >= kSuperNineMatchLength
+        ? 3
+        : (match.length >= kBigMatch ? 2 : 1);
+
+    final Set<Position> core;
+    final Set<Position> ring;
+    if (tier == 3) {
+      core = {
+        for (int row = 0; row < Board.boardSize; row++)
+          for (int col = 0; col < Board.boardSize; col++)
+            Position(row: row, col: col),
+      };
+      ring = const {};
+    } else {
+      final totalRadius = tier == 1 ? 2 : 3;
+      core = _zoneAround(survivor, 1).union(match.toSet());
+      ring = _zoneAround(survivor, totalRadius).difference(core);
+    }
+
+    final obstacleHits = <ObstacleHit>[];
+    final clearedTiles = <Position>{};
+    for (final position in core) {
+      final tile = board.getTileAt(position);
+      if (tile == null || tile.specialType != null) continue;
+
+      if (tile.isBlocked) {
+        obstacleHits.add(
+          ObstacleHit(position: position, type: tile.obstacle, remainingHp: 0),
+        );
+      }
+      updates[position] = null;
+      clearedTiles.add(position);
+    }
+
+    final promoted = <Position, int>{};
+    for (final position in ring) {
+      final tile = board.getTileAt(position);
+      if (tile == null || tile.specialType != null || tile.value >= kMaxDigit) {
+        continue;
+      }
+
+      final value = tile.value + 1;
+      updates[position] = tile.copyWith(value: value);
+      promoted[position] = value;
+    }
+
+    return NovaEvent(
+      at: survivor,
+      tier: tier,
+      obstacleHits: obstacleHits,
+      clearedTiles: clearedTiles,
+      promoted: promoted,
+    );
+  }
+
   /// Aplica de uma vez todas as combinações presentes em [board].
   ///
   /// Cada combinação consome as suas peças e devolve o que a [fusionRule]
   /// determinar — no match-3 clássico, uma única peça de V+1 no lugar de três.
   /// Não move nada: gravidade e reposição são passos separados.
-  FusionOutcome fuse(Board board, {Position? anchor}) =>
-      _applyFusions(board, detectMatches(board), anchor);
+  FusionOutcome fuse(Board board, {Position? anchor}) => _applyFusions(
+    board,
+    detectMatches(board),
+    anchor,
+    novaAlreadyTriggered: false,
+  );
 
   /// Existe um Super 9 no tabuleiro — olhando tanto o que já estava lá quanto
   /// o que esta mesma passada de fusões já decidiu criar.
@@ -823,13 +920,16 @@ class MatchEngine {
   FusionOutcome _applyFusions(
     Board board,
     List<List<Position>> matches,
-    Position? anchor,
-  ) {
+    Position? anchor, {
+    required bool novaAlreadyTriggered,
+  }) {
     final updates = <Position, Tile?>{};
     final maxed = <Position>[];
     final produced = <int>[];
     final bigFusions = <String>{};
     final events = <FusionEvent>[];
+    final novaEvents = <NovaEvent>[];
+    var novaTriggered = novaAlreadyTriggered;
     var score = 0;
 
     for (final match in matches) {
@@ -838,11 +938,20 @@ class MatchEngine {
       if (tile == null) continue;
 
       if (tile.value >= kMaxDigit) {
-        // Já está no topo da escala: a combinação inteira é consumida.
-        for (final position in match) {
-          updates[position] = null;
+        // 3+ peças de valor 9 já existentes se alinharam. A primeira
+        // combinação assim na jogada vira Nova; qualquer outra depois dela
+        // (cap de 1 por jogada) cai no consumo antigo, sem evento.
+        if (!novaTriggered) {
+          novaTriggered = true;
+          final event = _triggerNova(board, updates, match, survivor);
+          novaEvents.add(event);
+          score += novaScoreForTier(event.tier);
+        } else {
+          for (final position in match) {
+            updates[position] = null;
+          }
+          score += kMaxDigit * 100;
         }
-        score += kMaxDigit * 100;
         continue;
       }
 
@@ -921,6 +1030,7 @@ class MatchEngine {
       maxed: maxed,
       events: events,
       bigFusionTileIds: bigFusions,
+      novaEvents: novaEvents,
     );
   }
 
