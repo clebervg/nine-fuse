@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/fusion_rule.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
+import 'package:nine_fuse/features/game/domain/nova_event.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/special_tile.dart';
@@ -511,27 +512,33 @@ void main() {
       expect(valuesOf(resolution.board), valuesOf(board));
     });
 
-    test('o orçamento de cascata para o loop em 4 passos, mesmo com match pendente', () {
-      // Corrente de match-3 que se realimenta: cada fusão de "1" cria um "2"
-      // que completa outro trio na linha de baixo, e assim por diante — sem
-      // limite, isso rodaria mais de 4 vezes.
-      final grid = baseGrid();
-      for (int row = 0; row < 6; row++) {
-        grid[row][0] = 1;
-        grid[row][1] = 1;
-        grid[row][2] = 0;
-      }
-      grid[6][0] = 9;
-      grid[6][1] = 9;
-      grid[6][2] = 9;
-      grid[7][0] = 9;
-      grid[7][1] = 9;
-      grid[7][2] = 9;
+    test(
+      'o orçamento de cascata para o loop em 4 passos, mesmo com match pendente',
+      () {
+        // Corrente de match-3 que se realimenta: cada fusão de "1" cria um "2"
+        // que completa outro trio na linha de baixo, e assim por diante — sem
+        // limite, isso rodaria mais de 4 vezes.
+        final grid = baseGrid();
+        for (int row = 0; row < 6; row++) {
+          grid[row][0] = 1;
+          grid[row][1] = 1;
+          grid[row][2] = 0;
+        }
+        grid[6][0] = 9;
+        grid[6][1] = 9;
+        grid[6][2] = 9;
+        grid[7][0] = 9;
+        grid[7][1] = 9;
+        grid[7][2] = 9;
 
-      final resolution = engine.resolve(boardFromValues(grid));
+        final resolution = engine.resolve(boardFromValues(grid));
 
-      expect(resolution.steps.length, lessThanOrEqualTo(kCascadeBudgetPerTurn));
-    });
+        expect(
+          resolution.steps.length,
+          lessThanOrEqualTo(kCascadeBudgetPerTurn),
+        );
+      },
+    );
   });
 
   group('configuração padrão', () {
@@ -583,7 +590,10 @@ void main() {
         Position(row: 4, col: 2),
         Position(row: 4, col: 4),
       ]) {
-        board = board.updateTile(pos, board.getTileAt(pos)!.withObstacle(ObstacleType.ice));
+        board = board.updateTile(
+          pos,
+          board.getTileAt(pos)!.withObstacle(ObstacleType.ice),
+        );
       }
       return board;
     }
@@ -608,11 +618,18 @@ void main() {
     test('não limpa bloqueador fora da vizinhança 3x3', () {
       var board = nineWithIceAround();
       const distant = Position(row: 0, col: 0);
-      board = board.updateTile(distant, board.getTileAt(distant)!.withObstacle(ObstacleType.ice));
+      board = board.updateTile(
+        distant,
+        board.getTileAt(distant)!.withObstacle(ObstacleType.ice),
+      );
 
       final resolution = engine.resolve(board);
 
-      expect(resolution.countCleared(ObstacleType.ice), 4, reason: 'a distante não conta');
+      expect(
+        resolution.countCleared(ObstacleType.ice),
+        4,
+        reason: 'a distante não conta',
+      );
       expect(resolution.board.getTileAt(distant)!.isBlocked, isTrue);
     });
 
@@ -626,7 +643,10 @@ void main() {
       var big = base;
       // Estende o trio para um quarteto: (3,1) também vira 8.
       final extra = const Position(row: 3, col: 1);
-      big = big.updateTile(extra, big.getTileAt(extra)!.copyWith(value: kMaxDigit - 1));
+      big = big.updateTile(
+        extra,
+        big.getTileAt(extra)!.copyWith(value: kMaxDigit - 1),
+      );
 
       final threeScore = MatchEngine(random: Random(1)).resolve(base).score;
       final fourScore = MatchEngine(random: Random(1)).resolve(big).score;
@@ -679,7 +699,8 @@ void main() {
       expect(
         producedInCascade,
         isTrue,
-        reason: 'cenário precisa produzir o 9 numa cascata, não no passo do jogador',
+        reason:
+            'cenário precisa produzir o 9 numa cascata, não no passo do jogador',
       );
       expect(resolution.countCleared(ObstacleType.ice), 0);
     });
@@ -725,16 +746,17 @@ void main() {
         expect(
           hits,
           hasLength(1),
-          reason: 'um impacto por passo, mesmo em posição tocada por dois '
+          reason:
+              'um impacto por passo, mesmo em posição tocada por dois '
               'mecanismos de dano',
         );
         // A gravidade move a peça coberta como qualquer outra (é decisão de
         // projeto registrada em CLAUDE.md: obstáculo cai com o resto), então
         // procurar o vidro pelo **id** — não pela posição de origem — é o
         // que garante achar a peça certa depois do assentamento.
-        final glassAfter = resolution.board
-            .getAllTiles()
-            .firstWhere((t) => t.id == glassId);
+        final glassAfter = resolution.board.getAllTiles().firstWhere(
+          (t) => t.id == glassId,
+        );
         expect(
           glassAfter.isBlocked,
           isTrue,
@@ -757,45 +779,71 @@ void main() {
     test('match de 5+ peças 8 cria um Super 9, não um 9 comum', () {
       final resolution = engine.resolve(fiveEights());
 
-      final born = resolution.steps.first.fusions.firstWhere((f) => f.value == kMaxDigit);
+      final born = resolution.steps.first.fusions.firstWhere(
+        (f) => f.value == kMaxDigit,
+      );
       expect(born.specialType, SpecialTileType.superNine);
 
-      final tile = resolution.board
-          .getAllTiles()
-          .firstWhere((t) => t.specialType == SpecialTileType.superNine);
+      final tile = resolution.board.getAllTiles().firstWhere(
+        (t) => t.specialType == SpecialTileType.superNine,
+      );
       expect(tile.value, kMaxDigit);
       expect(tile.specialTurnsLeft, kSpecialTileLifespan);
     });
 
-    test('Super 9 também limpa bloqueadores ao nascer, como qualquer Bloco 9', () {
-      var board = fiveEights();
-      const neighbour = Position(row: 2, col: 3);
-      board = board.updateTile(neighbour, board.getTileAt(neighbour)!.withObstacle(ObstacleType.ice));
+    test(
+      'Super 9 também limpa bloqueadores ao nascer, como qualquer Bloco 9',
+      () {
+        var board = fiveEights();
+        const neighbour = Position(row: 2, col: 3);
+        board = board.updateTile(
+          neighbour,
+          board.getTileAt(neighbour)!.withObstacle(ObstacleType.ice),
+        );
 
-      final resolution = engine.resolve(board);
-      expect(resolution.countCleared(ObstacleType.ice), 1);
-    });
+        final resolution = engine.resolve(board);
+        expect(resolution.countCleared(ObstacleType.ice), 1);
+      },
+    );
 
-    test('só existe 1 Super 9 por vez: um segundo match de 5+ vira Bloco 9 comum', () {
-      // Monta um tabuleiro com um Super 9 já presente e força um segundo
-      // match de 5+ peças de valor 8 em outra área do tabuleiro.
-      var board = fiveEights();
-      const existing = Position(row: 6, col: 6);
-      board = board.updateTile(
-        existing,
-        Tile.withSpecial(id: 'existing', value: kMaxDigit, position: existing, specialType: SpecialTileType.superNine),
-      );
+    test(
+      'só existe 1 Super 9 por vez: um segundo match de 5+ vira Bloco 9 comum',
+      () {
+        // Monta um tabuleiro com um Super 9 já presente e força um segundo
+        // match de 5+ peças de valor 8 em outra área do tabuleiro.
+        var board = fiveEights();
+        const existing = Position(row: 6, col: 6);
+        board = board.updateTile(
+          existing,
+          Tile.withSpecial(
+            id: 'existing',
+            value: kMaxDigit,
+            position: existing,
+            specialType: SpecialTileType.superNine,
+          ),
+        );
 
-      final resolution = engine.resolve(board);
+        final resolution = engine.resolve(board);
 
-      final superNines = resolution.board
-          .getAllTiles()
-          .where((t) => t.specialType == SpecialTileType.superNine);
-      expect(superNines, hasLength(1), reason: 'nunca mais que um Super 9 no tabuleiro');
+        final superNines = resolution.board.getAllTiles().where(
+          (t) => t.specialType == SpecialTileType.superNine,
+        );
+        expect(
+          superNines,
+          hasLength(1),
+          reason: 'nunca mais que um Super 9 no tabuleiro',
+        );
 
-      final newNine = resolution.steps.first.fusions.firstWhere((f) => f.value == kMaxDigit);
-      expect(newNine.specialType, isNull, reason: 'vira Bloco 9 comum, não um segundo Super 9');
-    });
+        final newNine = resolution.steps.first.fusions.firstWhere(
+          (f) => f.value == kMaxDigit,
+        );
+        expect(
+          newNine.specialType,
+          isNull,
+          reason: 'vira Bloco 9 comum, não um segundo Super 9',
+        );
+      },
+    );
 
     test(
       'duas combinações de 5+ peças 8 na MESMA resolução: só a primeira vira Super 9',
@@ -814,26 +862,472 @@ void main() {
 
         final resolution = engine.resolve(board);
 
-        final superNines = resolution.board
-            .getAllTiles()
-            .where((t) => t.specialType == SpecialTileType.superNine);
+        final superNines = resolution.board.getAllTiles().where(
+          (t) => t.specialType == SpecialTileType.superNine,
+        );
         expect(
           superNines,
           hasLength(1),
-          reason: 'apenas um Super 9 pode nascer, mesmo com dois matches de 5+ na mesma jogada',
+          reason:
+              'apenas um Super 9 pode nascer, mesmo com dois matches de 5+ na mesma jogada',
         );
 
         final bornNines = resolution.steps.first.fusions
             .where((f) => f.value == kMaxDigit)
             .toList();
-        expect(bornNines, hasLength(2), reason: 'os dois matches de 5+ resolvem na mesma chamada');
+        expect(
+          bornNines,
+          hasLength(2),
+          reason: 'os dois matches de 5+ resolvem na mesma chamada',
+        );
 
-        final withSuperNine = bornNines.where((f) => f.specialType == SpecialTileType.superNine);
+        final withSuperNine = bornNines.where(
+          (f) => f.specialType == SpecialTileType.superNine,
+        );
         final plainNines = bornNines.where((f) => f.specialType == null);
         expect(withSuperNine, hasLength(1));
-        expect(plainNines, hasLength(1), reason: 'o segundo match vira Bloco 9 comum');
+        expect(
+          plainNines,
+          hasLength(1),
+          reason: 'o segundo match vira Bloco 9 comum',
+        );
       },
     );
+  });
+
+  group('Evento Nova (fusão de 3+ peças de valor 9)', () {
+    /// Três peças 9 já prontas no tabuleiro, lado a lado na linha 3, colunas
+    /// 2-4 — o alinhamento acontece sozinho, sem precisar de troca do
+    /// jogador, porque o cenário de teste já nasce com o trio formado.
+    Board threeNinesInRow() {
+      final grid = baseGrid();
+      for (final col in [2, 3, 4]) {
+        grid[3][col] = kMaxDigit;
+      }
+      return boardFromValues(grid);
+    }
+
+    test('trio de 9 dispara um NovaEvent de tier 1', () {
+      final resolution = engine.resolve(threeNinesInRow());
+
+      expect(resolution.novaEvents, hasLength(1));
+      expect(resolution.novaEvents.single.tier, 1);
+    });
+
+    test('núcleo 3x3 destrói as peças do trio', () {
+      final resolution = engine.resolve(threeNinesInRow());
+
+      for (final col in [2, 3, 4]) {
+        final pos = Position(row: 3, col: col);
+        expect(
+          resolution.novaEvents.single.clearedTiles,
+          contains(pos),
+          reason: '$pos era parte do trio consumido',
+        );
+      }
+    });
+
+    test(
+      'peça sobrevivente no anel (fora do núcleo, dentro da 5x5) é promovida',
+      () {
+        var board = threeNinesInRow();
+        // (1,3): duas linhas acima do centro (3,3) — fora do núcleo 3x3
+        // (linhas 2-4), dentro da zona 5x5 (linhas 1-5).
+        const inRing = Position(row: 1, col: 3);
+        board = board.updateTile(
+          inRing,
+          board.getTileAt(inRing)!.copyWith(value: 4),
+        );
+
+        final resolution = engine.resolve(board);
+
+        expect(resolution.novaEvents.single.promoted[inRing], 5);
+        // A checagem de valor final usa o quadro *antes* da gravidade
+        // (`boardAfterFusion`), não `resolution.board`: toda resolução aplica
+        // queda logo depois da fusão, então a peça promovida em (1,3) escorrega
+        // para baixo até preencher o buraco deixado pelo núcleo destruído — o
+        // valor promovido é real, só não fica na mesma posição depois de cair.
+        expect(
+          resolution.steps.first.boardAfterFusion.getTileAt(inRing)!.value,
+          5,
+        );
+      },
+    );
+
+    test('peça fora da zona 5x5 não é tocada', () {
+      var board = threeNinesInRow();
+      // (0,3): três linhas acima do centro (3,3) — fora da zona 5x5
+      // (linhas 1-5).
+      const outside = Position(row: 0, col: 3);
+      board = board.updateTile(
+        outside,
+        board.getTileAt(outside)!.copyWith(value: 4),
+      );
+
+      final resolution = engine.resolve(board);
+
+      expect(
+        resolution.novaEvents.single.promoted.containsKey(outside),
+        isFalse,
+      );
+      expect(
+        resolution.novaEvents.single.clearedTiles.contains(outside),
+        isFalse,
+      );
+      // Mesma ressalva da checagem de anel acima: `resolution.board` já
+      // passou pela gravidade/refill do passo, então o valor original de uma
+      // célula intocada pode ter sido substituído por outra peça que caiu por
+      // cima dela. `boardAfterFusion` é o quadro imediatamente após a Nova,
+      // antes de qualquer peça se mexer.
+      expect(
+        resolution.steps.first.boardAfterFusion.getTileAt(outside)!.value,
+        4,
+      );
+    });
+
+    test('soma kNovaScoreTier1 ao placar do passo', () {
+      final resolution = engine.resolve(threeNinesInRow());
+      final step = resolution.steps.firstWhere((s) => s.novaEvents.isNotEmpty);
+      // Decisão do dono do produto: o bônus da Nova é SOMADO ao placar
+      // genérico da combinação consumida (`kMaxDigit * 100`), não o
+      // substitui. `threeNinesInRow()` não tem nenhuma outra fusão no mesmo
+      // passo (o resto do tabuleiro é `baseGrid()`, sem 3-em-linha), então o
+      // placar do passo é exatamente essa soma — pinado com `equals` em vez
+      // de `greaterThanOrEqualTo`, que também aceitaria (por acidente
+      // matemático) o valor antigo de "substitui" (exatamente
+      // `kNovaScoreTier1`) e não pegaria uma regressão de volta a ele.
+      expect(step.score, equals(kMaxDigit * 100 + kNovaScoreTier1));
+    });
+
+    test(
+      'cap de 1 Nova por jogada: um segundo trio de 9 na mesma jogada não gera evento',
+      () {
+        var board = threeNinesInRow();
+        // Segundo trio de 9, longe do primeiro, já formado no mesmo tabuleiro
+        // — ambos processados na mesma chamada de resolve()/_applyFusions.
+        for (final col in [2, 3, 4]) {
+          board = board.updateTile(
+            Position(row: 6, col: col),
+            board
+                .getTileAt(Position(row: 6, col: col))!
+                .copyWith(value: kMaxDigit),
+          );
+        }
+
+        final resolution = engine.resolve(board);
+
+        expect(
+          resolution.novaEvents,
+          hasLength(1),
+          reason: 'só a primeira combinação de 9s vira Nova nesta jogada',
+        );
+      },
+    );
+
+    Board fourNinesInRow() {
+      final grid = baseGrid();
+      for (final col in [1, 2, 3, 4]) {
+        grid[3][col] = kMaxDigit;
+      }
+      return boardFromValues(grid);
+    }
+
+    Board fiveNinesInRow() {
+      final grid = baseGrid();
+      for (final col in [1, 2, 3, 4, 5]) {
+        grid[3][col] = kMaxDigit;
+      }
+      return boardFromValues(grid);
+    }
+
+    test('quarteto de 9 dispara tier 2 e consome as 4 peças do match', () {
+      final resolution = engine.resolve(fourNinesInRow());
+
+      expect(resolution.novaEvents.single.tier, 2);
+      for (final col in [1, 2, 3, 4]) {
+        expect(
+          resolution.novaEvents.single.clearedTiles,
+          contains(Position(row: 3, col: col)),
+          reason:
+              'toda peça do match de 4 precisa estar no núcleo, mesmo '
+              'a ponta mais distante do centro geométrico',
+        );
+      }
+    });
+
+    test('quarteto de 9: peça na zona 7x7 fora do núcleo é promovida', () {
+      var board = fourNinesInRow();
+      // Sobrevivente do match reto de 4 (sem âncora) é o índice 2: coluna 3.
+      // (0,3): 3 linhas acima — fora do núcleo (linhas 2-4), dentro da 7x7
+      // (linhas 0-6).
+      const inRing = Position(row: 0, col: 3);
+      board = board.updateTile(
+        inRing,
+        board.getTileAt(inRing)!.copyWith(value: 2),
+      );
+
+      final resolution = engine.resolve(board);
+
+      expect(resolution.novaEvents.single.promoted[inRing], 3);
+    });
+
+    test('cinco ou mais 9: tier 3, tabuleiro inteiro é o núcleo, sem anel', () {
+      final resolution = engine.resolve(fiveNinesInRow());
+
+      final event = resolution.novaEvents.single;
+      expect(event.tier, 3);
+      expect(
+        event.promoted,
+        isEmpty,
+        reason: 'tier 3 não tem anel de promoção',
+      );
+    });
+
+    test(
+      'cinco ou mais 9: peça normal em qualquer canto do tabuleiro é destruída',
+      () {
+        final resolution = engine.resolve(fiveNinesInRow());
+
+        const corner = Position(row: 7, col: 7);
+        expect(resolution.novaEvents.single.clearedTiles, contains(corner));
+        // A checagem usa `boardAfterFusion` (antes da gravidade/refill), não
+        // `resolution.board`: os tiles refilled aparecem no board final.
+        expect(
+          resolution.steps.first.boardAfterFusion.getTileAt(corner),
+          isNull,
+          reason: 'canto foi destruído pela onda de choque do tier 3',
+        );
+      },
+    );
+
+    test('cinco ou mais 9: soma kNovaScoreTier3 ao placar', () {
+      final resolution = engine.resolve(fiveNinesInRow());
+      final step = resolution.steps.firstWhere((s) => s.novaEvents.isNotEmpty);
+      expect(step.score, greaterThanOrEqualTo(kNovaScoreTier3));
+    });
+
+    test('Super 9 dentro do núcleo não é destruído', () {
+      var board = threeNinesInRow();
+      // (2,2): canto do núcleo 3x3 centrado em (3,3).
+      const superNinePos = Position(row: 2, col: 2);
+      board = board.updateTile(
+        superNinePos,
+        Tile.withSpecial(
+          id: 'super',
+          value: kMaxDigit,
+          position: superNinePos,
+          specialType: SpecialTileType.superNine,
+        ),
+      );
+
+      final resolution = engine.resolve(board);
+
+      expect(
+        resolution.novaEvents.single.clearedTiles.contains(superNinePos),
+        isFalse,
+      );
+      final survivor = resolution.board.getAllTiles().where(
+        (t) => t.specialType == SpecialTileType.superNine,
+      );
+      expect(survivor, hasLength(1), reason: 'o Super 9 sobrevive à Nova');
+    });
+
+    test('Super 9 dentro do anel não é promovido', () {
+      var board = threeNinesInRow();
+      // (1,3): dentro da zona 5x5, fora do núcleo 3x3 (mesma posição do
+      // teste de promoção comum da Task 3, agora ocupada por um Super 9).
+      const superNinePos = Position(row: 1, col: 3);
+      board = board.updateTile(
+        superNinePos,
+        Tile.withSpecial(
+          id: 'super',
+          value: kMaxDigit,
+          position: superNinePos,
+          specialType: SpecialTileType.superNine,
+        ),
+      );
+
+      final resolution = engine.resolve(board);
+
+      expect(
+        resolution.novaEvents.single.promoted.containsKey(superNinePos),
+        isFalse,
+      );
+      final tile = resolution.board.getAllTiles().firstWhere(
+        (t) => t.specialType == SpecialTileType.superNine,
+      );
+      expect(tile.value, kMaxDigit, reason: 'não foi promovido além do teto');
+    });
+
+    test('dispara por cascata automática, não só pela troca do jogador', () {
+      // Cascade 1: trio vertical de valor 5 na coluna 2 (linhas 4-6), abaixo
+      // de um 9 solto na linha 3. Ao fundir, o 9 cai duas linhas, pousando
+      // na linha 5 — a mesma linha onde as colunas 3 e 4 já têm um 9 parado,
+      // formando o trio que a cascata 2 alinha (mesmo desenho do teste
+      // equivalente do Bloco 9, mas com peças já em 9 em vez de 8).
+      final grid = baseGrid();
+      grid[3][2] = kMaxDigit;
+      grid[4][2] = 5;
+      grid[5][2] = 5;
+      grid[6][2] = 5;
+      grid[5][3] = kMaxDigit;
+      grid[5][4] = kMaxDigit;
+
+      final resolution = MatchEngine(
+        random: Random(4),
+      ).resolve(boardFromValues(grid));
+
+      final novaInCascade = resolution.steps
+          .where((s) => s.cascade > 1)
+          .any((s) => s.novaEvents.isNotEmpty);
+      expect(
+        novaInCascade,
+        isTrue,
+        reason:
+            'cenário precisa formar o trio de 9 numa cascata, não no '
+            'passo do jogador — ajustar a grade se a semente mudar o resultado',
+      );
+    });
+
+    test('cobertura destruída no núcleo credita o objetivo de cobertura', () {
+      // Achado crítico da revisão: `_triggerNova` devolvia `obstacleHits` no
+      // `NovaEvent`, mas `resolve()` nunca mesclava isso em
+      // `ResolutionStep.obstacleHits` — e é só ali que `countCleared` (a
+      // fonte de progresso de `clearObstacles`/`clearAllObstacles`) olha.
+      // Uma fase "limpe toda a pedra" ficava impossível de vencer com a
+      // pedra destruída pela Nova, exatamente como já tinha acontecido antes
+      // com a onda de choque do dígito máximo e com o Martelo de Fusão.
+      var board = threeNinesInRow();
+      // (2,2): canto do núcleo 3x3 centrado em (3,3), mesma posição já usada
+      // nos testes de imunidade de peça especial acima.
+      const stonePos = Position(row: 2, col: 2);
+      board = board.updateTile(
+        stonePos,
+        board.getTileAt(stonePos)!.withObstacle(ObstacleType.stone),
+      );
+
+      final resolution = engine.resolve(board);
+
+      expect(
+        resolution.novaEvents.single.obstacleHits.map((h) => h.position),
+        contains(stonePos),
+        reason:
+            'a Nova precisa ter registrado o hit para o teste fazer sentido',
+      );
+      expect(resolution.countCleared(ObstacleType.stone), 1);
+    });
+
+    test(
+      'coexiste com um Super 9 vivo no tabuleiro, sem checagem de exclusividade',
+      () {
+        var board = threeNinesInRow();
+        const superNinePos = Position(row: 6, col: 6);
+        board = board.updateTile(
+          superNinePos,
+          Tile.withSpecial(
+            id: 'existing-super',
+            value: kMaxDigit,
+            position: superNinePos,
+            specialType: SpecialTileType.superNine,
+          ),
+        );
+
+        final resolution = engine.resolve(board);
+
+        expect(resolution.novaEvents, hasLength(1));
+        final superNineStillThere = resolution.board.getAllTiles().where(
+          (t) => t.specialType == SpecialTileType.superNine,
+        );
+        expect(superNineStillThere, hasLength(1));
+      },
+    );
+
+    test('um match pendente no tabuleiro é sempre resolvido no início da '
+        'próxima chamada de resolve() (sem precisar de isGridDirty)', () {
+      // Reescrita determinística (Finding 5 da revisão final): a versão
+      // anterior tentava reproduzir o esgotamento exato do CascadeBudget por
+      // semente/tabuleiro, e a asserção principal vivia atrás de um
+      // `if (stillPending && ...)` que nunca era verdadeiro com a semente
+      // usada — o teste nunca podia falhar, e nada acusava isso.
+      //
+      // A propriedade que interessa provar não precisa do esgotamento de
+      // verdade: "um match deixado no tabuleiro pelo anel de promoção de uma
+      // Nova (ou por qualquer outro motivo) é reprocessado pela chamada
+      // seguinte a resolve(), sem campo de estado tipo isGridDirty". Isso é
+      // construído direto — como se um resolve() anterior tivesse acabado de
+      // parar bem no ponto em que a promoção formou o trio, sem consumi-lo
+      // ainda — e a garantia vale incondicionalmente.
+      final grid = baseGrid();
+      // Trio de 5 já alinhado na linha 1 — o estado exato que o anel de
+      // promoção da Nova deixaria para trás ao formar um trio de valor 5 sem
+      // o CascadeBudget sobrando para resolvê-lo na mesma chamada.
+      grid[1][2] = 5;
+      grid[1][3] = 5;
+      grid[1][4] = 5;
+
+      final board = boardFromValues(grid);
+      final nextTurn = MatchEngine(random: Random(9)).resolve(board);
+
+      expect(
+        nextTurn.steps.first.fusions.any(
+          (f) => f.value == 6 && f.matchLength == 3,
+        ),
+        isTrue,
+        reason:
+            'o match deixado no tabuleiro é processado no primeiro passo '
+            'do resolve() seguinte, sem precisar de um campo de estado tipo '
+            'isGridDirty',
+      );
+    });
+
+    test('Super 9 criado por um match simultâneo (processado antes da Nova na '
+        'mesma passada) sobrevive dentro do núcleo', () {
+      // Findings 2/3 da revisão final: `_triggerNova` checava
+      // `board.getTileAt(position).specialType` — `board` é o tabuleiro de
+      // *antes* de toda esta passada de `_applyFusions`. Se outro match
+      // simultâneo cria uma peça especial dentro do núcleo/anel da Nova, a
+      // imunidade não disparava porque `board` ainda mostrava a peça comum.
+      //
+      // Cenário: um match de 5 peças de valor 8 na linha 2 (colunas 1-5)
+      // gera um Super 9 no sobrevivente (2,3) — via TieredFusion, length>=5
+      // dá value+2 (8+2=10, clampado a 9=kMaxDigit). Um trio de 9 na linha 3
+      // (colunas 2-4) dispara a Nova, com núcleo 3x3 em torno de (3,3) que
+      // cobre (2,3). `detectMatches` varre corridas horizontais por linha,
+      // de cima para baixo, então o match da linha 2 (o Super 9) é
+      // processado **antes** do match da linha 3 (a Nova) na mesma chamada
+      // de `_applyFusions` — é a ordem que mais precisa de prova, porque é a
+      // única em que a checagem antiga lia um `board` desatualizado.
+      final grid = baseGrid();
+      for (final col in [1, 2, 3, 4, 5]) {
+        grid[2][col] = 8;
+      }
+      for (final col in [2, 3, 4]) {
+        grid[3][col] = kMaxDigit;
+      }
+
+      final board = boardFromValues(grid);
+      final survivorId = board.getTileAt(const Position(row: 2, col: 3))!.id;
+
+      final resolution = engine.resolve(board);
+
+      expect(resolution.novaEvents, hasLength(1));
+      expect(
+        resolution.novaEvents.single.clearedTiles.contains(
+          const Position(row: 2, col: 3),
+        ),
+        isFalse,
+        reason:
+            'o Super 9 recém-nascido não pode ser destruído pela Nova '
+            'simultânea',
+      );
+
+      final survivingSuperNines = resolution.board.getAllTiles().where(
+        (t) => t.specialType == SpecialTileType.superNine,
+      );
+      expect(survivingSuperNines, hasLength(1));
+      expect(survivingSuperNines.single.id, survivorId);
+      expect(survivingSuperNines.single.value, kMaxDigit);
+    });
   });
 
   group('findHint', () {
@@ -1558,7 +2052,6 @@ void main() {
         isFalse,
       );
     });
-
   });
 
   group('smash (Martelo de Fusão)', () {
@@ -1680,7 +2173,10 @@ void main() {
       // Espalha mais peças de valor 3 pelo tabuleiro, fora da vizinhança do
       // Super 9, para provar que a conversão é **board-wide**.
       const distant = Position(row: 0, col: 6);
-      board = board.updateTile(distant, board.getTileAt(distant)!.copyWith(value: 3));
+      board = board.updateTile(
+        distant,
+        board.getTileAt(distant)!.copyWith(value: 3),
+      );
 
       final result = engine.tryMove(board, at, neighbour);
 
@@ -1704,10 +2200,13 @@ void main() {
       final neighbour = Position(row: at.row, col: at.col + 1);
       final board = withSuperNineAt(at);
 
-      final result = engine.tryMove(board, at, neighbour) as MoveSuperNineActivated;
+      final result =
+          engine.tryMove(board, at, neighbour) as MoveSuperNineActivated;
 
       expect(
-        result.board.getAllTiles().where((t) => t.specialType == SpecialTileType.superNine),
+        result.board.getAllTiles().where(
+          (t) => t.specialType == SpecialTileType.superNine,
+        ),
         isEmpty,
       );
     });
@@ -1718,34 +2217,39 @@ void main() {
       final board = withSuperNineAt(at, neighbourValue: 3);
       final neighbourId = board.getTileAt(neighbour)!.id;
 
-      final result = engine.tryMove(board, at, neighbour) as MoveSuperNineActivated;
+      final result =
+          engine.tryMove(board, at, neighbour) as MoveSuperNineActivated;
 
       expect(result.board.getTileAt(neighbour)!.id, neighbourId);
     });
 
-    test('não roda resolve() — um match criado pela conversão fica congelado', () {
-      const at = Position(row: 4, col: 2);
-      final neighbour = Position(row: at.row, col: at.col + 1);
-      var board = withSuperNineAt(at, neighbourValue: 3);
-      // Duas outras peças de valor 3 já formam, junto com a do vizinho, um
-      // trio na mesma linha depois da conversão para 4.
-      board = board.updateTile(
-        const Position(row: 4, col: 4),
-        board.getTileAt(const Position(row: 4, col: 4))!.copyWith(value: 3),
-      );
-      board = board.updateTile(
-        const Position(row: 4, col: 5),
-        board.getTileAt(const Position(row: 4, col: 5))!.copyWith(value: 3),
-      );
+    test(
+      'não roda resolve() — um match criado pela conversão fica congelado',
+      () {
+        const at = Position(row: 4, col: 2);
+        final neighbour = Position(row: at.row, col: at.col + 1);
+        var board = withSuperNineAt(at, neighbourValue: 3);
+        // Duas outras peças de valor 3 já formam, junto com a do vizinho, um
+        // trio na mesma linha depois da conversão para 4.
+        board = board.updateTile(
+          const Position(row: 4, col: 4),
+          board.getTileAt(const Position(row: 4, col: 4))!.copyWith(value: 3),
+        );
+        board = board.updateTile(
+          const Position(row: 4, col: 5),
+          board.getTileAt(const Position(row: 4, col: 5))!.copyWith(value: 3),
+        );
 
-      final result = engine.tryMove(board, at, neighbour) as MoveSuperNineActivated;
+        final result =
+            engine.tryMove(board, at, neighbour) as MoveSuperNineActivated;
 
-      expect(
-        engine.detectMatches(result.board),
-        isNotEmpty,
-        reason: 'o match ficou pendente, não foi resolvido nem descartado',
-      );
-    });
+        expect(
+          engine.detectMatches(result.board),
+          isNotEmpty,
+          reason: 'o match ficou pendente, não foi resolvido nem descartado',
+        );
+      },
+    );
   });
 
   group('MatchEngine.decaySpecials', () {
@@ -1754,7 +2258,12 @@ void main() {
       const at = Position(row: 0, col: 0);
       board = board.updateTile(
         at,
-        Tile.withSpecial(id: 't', value: 5, position: at, specialType: SpecialTileType.wildcard),
+        Tile.withSpecial(
+          id: 't',
+          value: 5,
+          position: at,
+          specialType: SpecialTileType.wildcard,
+        ),
       );
 
       final decayed = engine.decaySpecials(board);
@@ -1766,7 +2275,12 @@ void main() {
       const at = Position(row: 0, col: 0);
       board = board.updateTile(
         at,
-        Tile.withSpecial(id: 't', value: 5, position: at, specialType: SpecialTileType.wildcard),
+        Tile.withSpecial(
+          id: 't',
+          value: 5,
+          position: at,
+          specialType: SpecialTileType.wildcard,
+        ),
       );
 
       var decayed = board;
@@ -1777,6 +2291,13 @@ void main() {
       final tile = decayed.getTileAt(at)!;
       expect(tile.specialType, isNull);
       expect(tile.value, 5);
+    });
+  });
+
+  group('Resolution.novaEvents (plumbing, sem Nova disparando ainda)', () {
+    test('resolução sem Nova tem novaEvents vazio', () {
+      final resolution = engine.resolve(boardFromValues(baseGrid()));
+      expect(resolution.novaEvents, isEmpty);
     });
   });
 }

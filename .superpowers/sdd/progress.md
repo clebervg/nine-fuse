@@ -1,43 +1,57 @@
-# Refresh de identidade visual — progresso
+# Evento Nova — progresso
 
-Plano: docs/superpowers/plans/2026-08-25-brand-refresh.md
-Spec: docs/superpowers/specs/2026-08-25-brand-refresh-design.md
-Worktree: /Users/cleber/projects/nine_fuse/.worktrees/brand-refresh
-Branch: brand-refresh
-Base: ce3154e
+Plano: docs/superpowers/plans/2026-08-26-evento-nova.md
+Spec: docs/superpowers/specs/2026-08-25-evento-nova-design.md
+Worktree: /Users/cleber/projects/nine_fuse/.claude/worktrees/evento-nova
+Branch: worktree-evento-nova
+Base: 7a2425b
 
 Baseline: `flutter test` completo — 760 testes passando.
 
 ## Tarefas
-- [x] 1 Script de exportação do glifo "9" da fonte — completa (commit ce3154e..c59441e, revisão aprovada). O grosso do código já existia desde o commit do plano (67b3052); esta task só corrigiu um trecho impreciso da docstring.
-- [x] 2 Novo `assets/images/logo.svg` vetorial — completa (commit c59441e..3e22e3e, revisão aprovada, sem achados)
-- [x] 3 Regenerar ícones e splash a partir do novo SVG — completa (commit c59441e..b1275d5, revisão aprovada). Achado real no meio do caminho: `logo_splash.png` nunca foi automatizado pelo pipeline (recorte manual antigo); com aprovação do usuário, `tool/prepare_icons.dart` passou a gerá-lo também (render do grupo `mark`, sem o inset de 66% da máscara do ícone).
-- [x] 4 Wordmark "NineFuse" em relevo na SplashScreen — completa (commit b1275d5..6708faa, revisão aprovada). Verificação visual feita pelo controlador via golden descartável (fora do commit): confirma divisão de cor Nine/Fuse e sombra desenhada corretas; fonte não shapeia em headless test, limitação do ambiente, não bug.
-- [x] 5 Verificação final — completa (commit 6708faa..82c6da9, revisão aprovada). `flutter analyze` achou 1 `info` pré-existente (tool_tmp/probe124.dart, commit ff10aab, anterior à base do worktree) — confirmado fora de escopo, registrado no CLAUDE.md, não corrigido.
+- [x] 1 NovaEvent — tipo de dado e constantes de placar — completa (commit 7a2425b..4f324eb, revisão aprovada, sem achados críticos/importantes)
+- [x] 2 Plumbing — novaEvents em FusionOutcome/ResolutionStep/Resolution — completa (commit 4f324eb..f50267b, revisão aprovada, sem achados críticos/importantes)
+- [x] 3 Geometria e gatilho — Nova tier 1 (3 peças, 3x3/5x5) — completa (commit f50267b..e255b7c, revisão aprovada, sem achados críticos/importantes). Implementador corrigiu 2 testes do brief que checavam `resolution.board` (pós-gravidade) em vez de `boardAfterFusion` (pré-gravidade) — desvio verificado e legítimo, revisor confirmou que só o alvo do assert mudou, não os valores esperados.
+- [x] 4 Tiers 2 e 3 — 4 peças (7x7) e 5+ (tabuleiro inteiro) — completa (commit e255b7c..e0d7ce9, revisão aprovada, sem achados críticos/importantes, test-only conforme esperado)
+- [x] 5 Imunidade de peças especiais — completa (commit e0d7ce9..c196dc3, revisão aprovada, sem achados críticos/importantes, test-only conforme esperado)
+- [x] 6 Gatilho por cascata, independência do Super 9, match pendente por budget — completa (commit c196dc3..21ede30, revisão aprovada). Achado Important *plan-mandated*: o teste de esgotamento do CascadeBudget não reproduziu o cenário exato (match pendente formado pela Nova) e degradou para "documenta intenção, sem asserção real" — comportamento explicitamente previsto e justificado no plano (a garantia real já é coberta pelos testes pré-existentes de CascadeBudget/Super 9). Levar para a revisão final da branch: decidir se vale tentar outro seed/grade ou aceitar como está.
+- [x] 7 Registro no CLAUDE.md — completa (commit 21ede30..2cfc62d, revisão aprovada, sem achados)
 
-Todas as 5 tasks do plano completas.
+Todas as 7 tasks do plano completas.
 
-## Revisão final da branch (ce3154e..82c6da9)
+## Revisão final da branch (7a2425b..a14ce20..71a42d5)
 
-Achados Important: 2 comentários obsoletos (`flutter_launcher_icons.yaml`,
-`tool/prepare_icons.dart`) e 1 achado real confirmado visualmente pelo
-coordenador — a splash do Android 12 usava a mesma arte cheia da splash legada
-(70% do canvas) sem o recorte pela zona de segurança circular de 66%, cortando
-os cantos do selo sob a máscara circular do Android 12+.
+Revisão final (Opus) encontrou 1 achado Crítico e 3 Importantes:
+- Crítico: `NovaEvent.obstacleHits` nunca era mesclado em `ResolutionStep.obstacleHits`,
+  então a Nova destruía obstáculos sem creditar objetivos de fase (repetição do
+  bug já documentado 2x no CLAUDE.md para a explosão antiga e o martelo).
+- Importante: imunidade de peças especiais lia o tabuleiro pré-fusão em vez do
+  mapa `updates` — um Super 9 nascido na mesma passada podia ser destruído.
+- Importante (mesma causa): "last write wins" no tier 3 era sistemático, não
+  raro.
+- Importante — decisão do usuário: placar da Nova estava substituindo
+  (não somando) o placar antigo, contra o texto do spec. Usuário escolheu
+  somar; corrigido.
 
-Fix (commit 39d4691): comentários corrigidos; `android_12.image` passou a
-apontar para `assets/icon/app_icon_foreground.png` (o mesmo render já recortado
-pela zona segura, reaproveitado — nenhum arquivo novo). Re-revisão confirmou
-numericamente: `app_icon_foreground.png` tem raio máximo 0.660 do meio-lado
-(exatamente dentro do círculo de 66%), contra 0.862 do `logo_splash.png` antigo
-(seria cortado). **Ready to merge: Yes.** Achado menor remanescente, não
-bloqueante: `flutter_launcher_icons.yaml` ainda descreve a cor de fundo como
-"stop externo do gradiente", mas o fundo do SVG atual é `<rect>` chapado — vale
-corrigir numa próxima passada, não nesta branch.
+Corrigido em commit a14ce20 (781→783 testes). Re-revisão (Opus) confirmou as
+4 correções e apontou 3 itens de polimento: comentário de `novaScoreForTier`
+contradizendo o código, falta de asserção exata do placar aditivo, nome de
+teste enganoso após reescrita da Task 6. Fechado em commit 71a42d5
+(116/116 em match_engine_test.dart, 783/783 na suíte completa,
+`dart format` limpo nos 3 arquivos tocados).
+
+**Ready to merge: Yes.**
 
 Próximo passo: `superpowers:finishing-a-development-branch`.
 
+## Notas de execução (continuação)
+- O subagente da correção de polimento retomou sozinho após uma notificação
+  incompleta ("waiting for background test run") e terminou o trabalho
+  (commit 71a42d5) enquanto o controlador verificava o mesmo estado em
+  paralelo — sem conflito, ambos convergiram no mesmo resultado.
+
 ## Notas de execução
-- Ledger anterior deste arquivo (Bloco 9/Super 9, já mergeado) sobrescrito para
+- Ledger anterior deste arquivo (brand-refresh, já mergeado) sobrescrito para
   começar este trabalho do zero — histórico completo preservado em `git log`.
-- Trabalhando em worktree isolado — não mergear/dar push sem autorização explícita.
+- Trabalhando em worktree isolado (.claude/worktrees/evento-nova) — não
+  mergear/dar push sem autorização explícita.
