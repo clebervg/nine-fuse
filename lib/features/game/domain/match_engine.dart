@@ -529,7 +529,11 @@ class MatchEngine {
       final other = identical(superNine, tileA) ? tileB : tileA;
       if (other.value < kMaxDigit) {
         return MoveSuperNineActivated(
-          _activateSuperNine(board, at: superNine.position, targetValue: other.value),
+          _activateSuperNine(
+            board,
+            at: superNine.position,
+            targetValue: other.value,
+          ),
           other.value,
         );
       }
@@ -549,11 +553,18 @@ class MatchEngine {
   /// a conversão é passiva e estática — qualquer match que ela alinhe fica
   /// congelado até a jogada seguinte, a mesma semântica do orçamento de
   /// cascata para o match que sobra ao fim do turno.
-  Board _activateSuperNine(Board board, {required Position at, required int targetValue}) {
+  Board _activateSuperNine(
+    Board board, {
+    required Position at,
+    required int targetValue,
+  }) {
     var result = board;
     for (final tile in board.getAllTiles()) {
       if (tile.value == targetValue) {
-        result = result.updateTile(tile.position, tile.copyWith(value: targetValue + 1));
+        result = result.updateTile(
+          tile.position,
+          tile.copyWith(value: targetValue + 1),
+        );
       }
     }
 
@@ -878,8 +889,9 @@ class MatchEngine {
     // um match de 5+ processado antes deste na mesma lista) só aparece em
     // `updates`. Sem isso a Nova a destruiria/promoveria com base num
     // estado já ultrapassado.
-    Tile? tileAt(Position position) =>
-        updates.containsKey(position) ? updates[position] : board.getTileAt(position);
+    Tile? tileAt(Position position) => updates.containsKey(position)
+        ? updates[position]
+        : board.getTileAt(position);
 
     final obstacleHits = <ObstacleHit>[];
     final clearedTiles = <Position>{};
@@ -937,9 +949,9 @@ class MatchEngine {
     );
     if (inUpdates) return true;
 
-    return board
-        .getAllTiles()
-        .any((tile) => tile.specialType == SpecialTileType.superNine);
+    return board.getAllTiles().any(
+      (tile) => tile.specialType == SpecialTileType.superNine,
+    );
   }
 
   FusionOutcome _applyFusions(
@@ -1007,7 +1019,8 @@ class MatchEngine {
         // Só a peça sobrevivente de uma combinação de 5+ vira Super 9 — e só
         // quando não há outro no tabuleiro (nem um que esta mesma passada de
         // fusões já tenha criado).
-        final becomesSuperNine = isSurvivor &&
+        final becomesSuperNine =
+            isSurvivor &&
             value == kMaxDigit &&
             match.length >= kSuperNineMatchLength &&
             !_hasActiveSuperNine(board, updates);
@@ -1016,11 +1029,11 @@ class MatchEngine {
         // animações possam segui-la; as extras são peças novas.
         final born = switch ((isSurvivor, becomesSuperNine)) {
           (true, true) => Tile.withSpecial(
-              id: tile.id,
-              value: value,
-              position: position,
-              specialType: SpecialTileType.superNine,
-            ),
+            id: tile.id,
+            value: value,
+            position: position,
+            specialType: SpecialTileType.superNine,
+          ),
           (true, false) => tile.copyWith(value: value),
           (false, _) => Tile(id: _newId(), value: value, position: position),
         };

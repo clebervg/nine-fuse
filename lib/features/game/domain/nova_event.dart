@@ -9,14 +9,14 @@ const int kNovaScoreTier1 = 500;
 const int kNovaScoreTier2 = 1000;
 const int kNovaScoreTier3 = 2000;
 
-/// Bônus de placar da Nova para o [tier] informado (1, 2 ou 3+; qualquer
-/// valor 3 ou maior cai no tier 3 explicitamente — um tier inválido (0 ou
-/// negativo, que não deveria acontecer) não cai silenciosamente no tratamento
-/// mais generoso).
+/// Bônus de placar da Nova para o [tier] informado (1, 2 ou 3+). Qualquer
+/// valor fora de {1, 2, 3} — incluindo 0 ou negativo, que não deveria
+/// acontecer — cai silenciosamente no tratamento do tier 3, o mais generoso.
+/// O único chamador é interno (`_triggerNova`), onde o tier é sempre 1, 2 ou
+/// 3 por construção; não há validação em tempo de execução aqui de propósito.
 int novaScoreForTier(int tier) => switch (tier) {
   1 => kNovaScoreTier1,
   2 => kNovaScoreTier2,
-  >= 3 => kNovaScoreTier3,
   _ => kNovaScoreTier3,
 };
 
