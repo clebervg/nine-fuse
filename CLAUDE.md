@@ -1495,11 +1495,49 @@ da jogada — não há "proveniência da fusão" para restringir.
 **Independente do Super 9, sem checagem de exclusividade** — os dois podem
 coexistir e disparar em qualquer ordem, inclusive na mesma jogada.
 
+**O bônus de tier é SOMADO ao placar de consumo genérico, não o substitui.**
+`kNovaScoreTier{1,2,3}` (500/1000/2000) entra em cima de `kMaxDigit * 100`
+(900) que qualquer combinação de 9s já rendia antes deste evento existir —
+decisão do dono do produto, escalada na revisão final do branch e resolvida
+a favor da leitura literal do spec original ("Somado ao `stepScore`... junto
+do placar normal das peças consumidas"). Uma versão anterior desta
+implementação tratava o bônus como substituição; os testes que afirmam
+`step.score >= kNovaScoreTier{N}` continuam válidos porque o placar aditivo
+é estritamente maior.
+
+**A cobertura destruída pelo núcleo da Nova credita o objetivo de fase, como
+qualquer outra fonte de dano a obstáculo.** Achado crítico da revisão final
+do branch: `_triggerNova` calculava `NovaEvent.obstacleHits`, mas `resolve()`
+nunca mesclava esse resultado em `ResolutionStep.obstacleHits` — e é só ali
+que `Resolution.countCleared` (a fonte de progresso de
+`clearObstacles`/`clearAllObstacles`) olha. Uma fase "limpe toda a pedra"
+podia ficar permanentemente impossível de vencer se a Nova destruísse a
+última cobertura sem o contador do objetivo se mexer, já que
+`boardObstacleGoal` é fixado no início da fase. É a **terceira** vez que este
+projeto registra a mesma classe de bug — a mesma lacuna já tinha sido
+encontrada na onda de choque do dígito máximo (Fase 15) e não existia no
+Martelo de Fusão só porque ele foi implementado com o cuidado explícito de
+não repeti-la. A correção segue o mesmo padrão de dedupe por posição que o
+Bloco 9 já usa ao mesclar com `_damageObstacles`: "um impacto por posição por
+passo" continua valendo mesmo com três fontes de dano no mesmo passo.
+
+**A imunidade de peça especial lê `updates`, não só `board` — mesmo padrão de
+`_hasActiveSuperNine`.** Achado importante da revisão final: `_triggerNova`
+checava `board.getTileAt(position).specialType`, mas `board` é o tabuleiro de
+*antes* de toda a passada de `_applyFusions`. Se outro match simultâneo (por
+exemplo um Super 9 nascido de um match de 5+ peças 8) cria uma peça especial
+dentro do núcleo ou do anel da Nova, a checagem antiga não via essa peça —
+"last write wins" arriscava destruir ou sobrescrever uma peça especial que
+acabara de nascer na mesma passada, risco mais severo em tier 3 (núcleo =
+tabuleiro inteiro), onde isso acontece sempre que qualquer outro match
+resolve junto. A correção lê `updates[position]` quando a posição já tem uma
+entrada ali, e cai para `board.getTileAt(position)` só quando não tem —
+exatamente a mesma régua que `_hasActiveSuperNine` já seguia para o mesmo
+tipo de visibilidade dentro da mesma passada.
+
 **Ainda não implementado, e é decisão explícita:** widgets/animações da
 Nova (a UI reaproveitaria o `JuiceDirector`/`JuicePriority` do spec de
 Bloco 9/Super 9, mas onde a Nova entra nessa hierarquia — acima ou abaixo
 de `supernova` — fica para quando a UI for desenhada); calibragem de
-economia via `tool/simulate_economy.dart` (os valores de
-`kNovaScoreTier{1,2,3}` e a frequência real de Novas numa partida ainda não
-foram medidos); qualquer interação com `LevelObjective` (a Nova hoje é
-puramente placar/tabuleiro, não avança objetivo de fase nenhum).
+economia via `tool/simulate_economy.dart` (a frequência real de Novas numa
+partida ainda não foi medida, mesmo com o placar aditivo já fixado).

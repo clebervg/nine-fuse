@@ -692,6 +692,21 @@ class MatchEngine {
         obstacleHits = [...obstacleHits, ...cleared.hits];
       }
 
+      // A destruição de obstáculo da Nova também tem de contar para o
+      // objetivo da fase — `Resolution.countCleared` só lê
+      // `ResolutionStep.obstacleHits`, e a Nova pode disparar em qualquer
+      // passo (não só no primeiro, como o Bloco 9 acima). Mesma regra de
+      // "um impacto por posição por passo" das outras duas fontes.
+      if (fused.novaEvents.isNotEmpty) {
+        final alreadyHit = {for (final hit in obstacleHits) hit.position};
+        final novaHits = [
+          for (final novaEvent in fused.novaEvents)
+            for (final hit in novaEvent.obstacleHits)
+              if (alreadyHit.add(hit.position)) hit,
+        ];
+        obstacleHits = [...obstacleHits, ...novaHits];
+      }
+
       // A âncora vale só para a combinação do movimento do jogador.
       currentAnchor = null;
 
@@ -856,10 +871,20 @@ class MatchEngine {
       ring = _zoneAround(survivor, totalRadius).difference(core);
     }
 
+    // Lê o tile via `updates` quando ela já tem um valor para a posição —
+    // mesmo padrão de `_hasActiveSuperNine`: `board` é o tabuleiro de
+    // *antes* desta passada inteira de `_applyFusions`, então uma peça
+    // especial nascida de outra combinação simultânea (ex.: um Super 9 de
+    // um match de 5+ processado antes deste na mesma lista) só aparece em
+    // `updates`. Sem isso a Nova a destruiria/promoveria com base num
+    // estado já ultrapassado.
+    Tile? tileAt(Position position) =>
+        updates.containsKey(position) ? updates[position] : board.getTileAt(position);
+
     final obstacleHits = <ObstacleHit>[];
     final clearedTiles = <Position>{};
     for (final position in core) {
-      final tile = board.getTileAt(position);
+      final tile = tileAt(position);
       if (tile == null || tile.specialType != null) continue;
 
       if (tile.isBlocked) {
@@ -873,7 +898,7 @@ class MatchEngine {
 
     final promoted = <Position, int>{};
     for (final position in ring) {
-      final tile = board.getTileAt(position);
+      final tile = tileAt(position);
       if (tile == null || tile.specialType != null || tile.value >= kMaxDigit) {
         continue;
       }
@@ -945,7 +970,11 @@ class MatchEngine {
           novaTriggered = true;
           final event = _triggerNova(board, updates, match, survivor);
           novaEvents.add(event);
-          score += novaScoreForTier(event.tier);
+          // Aditivo, não substitutivo: o bônus de tier soma ao placar de
+          // consumo genérico que qualquer combinação de 9s já rendia — não
+          // o troca. Decisão do dono do produto (ver kNovaScoreTier* em
+          // nova_event.dart e a seção "Evento Nova" do CLAUDE.md).
+          score += kMaxDigit * 100 + novaScoreForTier(event.tier);
         } else {
           for (final position in match) {
             updates[position] = null;

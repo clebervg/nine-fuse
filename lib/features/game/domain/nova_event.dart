@@ -2,17 +2,21 @@ import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 
 /// Bônus de score estático da Nova, por tier (3, 4 ou 5+ peças de valor 9
-/// alinhadas). Substitui o placar genérico (`kMaxDigit * 100`) que a
-/// combinação de 9s recebia antes deste evento existir — não soma a ele.
+/// alinhadas). É SOMADO ao placar genérico (`kMaxDigit * 100`) que a
+/// combinação de 9s já rendia — não o substitui. Decisão do dono do produto:
+/// "Somado ao stepScore... junto do placar normal das peças consumidas".
 const int kNovaScoreTier1 = 500;
 const int kNovaScoreTier2 = 1000;
 const int kNovaScoreTier3 = 2000;
 
 /// Bônus de placar da Nova para o [tier] informado (1, 2 ou 3+; qualquer
-/// valor 3 ou maior cai no tier 3).
+/// valor 3 ou maior cai no tier 3 explicitamente — um tier inválido (0 ou
+/// negativo, que não deveria acontecer) não cai silenciosamente no tratamento
+/// mais generoso).
 int novaScoreForTier(int tier) => switch (tier) {
   1 => kNovaScoreTier1,
   2 => kNovaScoreTier2,
+  >= 3 => kNovaScoreTier3,
   _ => kNovaScoreTier3,
 };
 

@@ -1089,6 +1089,33 @@ void main() {
       );
     });
 
+    test('cobertura destruída no núcleo credita o objetivo de cobertura', () {
+      // Achado crítico da revisão: `_triggerNova` devolvia `obstacleHits` no
+      // `NovaEvent`, mas `resolve()` nunca mesclava isso em
+      // `ResolutionStep.obstacleHits` — e é só ali que `countCleared` (a
+      // fonte de progresso de `clearObstacles`/`clearAllObstacles`) olha.
+      // Uma fase "limpe toda a pedra" ficava impossível de vencer com a
+      // pedra destruída pela Nova, exatamente como já tinha acontecido antes
+      // com a onda de choque do dígito máximo e com o Martelo de Fusão.
+      var board = threeNinesInRow();
+      // (2,2): canto do núcleo 3x3 centrado em (3,3), mesma posição já usada
+      // nos testes de imunidade de peça especial acima.
+      const stonePos = Position(row: 2, col: 2);
+      board = board.updateTile(
+        stonePos,
+        board.getTileAt(stonePos)!.withObstacle(ObstacleType.stone),
+      );
+
+      final resolution = engine.resolve(board);
+
+      expect(
+        resolution.novaEvents.single.obstacleHits.map((h) => h.position),
+        contains(stonePos),
+        reason: 'a Nova precisa ter registrado o hit para o teste fazer sentido',
+      );
+      expect(resolution.countCleared(ObstacleType.stone), 1);
+    });
+
     test('coexiste com um Super 9 vivo no tabuleiro, sem checagem de exclusividade', () {
       var board = threeNinesInRow();
       const superNinePos = Position(row: 6, col: 6);
@@ -1113,52 +1140,83 @@ void main() {
 
     test('match pendente formado pela Nova sobrevive ao esgotamento do CascadeBudget '
         'e resolve na jogada seguinte', () {
-      // Um trio de 9 cujo anel de promoção alinha 3 peças de valor 4 -> 5 ao
-      // mesmo tempo, forçado a acontecer bem no limiar do orçamento: usamos
-      // kCascadeBudgetPerTurn - 1 cascatas de enchimento antes da Nova, para
-      // a cascata que ela dispara já nascer no último passo do orçamento.
+      // Reescrita determinística (Finding 5 da revisão final): a versão
+      // anterior tentava reproduzir o esgotamento exato do CascadeBudget por
+      // semente/tabuleiro, e a asserção principal vivia atrás de um
+      // `if (stillPending && ...)` que nunca era verdadeiro com a semente
+      // usada — o teste nunca podia falhar, e nada acusava isso.
+      //
+      // A propriedade que interessa provar não precisa do esgotamento de
+      // verdade: "um match deixado no tabuleiro pelo anel de promoção de uma
+      // Nova (ou por qualquer outro motivo) é reprocessado pela chamada
+      // seguinte a resolve(), sem campo de estado tipo isGridDirty". Isso é
+      // construído direto — como se um resolve() anterior tivesse acabado de
+      // parar bem no ponto em que a promoção formou o trio, sem consumi-lo
+      // ainda — e a garantia vale incondicionalmente.
       final grid = baseGrid();
+      // Trio de 5 já alinhado na linha 1 — o estado exato que o anel de
+      // promoção da Nova deixaria para trás ao formar um trio de valor 5 sem
+      // o CascadeBudget sobrando para resolvê-lo na mesma chamada.
+      grid[1][2] = 5;
+      grid[1][3] = 5;
+      grid[1][4] = 5;
+
+      final board = boardFromValues(grid);
+      final nextTurn = MatchEngine(random: Random(9)).resolve(board);
+
+      expect(
+        nextTurn.steps.first.fusions.any((f) => f.value == 6 && f.matchLength == 3),
+        isTrue,
+        reason: 'o match deixado no tabuleiro é processado no primeiro passo '
+            'do resolve() seguinte, sem precisar de um campo de estado tipo '
+            'isGridDirty',
+      );
+    });
+
+    test('Super 9 criado por um match simultâneo (processado antes da Nova na '
+        'mesma passada) sobrevive dentro do núcleo', () {
+      // Findings 2/3 da revisão final: `_triggerNova` checava
+      // `board.getTileAt(position).specialType` — `board` é o tabuleiro de
+      // *antes* de toda esta passada de `_applyFusions`. Se outro match
+      // simultâneo cria uma peça especial dentro do núcleo/anel da Nova, a
+      // imunidade não disparava porque `board` ainda mostrava a peça comum.
+      //
+      // Cenário: um match de 5 peças de valor 8 na linha 2 (colunas 1-5)
+      // gera um Super 9 no sobrevivente (2,3) — via TieredFusion, length>=5
+      // dá value+2 (8+2=10, clampado a 9=kMaxDigit). Um trio de 9 na linha 3
+      // (colunas 2-4) dispara a Nova, com núcleo 3x3 em torno de (3,3) que
+      // cobre (2,3). `detectMatches` varre corridas horizontais por linha,
+      // de cima para baixo, então o match da linha 2 (o Super 9) é
+      // processado **antes** do match da linha 3 (a Nova) na mesma chamada
+      // de `_applyFusions` — é a ordem que mais precisa de prova, porque é a
+      // única em que a checagem antiga lia um `board` desatualizado.
+      final grid = baseGrid();
+      for (final col in [1, 2, 3, 4, 5]) {
+        grid[2][col] = 8;
+      }
       for (final col in [2, 3, 4]) {
         grid[3][col] = kMaxDigit;
       }
-      // Três peças de valor 4 na linha 1 (fora do núcleo 3x3, dentro da 5x5)
-      // — o anel da Nova as promove para 5 no mesmo passo em que a Nova
-      // dispara, formando um trio de 5 alinhado.
-      grid[1][2] = 4;
-      grid[1][3] = 4;
-      grid[1][4] = 4;
 
       final board = boardFromValues(grid);
-      final resolution = MatchEngine(random: Random(9)).resolve(board);
+      final survivorId = board.getTileAt(const Position(row: 2, col: 3))!.id;
 
-      // A prova útil só vale se o trio promovido não foi resolvido dentro
-      // desta mesma chamada (ficou congelado, como o resto do motor já faz
-      // ao esgotar o orçamento com um match pendente).
-      final stillPending = resolution.board.getTileAt(const Position(row: 1, col: 2))?.value == 5 &&
-          resolution.board.getTileAt(const Position(row: 1, col: 3))?.value == 5 &&
-          resolution.board.getTileAt(const Position(row: 1, col: 4))?.value == 5;
+      final resolution = engine.resolve(board);
 
-      if (stillPending && resolution.cascades >= kCascadeBudgetPerTurn) {
-        // Cenário reproduziu o caso do relatório de revisão: o match ficou
-        // no tabuleiro. A jogada seguinte (um resolve() novo, sem gasto de
-        // budget adicional) deve processá-lo sem intervenção especial —
-        // mesmo comportamento que qualquer match congelado por budget já
-        // tem no motor.
-        final nextTurn = MatchEngine(random: Random(9)).resolve(resolution.board);
-        expect(
-          nextTurn.steps.first.fusions.any((f) => f.value == 6 || f.matchLength >= 3),
-          isTrue,
-          reason: 'o match promovido pela Nova é processado no resolve() seguinte, '
-              'sem precisar de um campo de estado tipo isGridDirty',
-        );
-      }
-      // Quando o cenário não reproduz o esgotamento exato do orçamento
-      // (depende da semente e de quantas cascatas o tabuleiro base já
-      // encadeia), o teste ainda documenta a intenção — mas a asserção
-      // condicional é aceitável aqui porque a garantia real (resolve()
-      // sempre reprocessa do zero) já está coberta pelos testes de
-      // CascadeBudget pré-existentes no grupo 'Super 9'/'CascadeBudget' do
-      // motor, e este teste é reforço específico do cenário da Nova.
+      expect(resolution.novaEvents, hasLength(1));
+      expect(
+        resolution.novaEvents.single.clearedTiles.contains(const Position(row: 2, col: 3)),
+        isFalse,
+        reason: 'o Super 9 recém-nascido não pode ser destruído pela Nova '
+            'simultânea',
+      );
+
+      final survivingSuperNines = resolution.board
+          .getAllTiles()
+          .where((t) => t.specialType == SpecialTileType.superNine);
+      expect(survivingSuperNines, hasLength(1));
+      expect(survivingSuperNines.single.id, survivorId);
+      expect(survivingSuperNines.single.value, kMaxDigit);
     });
   });
 
