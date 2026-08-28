@@ -22,6 +22,16 @@ const int kHammerCoinPrice = 100;
 /// O que o baú de fim de capítulo paga, uma única vez por capítulo.
 const int kChapterChestReward = 200;
 
+/// Último capítulo que ainda paga baú. Acima disto, `claimChapterChest`
+/// não credita nada — sem este teto, a campanha gerada (infinita, Fase
+/// 15) imprimiria moeda para sempre, um capítulo de cada vez.
+///
+/// Capítulos 1-2 são os artesanais (fases 1-10); capítulos 3-20 são os
+/// primeiros 18 capítulos gerados (10 fases cada, `kBlockSize` em
+/// `level_generator.dart`) — cobre até a fase ~190. Teto de moeda
+/// vitalícia via baú: 20 * kChapterChestReward = 4000.
+const int kChapterChestPayableCount = 20;
+
 /// Moedas por anúncio premiado assistido até o fim.
 ///
 /// Vinte e cinco é um quarto do martelo: quatro vídeos compram o item que um
