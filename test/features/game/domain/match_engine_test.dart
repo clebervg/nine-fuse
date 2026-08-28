@@ -524,12 +524,17 @@ void main() {
           grid[row][1] = 1;
           grid[row][2] = 0;
         }
-        grid[6][0] = 9;
-        grid[6][1] = 9;
-        grid[6][2] = 9;
-        grid[7][0] = 9;
-        grid[7][1] = 9;
-        grid[7][2] = 9;
+        // Preenchimento inerte nas duas últimas linhas — valor 7, não 9, de
+        // propósito: um trio de 9 dispararia a Nova, que devolve 1 cascata
+        // ao orçamento (ver `CascadeBudget.refundOne`) e mudaria o número
+        // que este teste está travando, que é sobre o teto genérico, não
+        // sobre a interação com a Nova.
+        grid[6][0] = 7;
+        grid[6][1] = 7;
+        grid[6][2] = 7;
+        grid[7][0] = 7;
+        grid[7][1] = 7;
+        grid[7][2] = 7;
 
         final resolution = engine.resolve(boardFromValues(grid));
 
@@ -1328,6 +1333,42 @@ void main() {
       expect(survivingSuperNines.single.id, survivorId);
       expect(survivingSuperNines.single.value, kMaxDigit);
     });
+
+    test(
+      'match formado pela própria promoção do anel não fica congelado '
+      'mesmo quando o orçamento de cascata já se esgotou no passo da Nova',
+      () {
+        var board = threeNinesInRow();
+        // Linha 5 (abaixo do núcleo 2-4, fora do alcance da gravidade que a
+        // explosão do núcleo dispara) recebe um par no anel (colunas 4-5,
+        // dentro da 5x5) e uma âncora fora da zona (coluna 6): antes da
+        // promoção, 5,5,6 não formam trio; depois do +1 do anel, viram
+        // 6,6,6 — um match que só passa a existir por causa da Nova.
+        for (final entry in {4: 5, 5: 5, 6: 6}.entries) {
+          final pos = Position(row: 5, col: entry.key);
+          board = board.updateTile(
+            pos,
+            board.getTileAt(pos)!.copyWith(value: entry.value),
+          );
+        }
+
+        // Orçamento de 1: o próprio passo que dispara a Nova já esgota o
+        // teto normal. Sem uma cascata extra dedicada à Nova, o trio que a
+        // promoção acabou de criar nunca seria revarrido.
+        final resolution = engine.resolve(board, cascadeBudget: 1);
+
+        for (final col in [4, 5, 6]) {
+          final tile = resolution.board.getTileAt(Position(row: 5, col: col));
+          expect(
+            tile == null || tile.value != 6,
+            isTrue,
+            reason:
+                'o trio 6,6,6 criado pela promoção do anel ficou congelado '
+                'em (5,$col)',
+          );
+        }
+      },
+    );
   });
 
   group('findHint', () {

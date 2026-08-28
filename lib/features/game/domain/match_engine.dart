@@ -53,6 +53,12 @@ class CascadeBudget {
   bool get isExhausted => remaining <= 0;
 
   void consume() => remaining--;
+
+  /// Devolve 1 ao orçamento. Usado só pela Nova, para garantir que o passo
+  /// que dispara o evento sempre ganhe a cascata seguinte — dedicada a
+  /// revarrer o que a promoção do anel acabou de criar —, mesmo que esse
+  /// passo já fosse o último do orçamento normal do turno.
+  void refundOne() => remaining++;
 }
 
 /// Tentativas de gerar um tabuleiro inicial jogável antes de desistir.
@@ -651,11 +657,11 @@ class MatchEngine {
   /// primeira combinação, é ali que a peça evoluída aparece (conforme o
   /// design, a fusão acontece no ponto de interação). Nas cascatas, que não
   /// têm interação, a fusão cai no centro da combinação.
-  Resolution resolve(Board board, {Position? anchor}) {
+  Resolution resolve(Board board, {Position? anchor, int? cascadeBudget}) {
     var current = board;
     final steps = <ResolutionStep>[];
     Position? currentAnchor = anchor;
-    final budget = CascadeBudget();
+    final budget = CascadeBudget(cascadeBudget ?? kCascadeBudgetPerTurn);
     // Cap de 1 Nova por jogada: vale para a chamada inteira de resolve(),
     // não por passo — é o que impede uma Nova promovida no anel formar
     // outra Nova na cascata seguinte (autoplay em cadeia).
@@ -674,7 +680,17 @@ class MatchEngine {
       );
       current = fused.board;
       var stepScore = fused.score;
-      if (fused.novaEvents.isNotEmpty) novaUsedThisTurn = true;
+      if (fused.novaEvents.isNotEmpty) {
+        novaUsedThisTurn = true;
+        // A promoção do anel muda valores fora do próprio match — pode criar
+        // um trio nunca visto antes, que só a próxima varredura de
+        // `detectMatches` descobre. Sem essa cascata extra, um passo de Nova
+        // que já bate no teto normal (`kCascadeBudgetPerTurn`) deixaria esse
+        // trio congelado até a jogada seguinte, mesmo ele tendo acabado de
+        // nascer nesta mesma jogada. Cap de 1 Nova por turno (acima) já
+        // impede isto de virar uma fonte de orçamento infinito.
+        budget.refundOne();
+      }
 
       // A onda de choque da fusão bate nas coberturas encostadas nela. Vem
       // antes da explosão e da queda de propósito: uma cobertura liberada
