@@ -100,7 +100,13 @@ class WalletNotifier extends StateNotifier<Wallet> {
   }
 
   /// Paga o baú de [chapter], uma vez só. Devolve se pagou agora.
+  ///
+  /// Capítulo acima de `kChapterChestPayableCount` nunca paga — sem essa
+  /// guarda, a campanha gerada (infinita) imprimiria moeda para sempre.
+  /// Como esses capítulos nunca entram em `claimedChests`, o Set também
+  /// fica naturalmente limitado ao teto, sem precisar de poda.
   bool claimChapterChest(int chapter) {
+    if (chapter > kChapterChestPayableCount) return false;
     if (state.hasClaimedChest(chapter)) return false;
 
     final chests = {...state.claimedChests, chapter};

@@ -80,6 +80,52 @@ void main() {
       expect(wallet.state.coins, kChapterChestReward * 2);
     });
 
+    test('capítulo acima do teto não paga', () async {
+      final storage = InMemoryGameStorage();
+      final wallet = WalletNotifier(storage: storage);
+      await wallet.refresh();
+
+      expect(
+        wallet.claimChapterChest(kChapterChestPayableCount + 1),
+        isFalse,
+      );
+      expect(wallet.state.coins, 0);
+      expect(
+        wallet.state.hasClaimedChest(kChapterChestPayableCount + 1),
+        isFalse,
+      );
+    });
+
+    test('capítulo exatamente no teto ainda paga', () async {
+      final storage = InMemoryGameStorage();
+      final wallet = WalletNotifier(storage: storage);
+      await wallet.refresh();
+
+      expect(wallet.claimChapterChest(kChapterChestPayableCount), isTrue);
+      expect(wallet.state.coins, kChapterChestReward);
+    });
+
+    test(
+      'claimedChests nunca cresce além do teto, mesmo tentando vários '
+      'capítulos futuros em sequência',
+      () async {
+        final storage = InMemoryGameStorage();
+        final wallet = WalletNotifier(storage: storage);
+        await wallet.refresh();
+
+        for (
+          var chapter = kChapterChestPayableCount + 1;
+          chapter <= kChapterChestPayableCount + 20;
+          chapter++
+        ) {
+          wallet.claimChapterChest(chapter);
+        }
+
+        expect(wallet.state.coins, 0);
+        expect(wallet.state.claimedChests, isEmpty);
+      },
+    );
+
     test('falha de disco vale como saldo vazio, sem propagar', () async {
       final wallet = WalletNotifier(storage: _BrokenStorage());
 
