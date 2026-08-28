@@ -105,6 +105,16 @@ void main() {
       expect(wallet.state.coins, kChapterChestReward);
     });
 
+    test('capítulo não positivo não paga', () async {
+      final storage = InMemoryGameStorage();
+      final wallet = WalletNotifier(storage: storage);
+      await wallet.refresh();
+
+      expect(wallet.claimChapterChest(0), isFalse);
+      expect(wallet.state.coins, 0);
+      expect(wallet.state.hasClaimedChest(0), isFalse);
+    });
+
     test(
       'claimedChests nunca cresce além do teto, mesmo tentando vários '
       'capítulos futuros em sequência',

@@ -845,13 +845,17 @@ um número de calibragem — é uma mudança de fórmula, e cada pin nunca rende
 some da lista. Prefixo sem teto é aceitável hoje (centenas de pins ainda
 renderizam); deixa de ser aceitável na casa dos milhares.
 
-**Outra dívida registrada, fora da UI ainda:** `Wallet.claimChapterChest` paga
-200 moedas por capítulo reclamado e guarda os capítulos já pagos num `Set`
-persistido. Com capítulos infinitos isso é uma torneira sem fim (moeda por
-capítulo, para sempre) sobre um `Set` que também não tem teto. Hoje o método
-não está ligado a nenhuma tela — não é bug em produção —, mas precisa ganhar
-um teto ou um valor decrescente por capítulo antes de a Fase B do baú (ainda
-não construída) o conectar a um botão.
+**A dívida acima foi fechada com um teto fixo, não uma fórmula decrescente.**
+`kChapterChestPayableCount = 20` (`domain/economy.dart`) faz
+`claimChapterChest` recusar qualquer capítulo fora de `1..20` — abaixo de 1
+por segurança de contrato (nenhum chamador hoje passa capítulo não positivo,
+mas o método precisa ser seguro antes de a Fase B do baú conectar um botão a
+ele), acima de 20 pela torneira infinita que a seção anterior registrava. Um
+valor decrescente por capítulo foi cogitado e descartado: é uma fórmula a
+mais para calibrar (quanto decai, até onde) para resolver o mesmo problema
+que um teto plano já resolve sozinho. O `Set<int> claimedChests` não precisa
+de poda por marca d'água como `CampaignRecords.prunedBelow` — o teto é
+estrutural, porque nenhum capítulo acima de 20 chega a ser inserido nele.
 
 
 ### Fluxo de ganho de moedas e UI explicativa ✅

@@ -106,7 +106,7 @@ class WalletNotifier extends StateNotifier<Wallet> {
   /// Como esses capítulos nunca entram em `claimedChests`, o Set também
   /// fica naturalmente limitado ao teto, sem precisar de poda.
   bool claimChapterChest(int chapter) {
-    if (chapter > kChapterChestPayableCount) return false;
+    if (chapter < 1 || chapter > kChapterChestPayableCount) return false;
     if (state.hasClaimedChest(chapter)) return false;
 
     final chests = {...state.claimedChests, chapter};
