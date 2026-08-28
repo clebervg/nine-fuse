@@ -1541,3 +1541,69 @@ Bloco 9/Super 9, mas onde a Nova entra nessa hierarquia — acima ou abaixo
 de `supernova` — fica para quando a UI for desenhada); calibragem de
 economia via `tool/simulate_economy.dart` (a frequência real de Novas numa
 partida ainda não foi medida, mesmo com o placar aditivo já fixado).
+
+### Fix: trio criado pela promoção do anel da Nova congelava com o orçamento de cascata no limite (2026-08-28)
+
+**Achado em campo, Fase 224:** a captura de tela mostrava quatro trios de
+peças comuns alinhados e parados na grade, sem nenhuma fusão em curso — o
+tabuleiro "achava" que estava estável e não estava. A leitura inicial do
+relato (mutação silenciosa sem `checkForMatches`, `isGridDirty` ausente)
+não bateu com o código: nenhum dos dois símbolos existe no projeto, e
+`resolve()` já revarre o tabuleiro inteiro via `detectMatches` a cada
+iteração do `while`, sem precisar de gatilho dedicado — a peça promovida
+pelo anel da Nova entra nessa varredura como qualquer outra peça.
+
+**A causa real é o `CascadeBudget`, não a ausência de varredura.** A
+promoção do anel muda valor de peça **fora** do match que disparou a
+Nova, e isso pode formar um trio que nunca existiu antes — só a *próxima*
+chamada de `detectMatches` descobre esse trio. Se o passo que dispara a
+Nova for exatamente o que esgota `kCascadeBudgetPerTurn` (4 cascatas por
+jogada), o `while` sai **antes** dessa próxima varredura rodar, e o trio
+fica congelado até o toque seguinte do jogador — mesmo tendo acabado de
+nascer na própria jogada. Quatro trios simultâneos na tela é a assinatura
+de um tabuleiro saturado de 9s (janela de sorteio alta) em que a Nova (ou
+o Super 9) promoveu várias células ao mesmo tempo, e o orçamento normal
+não deu conta de resolver tudo o que a própria promoção criou.
+
+**A correção é devolver 1 cascata ao orçamento no passo em que a Nova
+dispara**, não abrir um caminho de varredura paralelo ao de `resolve()`.
+`CascadeBudget.refundOne()` é chamado assim que `fused.novaEvents` não
+está vazio, garantindo que o passo seguinte — dedicado a revarrer o que a
+própria promoção acabou de criar — sempre exista, mesmo que o passo da
+Nova já fosse o último do orçamento normal. O cap de "1 Nova por turno"
+que já existia (`novaUsedThisTurn`, ver seção acima) é o que impede esse
+reembolso de virar fonte de orçamento infinito: só há uma Nova por
+jogada, logo só há um reembolso possível por jogada.
+
+**`resolve()` ganhou um parâmetro `cascadeBudget` opcional só para
+testabilidade** (default preserva `kCascadeBudgetPerTurn`, nenhum
+chamador de produção passa outro valor). Reproduzir "orçamento quase
+esgotado bem no passo da Nova" por dinâmica natural de cascata exigiria
+coreografar gravidade célula a célula até o terceiro `9` do gatilho cair
+na fileira certa no turno certo — frágil e opaco. Com o orçamento
+injetável, o teste constrói o tabuleiro (trio de 9 + par no anel + âncora
+fora da zona, todos prontos desde o início) e passa `cascadeBudget: 1`
+para forçar o esgotamento no primeiro passo de forma direta.
+
+**Um teste pré-existente também precisou de ajuste, e é sintoma do mesmo
+tipo de acoplamento.** `'o orçamento de cascata para o loop em 4 passos,
+mesmo com match pendente'` usava `9,9,9` como preenchimento inerte nas
+duas últimas linhas — inerte quando foi escrito, antes de a Nova existir.
+Com o reembolso, esse `9,9,9` passou a disparar Nova e a estourar a
+contagem de passos que o teste media (5, não mais ≤4), sem relação
+nenhuma com o que o teste realmente queria travar. Trocado por `7,7,7`:
+preenchimento sem dígito máximo nenhum, mesma função de filler, sem
+reacender uma mecânica que o teste não estava testando.
+
+**É a mesma classe de bug já registrada duas vezes antes neste projeto**
+(a onda de choque do dígito máximo na Fase 15, e a destruição de
+cobertura pela Nova sem creditar o objetivo, na seção acima) — uma fonte
+de mudança de estado que não passa pelo caminho que o resto do sistema
+espera que toda mudança de estado passe. Lá era `ObstacleHit` não
+mesclado em `ResolutionStep.obstacleHits`; aqui é orçamento de cascata
+não contabilizando o que a própria Nova criou. Nos três casos o defeito só
+apareceu quando duas mecânicas (dano estático + varredura por passo;
+objetivo de fase + fonte de dano nova; orçamento de cascata + criação de
+match fora do match original) se cruzaram ao mesmo tempo — exatamente o
+tipo de interseção que um teste unitário isolado de cada mecânica não
+cobre sozinho.
