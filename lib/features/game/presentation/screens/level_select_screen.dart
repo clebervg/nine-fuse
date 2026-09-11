@@ -8,6 +8,7 @@ import 'package:nine_fuse/features/game/domain/level_generator.dart';
 import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/campaign_header.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_highlight.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/saga_map.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
@@ -33,6 +34,9 @@ const Duration kPathRevealDuration = Duration(milliseconds: 900);
 /// renderizam), e registrado como dívida no `CLAUDE.md` — deixa de ser
 /// aceitável na casa dos milhares.
 const int kLookahead = 8;
+
+/// Chave do ícone de atalho da roleta diária, na AppBar.
+const Key levelSelectDailySpinIconKey = Key('level_select_daily_spin_icon');
 
 /// Mapa da campanha: trilha de pins, cabeçalho de progresso e a ilha do
 /// Endless.
@@ -62,7 +66,7 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
     // `pumpAndSettle` sem fim.
     _reveal = AnimationController(vsync: this, duration: kPathRevealDuration);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       // A sessão de Endless que acabou de terminar pode ter batido o recorde,
       // e quem gravou foi o outro notifier.
@@ -72,6 +76,15 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
       // mostraria o saldo de antes da partida.
       ref.read(walletProvider.notifier).refresh();
       _centerOnCurrentLevel(animated: false);
+
+      // O app acabou de abrir (ou voltar ao primeiro plano nesta tela, que é
+      // a home de fato): reagenda o lembrete de inatividade sempre para a
+      // frente a partir de agora.
+      ref.read(notificationServiceProvider).onAppOpened();
+
+      final eligible = await ref.read(dailySpinEligibleProvider.future);
+      if (!mounted || !eligible) return;
+      _openDailySpin();
     });
   }
 
@@ -184,6 +197,11 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
         // saber quantos martelos restam decide se vale comprar antes de entrar.
         actions: [
           CoinsHeaderBadge(hammers: ref.watch(walletProvider).hammers),
+          IconButton(
+            key: levelSelectDailySpinIconKey,
+            icon: const Icon(Icons.casino, color: Colors.white),
+            onPressed: _openDailySpin,
+          ),
           const SizedBox(width: 4),
         ],
       ),
@@ -286,6 +304,14 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
           ],
         ),
       ),
+    );
+  }
+
+  void _openDailySpin() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const DailySpinDialog(),
     );
   }
 

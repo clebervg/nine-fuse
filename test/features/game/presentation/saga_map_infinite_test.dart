@@ -1,10 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nine_fuse/core/notifications/notification_port.dart';
 import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/saga_map.dart';
+import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
+
+/// Porta de notificações que não faz nada — `LevelSelectScreen` chama
+/// `notificationService.onAppOpened()` no primeiro frame, e sem esta troca o
+/// teste bateria no plugin real de notificações (mesma classe mínima da
+/// Task 8/9).
+class _FakeNotificationPort implements NotificationPort {
+  @override
+  Future<void> scheduleDailySpinReminder(DateTime at) async {}
+
+  @override
+  Future<void> scheduleInactivityReminder(DateTime at) async {}
+
+  @override
+  Future<void> cancelAll() async {}
+}
 
 void main() {
   Widget host(List<GameLevel> levels, int progress) => MaterialApp(
@@ -79,8 +97,14 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(const ProviderScope(
-      child: MaterialApp(
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        notificationPortProvider.overrideWithValue(_FakeNotificationPort()),
+        dailySpinStorageProvider.overrideWithValue(
+          InMemoryGameStorage(lastSpinTimestamp: DateTime.now()),
+        ),
+      ],
+      child: const MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: LevelSelectScreen(),

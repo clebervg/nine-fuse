@@ -7,8 +7,10 @@ import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/level_record.dart';
+import 'package:nine_fuse/core/notifications/notification_port.dart';
 import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/campaign_header.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_highlight.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/saga_map.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
@@ -17,6 +19,21 @@ import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import 'package:nine_fuse/features/game/presentation/l10n_labels.dart';
 import '../../../support/localized.dart';
+
+/// Porta de notificações que não faz nada — testes deste arquivo montam
+/// `LevelSelectScreen`, que agora chama `notificationService.onAppOpened()`
+/// no primeiro frame, então sem esta troca a suíte bateria no plugin real
+/// de notificações (mesma classe mínima definida na Task 8/9).
+class _FakeNotificationPort implements NotificationPort {
+  @override
+  Future<void> scheduleDailySpinReminder(DateTime at) async {}
+
+  @override
+  Future<void> scheduleInactivityReminder(DateTime at) async {}
+
+  @override
+  Future<void> cancelAll() async {}
+}
 
 void main() {
   late InMemoryGameStorage storage;
@@ -37,13 +54,17 @@ void main() {
         endlessHighScoreProvider.overrideWith(
           (ref) => EndlessHighScore(storage: storage),
         ),
+        notificationPortProvider.overrideWithValue(_FakeNotificationPort()),
+        dailySpinStorageProvider.overrideWithValue(storage),
       ],
     );
     addTearDown(container.dispose);
   }
 
   setUp(() {
-    storage = InMemoryGameStorage();
+    // Já girou "agora": estes testes não falam de roleta e não devem ver o
+    // Daily Spin abrir sozinho por cima do mapa que estão medindo.
+    storage = InMemoryGameStorage(lastSpinTimestamp: DateTime.now());
   });
 
   /// Monta o mapa. [size] permite trocar de aparelho no meio do teste.

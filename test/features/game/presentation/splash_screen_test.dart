@@ -3,14 +3,31 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nine_fuse/core/notifications/notification_port.dart';
 import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/splash_screen.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 
 import '../../../support/localized.dart';
+
+/// Porta de notificações que não faz nada — `LevelSelectScreen` chama
+/// `notificationService.onAppOpened()` no primeiro frame, e sem esta troca o
+/// teste bateria no plugin real de notificações (mesma classe mínima da
+/// Task 8/9).
+class _FakeNotificationPort implements NotificationPort {
+  @override
+  Future<void> scheduleDailySpinReminder(DateTime at) async {}
+
+  @override
+  Future<void> scheduleInactivityReminder(DateTime at) async {}
+
+  @override
+  Future<void> cancelAll() async {}
+}
 
 void main() {
   testWidgets('chama onSplashComplete ao fim da animação, em vez de navegar',
@@ -39,7 +56,7 @@ void main() {
 
   testWidgets('navega para LevelSelectScreen ao fim da animação por padrão',
       (tester) async {
-    final storage = InMemoryGameStorage();
+    final storage = InMemoryGameStorage(lastSpinTimestamp: DateTime.now());
     final container = ProviderContainer(
       overrides: [
         endlessProvider.overrideWith(
@@ -54,6 +71,8 @@ void main() {
         endlessHighScoreProvider.overrideWith(
           (ref) => EndlessHighScore(storage: storage),
         ),
+        notificationPortProvider.overrideWithValue(_FakeNotificationPort()),
+        dailySpinStorageProvider.overrideWithValue(storage),
       ],
     );
     addTearDown(container.dispose);
