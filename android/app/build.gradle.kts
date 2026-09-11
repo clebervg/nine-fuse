@@ -12,6 +12,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // flutter_local_notifications usa java.time internamente; sem
+        // desugaring o build falha em dispositivos com API < 26.
         isCoreLibraryDesugaringEnabled = true
     }
 
