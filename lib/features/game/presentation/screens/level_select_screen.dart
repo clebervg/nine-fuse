@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nine_fuse/core/ads/ad_providers.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/widgets/coins_header_badge.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
@@ -76,13 +79,29 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
       // mostraria o saldo de antes da partida.
       ref.read(walletProvider.notifier).refresh();
       _centerOnCurrentLevel(animated: false);
+      // O botão de anúncio da roleta diária vive só nesta tela — sem
+      // preload aqui, uma corrida direta ao mapa (cold launch) chegaria com
+      // o serviço de anúncio ainda frio.
+      preloadRewardedAds(ref);
 
       // O app acabou de abrir (ou voltar ao primeiro plano nesta tela, que é
       // a home de fato): reagenda o lembrete de inatividade sempre para a
-      // frente a partir de agora.
-      ref.read(notificationServiceProvider).onAppOpened();
+      // frente a partir de agora. `unawaited` porque o serviço nunca deve
+      // deixar uma falha escapar como erro assíncrono não tratado — é uma
+      // rede de segurança, não uma garantia nova (o serviço já trata falha
+      // de plugin internamente).
+      unawaited(ref.read(notificationServiceProvider).onAppOpened());
 
-      final eligible = await ref.read(dailySpinEligibleProvider.future);
+      bool eligible;
+      try {
+        eligible = await ref.read(dailySpinEligibleProvider.future);
+      } catch (error, stack) {
+        // Falha de disco na leitura de elegibilidade não pode travar o
+        // primeiro quadro do mapa: trata como "não elegível" e segue sem
+        // abrir a roleta sozinha.
+        debugPrint('Falha ao ler elegibilidade da roleta diária: $error\n$stack');
+        eligible = false;
+      }
       if (!mounted || !eligible) return;
       _openDailySpin();
     });
