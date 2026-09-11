@@ -11,6 +11,12 @@ Baseline: flutter test = 873 passed, 7 pre-existing golden failures (unrelated, 
 - [x] Task 4: complete (commits d4a132e..891e4a7, review clean)
 - [x] Task 5: complete (commits 891e4a7..833ccd5, fixed unwarranted lint suppression, review clean)
 - [x] Task 7: complete (commits 833ccd5..0cecdd5, review clean)
-- [x] Task 8: complete (DailySpinDialog + providers; executed before Task 6 — see reorder note)
-- [ ] Task 6: Ads spinRewarded + spinAdServiceProvider (executed AFTER Task 8: it imports spinAdProvider from daily_spin_dialog.dart, so numeric order would leave the build broken across a task boundary/review gate. Real order: 7, 8, 6, 9.)
-- [ ] Task 9: LevelSelectScreen integration + boot
+- [x] Task 8: complete (commit b3c011f, review clean; hoursLeft hardcoded at 24, noted for Task 9)
+- [x] Task 6: complete (commit c10854e, review clean; executed after Task 8, see reorder note)
+- [x] Task 9: complete (commit f2d1dc7, review clean; also fixed 3 unrelated tests needing overrides)
+
+All 9 tasks complete. Final whole-branch review found 2 Critical + 5 Important
+(commits 74403a1, 9fa949c, 4968c97 fix them; items 8/9 minor, explicitly skipped).
+Re-review: all fixes verified correct, ready to merge.
+flutter test: 891 passed, 6 pre-existing golden failures (unrelated, same family as original 7 baseline minus saga_map which is now fixed).
+flutter analyze: clean (1 pre-existing tool_tmp/probe124.dart info, out of scope).
