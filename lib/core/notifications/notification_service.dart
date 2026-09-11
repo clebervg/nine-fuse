@@ -1,8 +1,3 @@
-// ignore_for_file: prefer_initializing_formals
-// Os parâmetros nomeados (`port`, `now`) precisam manter esses nomes na API
-// pública — é o que o teste chama (`NotificationService(port: ..., now:
-// ...)`) —, mas os campos são privados (`_port`, `_now`); um formal
-// inicializador exigiria que o nome do parâmetro fosse igual ao do campo.
 import 'package:nine_fuse/core/notifications/notification_port.dart';
 
 /// Sabe **quando** agendar cada lembrete; a porta sabe **como**.
@@ -11,11 +6,7 @@ import 'package:nine_fuse/core/notifications/notification_port.dart';
 /// padrão de qualquer serviço deste projeto que precisa de tempo
 /// determinístico.
 class NotificationService {
-  NotificationService({
-    required NotificationPort port,
-    DateTime Function() now = DateTime.now,
-  }) : _port = port,
-       _now = now;
+  NotificationService({required this._port, this._now = DateTime.now});
 
   final NotificationPort _port;
   final DateTime Function() _now;
