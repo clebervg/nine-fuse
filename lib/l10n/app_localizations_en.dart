@@ -437,6 +437,31 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get dailySpinTitle => 'Daily Spin';
+
+  @override
+  String get dailySpinSubtitle => 'Spin the wheel for a free daily prize!';
+
+  @override
+  String get dailySpinSpinButton => 'SPIN';
+
+  @override
+  String get dailySpinWatchAgainButton => 'Spin Again (Watch Ad)';
+
+  @override
+  String get dailySpinCloseButton => 'CLOSE';
+
+  @override
+  String dailySpinPrizeWon(String prize) {
+    return 'You won $prize!';
+  }
+
+  @override
+  String dailySpinComeBackIn(int hours) {
+    return 'Come back in ${hours}h for your next spin';
+  }
+
+  @override
   String get movesOfferTitle => 'Almost there!';
 
   @override

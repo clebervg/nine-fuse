@@ -7,9 +7,11 @@ import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_highlight.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/saga_map.dart';
+import 'package:nine_fuse/core/notifications/notification_port.dart';
 import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
@@ -75,6 +77,26 @@ class _BrokenStorage implements GameStorage {
   @override
   Future<void> writePrunedBelow(int levelNumber) async =>
       throw StateError('sem disco');
+  @override
+  Future<DateTime?> readLastSpinTimestamp() async =>
+      throw StateError('sem disco');
+  @override
+  Future<void> writeLastSpinTimestamp(DateTime value) async =>
+      throw StateError('sem disco');
+}
+
+/// Porta de notificações que não faz nada, para testes que não medem
+/// agendamento — duplicada localmente porque arquivos de teste não se
+/// importam entre si neste projeto (mesma definida na Task 8).
+class FakeNotificationPort implements NotificationPort {
+  @override
+  Future<void> scheduleDailySpinReminder(DateTime at) async {}
+
+  @override
+  Future<void> scheduleInactivityReminder(DateTime at) async {}
+
+  @override
+  Future<void> cancelAll() async {}
 }
 
 void main() {
@@ -83,9 +105,18 @@ void main() {
   late InMemoryGameStorage storage;
 
   setUp(() {
-    storage = InMemoryGameStorage();
+    storage = InMemoryGameStorage(
+      // Já girou "agora": os testes que não falam de roleta não devem ver o
+      // Daily Spin abrir sozinho por cima da tela que estão medindo.
+      lastSpinTimestamp: DateTime.now(),
+    );
     container = ProviderContainer(
       overrides: [
+        // A tela agora chama `notificationServiceProvider.onAppOpened()` e lê
+        // `dailySpinEligibleProvider` no primeiro frame; sem essas duas trocas
+        // toda suíte deste arquivo bateria no plugin real de notificações.
+        notificationPortProvider.overrideWithValue(FakeNotificationPort()),
+        dailySpinStorageProvider.overrideWithValue(storage),
         // Sem isso os dois modos tentariam ler o armazenamento real do
         // dispositivo, que não existe em teste.
         endlessProvider.overrideWith(
@@ -105,10 +136,38 @@ void main() {
     addTearDown(container.dispose);
   });
 
-  Future<void> pumpSelect(WidgetTester tester) async {
+  Future<void> pumpSelect(
+    WidgetTester tester, {
+    List<Override> extraOverrides = const [],
+  }) async {
     tester.view.physicalSize = const Size(1200, 2600);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
+
+    if (extraOverrides.isNotEmpty) {
+      // Recria com os overrides extras da roleta em cima da base já montada
+      // no setUp — o container do setUp nunca chega a ser usado por este
+      // teste, então descartá-lo sem reler nada dele é seguro.
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          endlessProvider.overrideWith(
+            (ref) => EndlessNotifier(random: Random(1), storage: storage),
+          ),
+          campaignProgressProvider.overrideWith(
+            (ref) => CampaignProgress(storage: storage),
+          ),
+          campaignRecordsProvider.overrideWith(
+            (ref) => CampaignRecords(storage: storage),
+          ),
+          endlessHighScoreProvider.overrideWith(
+            (ref) => EndlessHighScore(storage: storage),
+          ),
+          ...extraOverrides,
+        ],
+      );
+      addTearDown(container.dispose);
+    }
 
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -392,5 +451,54 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(progress.state, 3);
     });
+  });
+
+  group('Daily Spin', () {
+    testWidgets(
+      'abre o Daily Spin automaticamente quando o jogador está elegível',
+      (tester) async {
+        final spinStorage = InMemoryGameStorage(); // nunca girou -> elegível
+        await pumpSelect(
+          tester,
+          extraOverrides: [
+            dailySpinStorageProvider.overrideWithValue(spinStorage),
+            notificationPortProvider.overrideWithValue(
+              FakeNotificationPort(),
+            ),
+          ],
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(dailySpinKey), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'não abre o Daily Spin automaticamente quando não elegível, mas o '
+      'ícone continua acessível',
+      (tester) async {
+        final now = DateTime.utc(2026, 9, 11, 12, 0, 0);
+        final spinStorage = InMemoryGameStorage(lastSpinTimestamp: now);
+        await pumpSelect(
+          tester,
+          extraOverrides: [
+            dailySpinStorageProvider.overrideWithValue(spinStorage),
+            notificationPortProvider.overrideWithValue(
+              FakeNotificationPort(),
+            ),
+            dailySpinClockProvider.overrideWithValue(() => now),
+          ],
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(dailySpinKey), findsNothing);
+        expect(find.byKey(levelSelectDailySpinIconKey), findsOneWidget);
+
+        await tester.tap(find.byKey(levelSelectDailySpinIconKey));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(dailySpinKey), findsOneWidget);
+      },
+    );
   });
 }

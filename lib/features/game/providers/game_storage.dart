@@ -72,6 +72,14 @@ abstract interface class GameStorage {
   /// fechados fora de ordem quando a campanha crescer.
   Future<Set<int>> readClaimedChests();
   Future<void> writeClaimedChests(Set<int> chapters);
+
+  /// Instante do último giro da roleta diária concedido.
+  ///
+  /// `null` significa "nunca girou" — o mesmo tratamento que o resto do
+  /// inventário do jogador dá a "nada salvo": elegível de cara, sem exigir
+  /// migração nem valor de fachada.
+  Future<DateTime?> readLastSpinTimestamp();
+  Future<void> writeLastSpinTimestamp(DateTime value);
 }
 
 /// Persistência real, no armazenamento do dispositivo.
@@ -88,6 +96,7 @@ class PrefsGameStorage implements GameStorage {
   static const String _brushKey = 'booster_brush_count';
   static const String _coinsKey = 'wallet_coins';
   static const String _chestsKey = 'campaign_chests_claimed';
+  static const String _lastSpinKey = 'daily_spin_last_timestamp';
 
   @override
   Future<int> readCampaignProgress() async =>
@@ -218,6 +227,22 @@ class PrefsGameStorage implements GameStorage {
         _prunedBelowKey,
         levelNumber,
       );
+
+  @override
+  Future<DateTime?> readLastSpinTimestamp() async {
+    final millis = (await SharedPreferences.getInstance()).getInt(
+      _lastSpinKey,
+    );
+    if (millis == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
+  }
+
+  @override
+  Future<void> writeLastSpinTimestamp(DateTime value) async =>
+      (await SharedPreferences.getInstance()).setInt(
+        _lastSpinKey,
+        value.toUtc().millisecondsSinceEpoch,
+      );
 }
 
 /// Persistência só em memória, para testes.
@@ -231,6 +256,7 @@ class InMemoryGameStorage implements GameStorage {
     this.coins = 0,
     this.archivedStars = 0,
     this.prunedBelow = 0,
+    this.lastSpinTimestamp,
     Set<int>? claimedChests,
     Map<int, LevelRecord>? levelRecords,
   }) : claimedChests = claimedChests ?? {},
@@ -244,6 +270,7 @@ class InMemoryGameStorage implements GameStorage {
   int coins;
   int archivedStars;
   int prunedBelow;
+  DateTime? lastSpinTimestamp;
   Set<int> claimedChests;
   Map<int, LevelRecord> levelRecords;
 
@@ -311,4 +338,11 @@ class InMemoryGameStorage implements GameStorage {
   @override
   Future<void> writePrunedBelow(int levelNumber) async =>
       prunedBelow = levelNumber;
+
+  @override
+  Future<DateTime?> readLastSpinTimestamp() async => lastSpinTimestamp;
+
+  @override
+  Future<void> writeLastSpinTimestamp(DateTime value) async =>
+      lastSpinTimestamp = value;
 }

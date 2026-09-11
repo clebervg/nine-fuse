@@ -157,6 +157,14 @@
 
   "brushSemantics": "Pincel, {count} em estoque. Soma 1 ao valor de uma peça sem gastar movimento.",
 
+  "dailySpinTitle": "Roleta Diária",
+  "dailySpinSubtitle": "Gire a roleta e ganhe um prêmio grátis hoje!",
+  "dailySpinSpinButton": "GIRAR",
+  "dailySpinWatchAgainButton": "Girar de Novo (Assistir Vídeo)",
+  "dailySpinCloseButton": "FECHAR",
+  "dailySpinPrizeWon": "Você ganhou {prize}!",
+  "dailySpinComeBackIn": "Volte em {hours}h para o próximo giro",
+
   "movesOfferTitle": "Quase lá!",
   "movesOfferBody": "{count, plural, =1{Resta 1 movimento} other{Restam {count} movimentos}}. Assista a um anúncio curto e ganhe mais {reward}.",
   "movesOfferWatch": "GANHAR +{reward} MOVIMENTOS",

@@ -310,6 +310,20 @@
     "placeholders": { "count": { "type": "int" } }
   },
 
+  "dailySpinTitle": "Daily Spin",
+  "dailySpinSubtitle": "Spin the wheel for a free daily prize!",
+  "dailySpinSpinButton": "SPIN",
+  "dailySpinWatchAgainButton": "Spin Again (Watch Ad)",
+  "dailySpinCloseButton": "CLOSE",
+  "dailySpinPrizeWon": "You won {prize}!",
+  "@dailySpinPrizeWon": {
+    "placeholders": { "prize": { "type": "String" } }
+  },
+  "dailySpinComeBackIn": "Come back in {hours}h for your next spin",
+  "@dailySpinComeBackIn": {
+    "placeholders": { "hours": { "type": "int" } }
+  },
+
   "movesOfferTitle": "Almost there!",
   "movesOfferBody": "{count, plural, =1{1 move left} other{{count} moves left}}. Watch a short ad and get {reward} more.",
   "@movesOfferBody": {

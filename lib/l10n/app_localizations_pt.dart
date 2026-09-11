@@ -439,6 +439,32 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get dailySpinTitle => 'Roleta Diária';
+
+  @override
+  String get dailySpinSubtitle =>
+      'Gire a roleta e ganhe um prêmio grátis hoje!';
+
+  @override
+  String get dailySpinSpinButton => 'GIRAR';
+
+  @override
+  String get dailySpinWatchAgainButton => 'Girar de Novo (Assistir Vídeo)';
+
+  @override
+  String get dailySpinCloseButton => 'FECHAR';
+
+  @override
+  String dailySpinPrizeWon(String prize) {
+    return 'Você ganhou $prize!';
+  }
+
+  @override
+  String dailySpinComeBackIn(int hours) {
+    return 'Volte em ${hours}h para o próximo giro';
+  }
+
+  @override
   String get movesOfferTitle => 'Quase lá!';
 
   @override

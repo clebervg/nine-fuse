@@ -39,6 +39,12 @@ abstract final class AdIds {
   /// reportada, e as três funis pagam coisas diferentes.
   static String get coinsRewarded => _rewarded;
 
+  /// Unidade do anúncio que paga o giro extra da roleta diária.
+  ///
+  /// Separada das outras três pela mesma razão de sempre: é por unidade que a
+  /// rede reporta receita, e cada funil precisa ser distinguível.
+  static String get spinRewarded => _rewarded;
+
   /// Fora de Android e iOS não há SDK de anúncio, e a string vazia é o que faz
   /// a carga falhar de forma limpa em vez de estourar no canal de plataforma.
   static String get _rewarded {

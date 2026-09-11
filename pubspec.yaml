@@ -57,6 +57,8 @@ dependencies:
   # importado pelo app. A configuração mora em `flutter_native_splash.yaml`,
   # não aqui, pelo mesmo motivo do arquivo do launcher_icons.
   flutter_native_splash: ^2.4.6
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
 
 dev_dependencies:
   flutter_test:

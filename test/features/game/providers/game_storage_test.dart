@@ -31,4 +31,20 @@ void main() {
       expect(await storage.readClaimedChests(), {1});
     });
   });
+
+  group('InMemoryGameStorage.lastSpinTimestamp', () {
+    test('começa nulo (nenhum giro ainda)', () async {
+      final storage = InMemoryGameStorage();
+      expect(await storage.readLastSpinTimestamp(), isNull);
+    });
+
+    test('grava e relê o mesmo instante', () async {
+      final storage = InMemoryGameStorage();
+      final now = DateTime.utc(2026, 9, 11, 12, 0, 0);
+
+      await storage.writeLastSpinTimestamp(now);
+
+      expect(await storage.readLastSpinTimestamp(), now);
+    });
+  });
 }
