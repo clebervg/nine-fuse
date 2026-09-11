@@ -697,6 +697,48 @@ abstract class AppLocalizations {
   /// **'Brush, {count} in stock. Adds 1 to a tile\'s value without spending a move.'**
   String brushSemantics(int count);
 
+  /// No description provided for @dailySpinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Spin'**
+  String get dailySpinTitle;
+
+  /// No description provided for @dailySpinSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Spin the wheel for a free daily prize!'**
+  String get dailySpinSubtitle;
+
+  /// No description provided for @dailySpinSpinButton.
+  ///
+  /// In en, this message translates to:
+  /// **'SPIN'**
+  String get dailySpinSpinButton;
+
+  /// No description provided for @dailySpinWatchAgainButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Spin Again (Watch Ad)'**
+  String get dailySpinWatchAgainButton;
+
+  /// No description provided for @dailySpinCloseButton.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get dailySpinCloseButton;
+
+  /// No description provided for @dailySpinPrizeWon.
+  ///
+  /// In en, this message translates to:
+  /// **'You won {prize}!'**
+  String dailySpinPrizeWon(String prize);
+
+  /// No description provided for @dailySpinComeBackIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back in {hours}h for your next spin'**
+  String dailySpinComeBackIn(int hours);
+
   /// No description provided for @movesOfferTitle.
   ///
   /// In en, this message translates to:
