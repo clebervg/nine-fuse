@@ -7,14 +7,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nine_fuse/core/notifications/notification_port.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
+
+/// Porta de notificações que não faz nada — mesmo motivo de
+/// `saga_map_test.dart`: `LevelSelectScreen` chama `notificationService`
+/// no primeiro quadro, e sem esta troca o golden bateria no plugin real.
+class _FakeNotificationPort implements NotificationPort {
+  @override
+  Future<void> scheduleDailySpinReminder(DateTime at) async {}
+
+  @override
+  Future<void> scheduleInactivityReminder(DateTime at) async {}
+
+  @override
+  Future<void> cancelAll() async {}
+}
 
 /// Referência visual do mapa da campanha.
 ///
@@ -77,6 +93,10 @@ void main() {
         ),
         endlessHighScoreProvider.overrideWith(
           (ref) => EndlessHighScore(storage: storage),
+        ),
+        notificationPortProvider.overrideWithValue(_FakeNotificationPort()),
+        dailySpinStorageProvider.overrideWithValue(
+          InMemoryGameStorage(lastSpinTimestamp: DateTime.now()),
         ),
       ],
     );
