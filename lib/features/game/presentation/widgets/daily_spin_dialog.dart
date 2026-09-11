@@ -121,6 +121,12 @@ class _DailySpinDialogState extends ConsumerState<DailySpinDialog>
   bool _spinning = false;
   bool _watchOfferUsed = false;
 
+  /// Já girou pelo menos uma vez nesta sessão do diálogo, mesmo que o giro
+  /// grátis já tenha virado a elegibilidade para `false` no meio da animação
+  /// do giro extra. Sem isto, `build` leria "não elegível e sem prêmio ainda"
+  /// e mostraria a tela de espera por baixo da roleta girando.
+  bool _hasSpunThisSession = false;
+
   @override
   void initState() {
     super.initState();
@@ -140,7 +146,10 @@ class _DailySpinDialogState extends ConsumerState<DailySpinDialog>
 
   Future<void> _spin({required bool countsAsDailySpin}) async {
     if (_spinning) return;
-    setState(() => _spinning = true);
+    setState(() {
+      _spinning = true;
+      _hasSpunThisSession = true;
+    });
 
     final index = ref.read(dailySpinPrizeIndexProvider)();
     final prize = kSpinWheelPrizes[index];
@@ -189,13 +198,20 @@ class _DailySpinDialogState extends ConsumerState<DailySpinDialog>
 
   Future<void> _watchAgain() async {
     if (_watchOfferUsed) return;
+    // Marcado ANTES do await, de forma síncrona: duas invocações rápidas
+    // (dois toques antes do primeiro `await` resolver) não podem ambas
+    // passar pela guarda acima — um anúncio de rede de verdade é lento o
+    // bastante para isso acontecer.
+    setState(() => _watchOfferUsed = true);
     final granted = await ref.read(spinAdProvider)();
-    if (!mounted || !granted) return;
+    if (!mounted) return;
+    if (!granted) {
+      // Anúncio não concedido: devolve a chance de tentar de novo.
+      setState(() => _watchOfferUsed = false);
+      return;
+    }
 
-    setState(() {
-      _watchOfferUsed = true;
-      _wonPrize = null;
-    });
+    setState(() => _wonPrize = null);
     await _spin(countsAsDailySpin: false);
   }
 
@@ -230,9 +246,20 @@ class _DailySpinDialogState extends ConsumerState<DailySpinDialog>
                 height: 120,
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (error, stack) => _WaitContent(hoursLeft: 24, l10n: l10n),
+              error: (error, stack) {
+                // Falha de leitura de disco não pode esconder a roleta —
+                // o jogador não perde nada sendo deixado tentar (a escrita
+                // do último giro continua travando a próxima leitura real),
+                // e é o mesmo tratamento que o resto do projeto dá a falha
+                // de armazenamento: assume o estado "vazio" e segue, com
+                // diagnóstico (ver `WalletNotifier.refresh`).
+                debugPrint(
+                  'Falha ao ler elegibilidade da roleta diária: $error\n$stack',
+                );
+                return _spinContent(l10n);
+              },
               data: (eligible) {
-                if (!eligible && _wonPrize == null) {
+                if (!eligible && !_hasSpunThisSession) {
                   return _WaitContent(hoursLeft: 24, l10n: l10n);
                 }
                 return _spinContent(l10n);
