@@ -20,6 +20,25 @@ int novaScoreForTier(int tier) => switch (tier) {
   _ => kNovaScoreTier3,
 };
 
+/// Moedas por tier da Nova. Não existe hoje nenhuma torneira de moeda ligada
+/// a uma fusão em jogo — moeda só vem de estrela nova (`kCoinsPerStar`) ou de
+/// anúncio (`kCoinsPerRewardedAd`, ver `economy.dart`) — então estes três
+/// valores são uma constante nova, calibrada pela mesma régua: o tier 1 vale
+/// uma estrela nova, e o tier 3 (o clímax mais raro do jogo) vale quatro.
+/// Pequeno perto do preço de um martelo (`kHammerCoinPrice = 100`), grande o
+/// bastante para a recompensa se sentir rara.
+const int kNovaCoinsTier1 = 10;
+const int kNovaCoinsTier2 = 20;
+const int kNovaCoinsTier3 = 40;
+
+/// Moedas da Nova para o [tier] informado. Mesma régua de fallback de
+/// [novaScoreForTier].
+int novaCoinsForTier(int tier) => switch (tier) {
+  1 => kNovaCoinsTier1,
+  2 => kNovaCoinsTier2,
+  _ => kNovaCoinsTier3,
+};
+
 /// Um evento Nova: 3+ peças de valor 9 já existentes no tabuleiro se
 /// alinharam e se consumiram, disparando o terceiro clímax do jogo —
 /// distinto e independente do Bloco 9 e do Super 9 (ver

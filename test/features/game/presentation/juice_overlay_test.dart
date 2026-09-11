@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
+import 'package:nine_fuse/features/game/domain/nova_event.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_geometry.dart';
@@ -16,6 +17,7 @@ ResolutionStep stepWith({
   int cascade = 1,
   List<FusionEvent> fusions = const [],
   List<ObstacleHit> obstacleHits = const [],
+  List<NovaEvent> novaEvents = const [],
 }) => ResolutionStep(
   cascade: cascade,
   fusions: fusions,
@@ -23,6 +25,15 @@ ResolutionStep stepWith({
   boardAfterSettle: Board.empty(),
   score: fusions.fold(0, (t, f) => t + f.score),
   obstacleHits: obstacleHits,
+  novaEvents: novaEvents,
+);
+
+NovaEvent novaAt(Position at, {int tier = 1}) => NovaEvent(
+  at: at,
+  tier: tier,
+  obstacleHits: const [],
+  clearedTiles: const {},
+  promoted: const {},
 );
 
 FusionEvent fusionAt(
@@ -384,6 +395,80 @@ void main() {
 
       await tester.pumpAndSettle();
       expect(find.byKey(supernovaBannerKey), findsNothing);
+    });
+  });
+
+  group('celebração da Nova', () {
+    testWidgets('durante o hitstop, nada é desenhado ainda', (tester) async {
+      await tester.pumpWidget(
+        host(
+          JuiceOverlay(
+            step: stepWith(novaEvents: [novaAt(const Position(row: 3, col: 3))]),
+            comboCount: 1,
+          ),
+        ),
+      );
+      // Um quadro bem no início: ainda dentro do hitstop (90ms de um total
+      // maior), então a onda e as faíscas não devem ter aparecido.
+      await tester.pump(const Duration(milliseconds: 10));
+
+      expect(find.byKey(novaBurstKey), findsNothing);
+    });
+
+    testWidgets('depois do hitstop, desenha a onda e as faíscas', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          JuiceOverlay(
+            step: stepWith(novaEvents: [novaAt(const Position(row: 3, col: 3))]),
+            comboCount: 1,
+          ),
+        ),
+      );
+      await tester.pump(JuiceTimings.novaHitstop + const Duration(milliseconds: 30));
+
+      expect(find.byKey(novaBurstKey), findsOneWidget);
+      expect(find.text('SUPERNOVA 9!'), findsOneWidget);
+
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('nasce sobre a célula exata do evento, não no centro da tela', (
+      tester,
+    ) async {
+      const at = Position(row: 1, col: 5);
+
+      await tester.pumpWidget(
+        host(JuiceOverlay(step: stepWith(novaEvents: [novaAt(at)]), comboCount: 1)),
+      );
+      await tester.pump(JuiceTimings.novaHitstop + const Duration(milliseconds: 30));
+
+      final geometry = BoardGeometry(availableWidth: 400);
+      final expectedCenter = geometry.centerOf(at);
+      final overlayOrigin = tester.getTopLeft(find.byType(JuiceOverlay));
+      final burstCentre = tester.getCenter(find.byKey(novaBurstKey));
+
+      expect(
+        (burstCentre.dx - overlayOrigin.dx - expectedCenter.dx).abs(),
+        lessThan(4),
+      );
+
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('some sozinha, sem precisar de sinal externo', (tester) async {
+      await tester.pumpWidget(
+        host(
+          JuiceOverlay(
+            step: stepWith(novaEvents: [novaAt(const Position(row: 3, col: 3))]),
+            comboCount: 1,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(novaBurstKey), findsNothing);
     });
   });
 }

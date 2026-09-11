@@ -21,12 +21,22 @@ const double kStrikeShakeAmplitude = 6;
 /// O tranco é do **tabuleiro**, não da tela: sacudir a tela inteira levaria o HUD
 /// e o botão junto, e o que quebrou foi uma peça.
 class StrikeShake extends StatefulWidget {
-  const StrikeShake({super.key, required this.serial, required this.child});
+  const StrikeShake({
+    super.key,
+    required this.serial,
+    required this.child,
+    this.amplitude = kStrikeShakeAmplitude,
+  });
 
   /// Quantos golpes esta partida já levou.
   final int serial;
 
   final Widget child;
+
+  /// Deslocamento máximo do tranco, em pontos. A Bomba usa um valor maior
+  /// que o Martelo — nove células destruídas de uma vez pedem um tranco mais
+  /// intenso que uma só — sem precisar de um segundo widget.
+  final double amplitude;
 
   @override
   State<StrikeShake> createState() => _StrikeShakeState();
@@ -66,9 +76,8 @@ class _StrikeShakeState extends State<StrikeShake>
       // Duas idas e voltas que morrem no fim: a amplitude decai com `1 - t`,
       // senão o tabuleiro pararia no meio de um solavanco.
       final decay = 1 - t;
-      final dx = math.sin(t * 4 * math.pi) * kStrikeShakeAmplitude * decay;
-      final dy =
-          math.sin(t * 6 * math.pi) * kStrikeShakeAmplitude * 0.4 * decay;
+      final dx = math.sin(t * 4 * math.pi) * widget.amplitude * decay;
+      final dy = math.sin(t * 6 * math.pi) * widget.amplitude * 0.4 * decay;
 
       return Transform.translate(offset: Offset(dx, dy), child: child);
     },

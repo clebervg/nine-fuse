@@ -3,6 +3,8 @@ import 'package:nine_fuse/features/game/domain/endless_progression.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
+import 'package:nine_fuse/features/game/providers/bomb_booster.dart';
+import 'package:nine_fuse/features/game/providers/brush_booster.dart';
 import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
 
 /// Situação de uma partida Endless.
@@ -36,6 +38,10 @@ class EndlessState {
     this.isResolving = false,
     this.apexCelebrated = false,
     this.hammer = const HammerState(),
+    this.bomb = const BombState(),
+    this.brush = const BrushState(),
+    this.novaStrikes = 0,
+    this.novaCoinsGranted = 0,
   });
 
   final Board board;
@@ -94,6 +100,25 @@ class EndlessState {
   int get hammerStrikes => hammer.strikes;
   Position? get pendingHammerTarget => hammer.pendingTarget;
 
+  /// A Bomba: mesmo objeto único que a campanha usa, ver [BombState].
+  final BombState bomb;
+
+  int get bombCount => bomb.count;
+  bool get isBombTargeting => bomb.isTargeting;
+  (Position, Map<Position, int>)? get bombStrike => bomb.strike;
+  int get bombStrikes => bomb.strikes;
+
+  /// O Pincel: mesmo objeto único que a campanha usa, ver [BrushState].
+  final BrushState brush;
+
+  int get brushCount => brush.count;
+  bool get isBrushTargeting => brush.isTargeting;
+
+  /// A Nova: mesmo par de contadores da campanha, ver
+  /// `GameState.novaStrikes`/`GameState.novaCoinsGranted`.
+  final int novaStrikes;
+  final int novaCoinsGranted;
+
   /// Quantos trancos o tabuleiro já levou nesta corrida.
   ///
   /// Golpe de martelo e explosão do dígito máximo somam no mesmo número pelo
@@ -125,6 +150,10 @@ class EndlessState {
     bool? isResolving,
     bool? apexCelebrated,
     HammerState? hammer,
+    BombState? bomb,
+    BrushState? brush,
+    int? novaStrikes,
+    int? novaCoinsGranted,
   }) => EndlessState(
     board: board ?? this.board,
     score: score ?? this.score,
@@ -147,6 +176,10 @@ class EndlessState {
     isResolving: isResolving ?? this.isResolving,
     apexCelebrated: apexCelebrated ?? this.apexCelebrated,
     hammer: hammer ?? this.hammer,
+    bomb: bomb ?? this.bomb,
+    brush: brush ?? this.brush,
+    novaStrikes: novaStrikes ?? this.novaStrikes,
+    novaCoinsGranted: novaCoinsGranted ?? this.novaCoinsGranted,
   );
 
   factory EndlessState.initial() => EndlessState(board: Board.empty());
@@ -171,7 +204,11 @@ class EndlessState {
           comboCount == other.comboCount &&
           isResolving == other.isResolving &&
           apexCelebrated == other.apexCelebrated &&
-          hammer == other.hammer;
+          hammer == other.hammer &&
+          bomb == other.bomb &&
+          brush == other.brush &&
+          novaStrikes == other.novaStrikes &&
+          novaCoinsGranted == other.novaCoinsGranted;
 
   @override
   int get hashCode => Object.hashAll([
@@ -191,6 +228,10 @@ class EndlessState {
     isResolving,
     apexCelebrated,
     hammer,
+    bomb,
+    brush,
+    novaStrikes,
+    novaCoinsGranted,
   ]);
 
   @override

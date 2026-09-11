@@ -19,6 +19,11 @@ const Key floatingScoreKey = Key('floating_score');
 /// nenhum sinal externo dizendo que o evento acabou.
 const Key supernovaBannerKey = Key('supernova_banner');
 
+/// Marcador da onda de choque + faíscas da Nova, visível só depois do
+/// hitstop — mesmo raciocínio de [supernovaBannerKey]: o widget some sozinho
+/// quando termina, sem precisar de sinal externo dizendo que acabou.
+const Key novaBurstKey = Key('nova_burst');
+
 /// Camada de recompensa visual sobre o tabuleiro.
 ///
 /// Fica separada do tabuleiro de propósito: são efeitos efêmeros que nascem,
@@ -34,6 +39,8 @@ class JuiceOverlay extends StatelessWidget {
     required this.comboCount,
     this.hammerStrike,
     this.strikeSerial = 0,
+    this.bombStrike,
+    this.bombStrikeSerial = 0,
     this.showSupernova = false,
   });
 
@@ -54,6 +61,17 @@ class JuiceOverlay extends StatelessWidget {
   /// mesmo dígito, não reacenderiam a animação sem ele.
   final int strikeSerial;
 
+  /// Centro da última explosão da Bomba, e **cada célula realmente
+  /// destruída** com o dígito que carregava.
+  ///
+  /// É um mapa, e não `(Position, int)` como o Martelo: a bomba atinge até 9
+  /// células, e cada uma merece o próprio estilhaço na cor certa — um único
+  /// efeito no centro esconderia a maior parte do que a explosão destruiu.
+  final (Position, Map<Position, int>)? bombStrike;
+
+  /// Número da explosão. Mesmo papel de [strikeSerial].
+  final int bombStrikeSerial;
+
   /// Aceso por uma jogada em que o Super 9 nasceu ou foi ativado — a
   /// hierarquia de `JuiceDirector` já garantiu que nenhum outro efeito
   /// concorre com ele nesta jogada.
@@ -63,7 +81,8 @@ class JuiceOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = step;
     final strike = hammerStrike;
-    if (current == null && strike == null && !showSupernova) {
+    final blast = bombStrike;
+    if (current == null && strike == null && blast == null && !showSupernova) {
       return const SizedBox.shrink();
     }
 
@@ -108,6 +127,28 @@ class JuiceOverlay extends StatelessWidget {
                       ),
                     ),
 
+                // A Nova: 3+ peças de valor 9 já existentes no tabuleiro se
+                // alinharam. O raio da celebração escala com o tier — tier 3
+                // (5+ peças) é o núcleo mais largo que o motor já trata como
+                // "o tabuleiro inteiro".
+                for (final nova in current.novaEvents)
+                  Positioned(
+                    left:
+                        geometry.centerOf(nova.at).dx -
+                        tileSize * _novaSpan(nova.tier),
+                    top:
+                        geometry.centerOf(nova.at).dy -
+                        tileSize * _novaSpan(nova.tier),
+                    width: tileSize * _novaSpan(nova.tier) * 2,
+                    height: tileSize * _novaSpan(nova.tier) * 2,
+                    child: _NovaBurst(
+                      key: ValueKey(
+                        'nova_${nova.at.row}_${nova.at.col}_${nova.tier}',
+                      ),
+                      tier: nova.tier,
+                    ),
+                  ),
+
                 // A quebra da cobertura acontece na célula do obstáculo, não na
                 // da fusão: é ali que o jogador precisa olhar para entender que
                 // o golpe alcançou o que ele estava mirando.
@@ -143,6 +184,38 @@ class JuiceOverlay extends StatelessWidget {
                   ),
                 ),
 
+              // A explosão da Bomba, pelo mesmo motivo do estilhaço do
+              // Martelo: vive fora do bloco do passo porque sobrevive ao
+              // assentamento da jogada.
+              if (blast != null) ...[
+                Positioned(
+                  left: geometry.centerOf(blast.$1).dx - tileSize * 1.5,
+                  top: geometry.centerOf(blast.$1).dy - tileSize * 1.5,
+                  width: tileSize * 3,
+                  height: tileSize * 3,
+                  child: _ImpactWave(
+                    key: ValueKey('bomb_wave_$bombStrikeSerial'),
+                    color: AppColors.digit0,
+                  ),
+                ),
+                // Um estilhaço por célula de fato destruída — o centro sozinho
+                // esconderia as até oito vizinhas que a explosão também levou.
+                for (final entry in blast.$2.entries)
+                  Positioned(
+                    left: geometry.centerOf(entry.key).dx - tileSize * 0.75,
+                    top: geometry.centerOf(entry.key).dy - tileSize * 0.75,
+                    width: tileSize * 1.5,
+                    height: tileSize * 1.5,
+                    child: ShatterEffect(
+                      key: ValueKey(
+                        'bomb_${bombStrikeSerial}_'
+                        '${entry.key.row}_${entry.key.col}',
+                      ),
+                      color: AppColors.getColorByDigit(entry.value),
+                    ),
+                  ),
+              ],
+
               // Por cima de tudo: o Supernova é o clímax da jogada, e nada
               // mais deve competir com ele.
               if (showSupernova) const Positioned.fill(child: _SupernovaEvent()),
@@ -152,6 +225,172 @@ class JuiceOverlay extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Raio da celebração da Nova, em múltiplos do lado da célula, por tier (1, 2
+/// ou 3+). Cresce junto com a zona que o motor realmente afeta: núcleo 3x3
+/// (tier 1) contra um anel maior (tier 2) contra o tabuleiro inteiro (tier 3).
+double _novaSpan(int tier) => switch (tier) {
+  1 => 1.5,
+  2 => 2.5,
+  _ => 3.5,
+};
+
+/// Celebração da Nova: hitstop curto, depois onda de choque radial e um
+/// estouro de faíscas douradas, ambos ancorados na célula exata do evento —
+/// nunca no centro da tela, ao contrário do banner de dígito máximo.
+///
+/// Uma animação só, dividida em dois trechos, mesmo desenho do
+/// `_SupernovaEvent`: o hitstop é a fração inicial em que nada muda (o jogo
+/// "segura a respiração"), e o resto do tempo é o payoff.
+class _NovaBurst extends StatefulWidget {
+  const _NovaBurst({super.key, required this.tier});
+
+  /// 1 (3 peças), 2 (4 peças) ou 3 (5+ peças).
+  final int tier;
+
+  @override
+  State<_NovaBurst> createState() => _NovaBurstState();
+}
+
+class _NovaBurstState extends State<_NovaBurst>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+  late final List<_Spark> _sparks;
+  late final double _hitstopFraction;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Semente fixa e derivada do tier: dois eventos do mesmo tier têm o mesmo
+    // padrão de faíscas, e o golden não treme a cada quadro reconstruído.
+    final random = Random(97 + widget.tier);
+    // Mais faíscas em tiers maiores — o mesmo raciocínio de `ShatterEffect`
+    // pesar mais que `ObstacleShatter`.
+    final count = 10 + widget.tier * 8;
+    _sparks = [
+      for (int i = 0; i < count; i++)
+        _Spark(
+          angle: (i / count) * 2 * pi + (random.nextDouble() - 0.5) * 0.5,
+          distance: 0.55 + random.nextDouble() * 0.4,
+          size: 1.6 + random.nextDouble() * 2.4,
+          silver: random.nextBool(),
+        ),
+    ];
+
+    final total = JuiceTimings.novaHitstop + JuiceTimings.novaPayoff;
+    _hitstopFraction =
+        JuiceTimings.novaHitstop.inMilliseconds / total.inMilliseconds;
+    _c = AnimationController(vsync: this, duration: total)..forward();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _c,
+    builder: (context, _) {
+      // Ainda no hitstop: nada é desenhado. É a pausa dramática antes do
+      // impacto — o jogo "segurou a respiração" de verdade em
+      // `GameNotifier._playResolution` (que aguarda a mesma duração antes de
+      // continuar a encenação); aqui é só o espelho visual dessa pausa.
+      //
+      // Terminada, a celebração também não desenha mais nada — mesmo
+      // raciocínio do `_SupernovaEvent`: o widget encerra sozinho o evento
+      // que ele começou, sem depender de sinal externo.
+      if (_c.value < _hitstopFraction || _c.isCompleted) {
+        return const SizedBox.shrink();
+      }
+
+      final payoffT = ((_c.value - _hitstopFraction) / (1 - _hitstopFraction))
+          .clamp(0.0, 1.0);
+      final waveT = Curves.easeOut.transform(
+        (payoffT / 0.6).clamp(0.0, 1.0),
+      );
+      final waveFade = 1 - waveT;
+
+      // Entra rápido, fica legível na maior parte do payoff e some nos
+      // últimos 25% — mesma forma de sino do banner do Supernova
+      // (`_SupernovaEvent`), texto diferente porque o gatilho é outro: a
+      // Nova nasce de noves que já estavam no tabuleiro, o Supernova é a
+      // ativação/criação do Super 9.
+      final bannerOpacity = switch (payoffT) {
+        < 0.15 => payoffT / 0.15,
+        > 0.75 => (1 - payoffT) / 0.25,
+        _ => 1.0,
+      }.clamp(0.0, 1.0);
+
+      return Stack(
+        key: novaBurstKey,
+        fit: StackFit.expand,
+        alignment: Alignment.center,
+        children: [
+          // Onda de choque: mesmo formato de anel do `_ImpactWave`, mas com
+          // um segundo anel externo — a Nova é o clímax maior, e merece ler
+          // mais largo que uma combinação grande comum.
+          Transform.scale(
+            scale: 0.2 + waveT * (1.1 + widget.tier * 0.2),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.digit9.withValues(
+                    alpha: waveFade * 0.95,
+                  ),
+                  width: 8 * waveFade + 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.digit9Deep.withValues(
+                      alpha: waveFade * 0.6,
+                    ),
+                    blurRadius: 20 * waveFade,
+                    spreadRadius: 3 * waveFade,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          CustomPaint(
+            painter: _ParticlePainter(
+              sparks: _sparks,
+              t: payoffT,
+              tint: AppColors.digit9,
+            ),
+            size: Size.infinite,
+          ),
+          // O banner de texto, por cima da onda e das faíscas: é a leitura
+          // que fecha a celebração, não um efeito a mais competindo com ela.
+          Text(
+            'SUPERNOVA 9!',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: AppFonts.display,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+              color: Colors.white.withValues(alpha: bannerOpacity),
+              shadows: [
+                Shadow(
+                  color: AppColors.digit9.withValues(alpha: bannerOpacity),
+                  blurRadius: 10,
+                ),
+                Shadow(
+                  color: Colors.black.withValues(alpha: 0.8 * bannerOpacity),
+                  blurRadius: 4,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    },
+  );
 }
 
 /// `+120` subindo e sumindo no ponto da fusão.

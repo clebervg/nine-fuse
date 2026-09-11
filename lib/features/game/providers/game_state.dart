@@ -4,6 +4,8 @@ import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
+import 'package:nine_fuse/features/game/providers/bomb_booster.dart';
+import 'package:nine_fuse/features/game/providers/brush_booster.dart';
 import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
 
 /// Por que a fase foi perdida.
@@ -74,6 +76,10 @@ class GameState {
     this.movesOfferShown = false,
     this.boardObstacleGoal,
     this.hammer = const HammerState(),
+    this.bomb = const BombState(),
+    this.brush = const BrushState(),
+    this.novaStrikes = 0,
+    this.novaCoinsGranted = 0,
     this.consecutiveLosses = 0,
     this.endlessOfferShown = false,
     this.pendingSupernova = false,
@@ -216,13 +222,49 @@ class GameState {
   int get hammerStrikes => hammer.strikes;
   Position? get pendingHammerTarget => hammer.pendingTarget;
 
+  /// A Bomba: estoque, mira e último estouro — mesmo objeto único que o
+  /// Martelo, ver [BombState] e [BombBooster].
+  final BombState bomb;
+
+  int get bombCount => bomb.count;
+  bool get isBombTargeting => bomb.isTargeting;
+  (Position, Map<Position, int>)? get bombStrike => bomb.strike;
+  int get bombStrikes => bomb.strikes;
+
+  /// O Pincel: estoque e mira — sem estilhaço nem tranco próprios, ver
+  /// [BrushState].
+  final BrushState brush;
+
+  int get brushCount => brush.count;
+  bool get isBrushTargeting => brush.isTargeting;
+
+  /// Quantos eventos Nova já aconteceram nesta partida. Alimenta o
+  /// `StrikeShake` dedicado da Nova (2.0x, mais intenso que o da Bomba) — o
+  /// mesmo motivo de `bombStrikes` ficar fora de [shakeSerial]: um tranco
+  /// mais forte por cima de um menor lê como um tranco só, mas um contador
+  /// compartilhado faria os dois se cancelarem.
+  final int novaStrikes;
+
+  /// Total de moedas que a Nova já creditou nesta partida.
+  ///
+  /// A Nova é a única fonte de moeda **dentro** de uma jogada — todo o resto
+  /// (estrela nova, anúncio) vive fora do `GameNotifier`, que não tem acesso
+  /// ao `walletProvider` (é outro provider, e `GameNotifier` é um
+  /// `StateNotifier` simples, sem `ref`). Este contador é só o que atravessa
+  /// essa fronteira: a tela observa o quanto ele **cresceu** desde o último
+  /// estado e credita a diferença na carteira — mesmo padrão de "contador que
+  /// só sobe, consumido por delta" que `explosions`/`bombStrikes` já usam
+  /// para o tranco de tela.
+  final int novaCoinsGranted;
+
   /// Quantos trancos o tabuleiro já levou nesta partida.
   ///
   /// Golpe de martelo e explosão do dígito máximo são dois motivos para a mesma
   /// sacudida, e o `StrikeShake` só reage a um serial que **cresce**. Somar os
   /// dois num número só mantém a garantia de monotonia — dois contadores
   /// separados alimentando o mesmo widget fariam a explosão zerar o tranco do
-  /// martelo, e vice-versa.
+  /// martelo, e vice-versa. A Bomba fica **fora** desta soma: o tranco dela é
+  /// mais intenso e vive num `StrikeShake` próprio (ver `bombStrikes`).
   int get shakeSerial => hammerStrikes + explosions;
 
   /// Tudo o que a fase ofereceu de movimento: o limite mais os bônus.
@@ -333,6 +375,10 @@ class GameState {
     int? boardObstacleGoal,
     bool clearBoardObstacleGoal = false,
     HammerState? hammer,
+    BombState? bomb,
+    BrushState? brush,
+    int? novaStrikes,
+    int? novaCoinsGranted,
     int? consecutiveLosses,
     bool? endlessOfferShown,
     bool? pendingSupernova,
@@ -365,6 +411,10 @@ class GameState {
         ? null
         : (boardObstacleGoal ?? this.boardObstacleGoal),
     hammer: hammer ?? this.hammer,
+    bomb: bomb ?? this.bomb,
+    brush: brush ?? this.brush,
+    novaStrikes: novaStrikes ?? this.novaStrikes,
+    novaCoinsGranted: novaCoinsGranted ?? this.novaCoinsGranted,
     consecutiveLosses: consecutiveLosses ?? this.consecutiveLosses,
     endlessOfferShown: endlessOfferShown ?? this.endlessOfferShown,
     pendingSupernova: clearPendingSupernova
@@ -404,6 +454,8 @@ class GameState {
           movesOfferShown == other.movesOfferShown &&
           boardObstacleGoal == other.boardObstacleGoal &&
           hammer == other.hammer &&
+          bomb == other.bomb &&
+          brush == other.brush &&
           consecutiveLosses == other.consecutiveLosses &&
           endlessOfferShown == other.endlessOfferShown &&
           pendingSupernova == other.pendingSupernova;
@@ -432,6 +484,10 @@ class GameState {
     movesOfferShown,
     boardObstacleGoal,
     hammer,
+    bomb,
+    brush,
+    novaStrikes,
+    novaCoinsGranted,
     consecutiveLosses,
     endlessOfferShown,
     pendingSupernova,

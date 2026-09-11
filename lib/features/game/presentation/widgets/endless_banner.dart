@@ -5,6 +5,7 @@ import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/endless_progression.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_metric_card.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/glass_panel.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/tile_widget.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
@@ -42,29 +43,8 @@ class EndlessBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return Container(
+    return GlassPanel(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        // Mesma moldura com volume do HUD da campanha: os dois modos precisam
-        // parecer o mesmo jogo.
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF262631), Color(0xFF17171D)],
-        ),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.10),
-          width: 1.5,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x99000000),
-            blurRadius: 14,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
       child: Column(
         children: [
           IntrinsicHeight(

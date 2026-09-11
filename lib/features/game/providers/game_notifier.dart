@@ -8,8 +8,11 @@ import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
+import 'package:nine_fuse/features/game/domain/nova_event.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/special_tile.dart';
+import 'package:nine_fuse/features/game/providers/bomb_booster.dart';
+import 'package:nine_fuse/features/game/providers/brush_booster.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
@@ -17,7 +20,7 @@ import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
 /// Orquestra o estado da fase. Toda a regra de Match-3 e fusão vive no
 /// [MatchEngine]; aqui só decidimos o que fazer com o resultado.
 class GameNotifier extends StateNotifier<GameState>
-    with HammerBooster<GameState> {
+    with HammerBooster<GameState>, BombBooster<GameState>, BrushBooster<GameState> {
   GameNotifier({
     Random? random,
     Future<void> Function(Duration)? delay,
@@ -27,6 +30,8 @@ class GameNotifier extends StateNotifier<GameState>
        _storage = storage ?? const PrefsGameStorage(),
        super(GameState.initial()) {
     refreshHammers();
+    refreshBombs();
+    refreshBrushes();
   }
 
   static Future<void> _realDelay(Duration d) => Future<void>.delayed(d);
@@ -83,6 +88,93 @@ class GameNotifier extends StateNotifier<GameState>
     }
   }
 
+  @override
+  GameStorage get bombStorage => _storage;
+
+  @override
+  MatchEngine? get bombEngine => _engine;
+
+  @override
+  Board get bombBoard => state.board;
+
+  @override
+  BombState get bomb => state.bomb;
+
+  @override
+  void writeBomb(BombState value) => state = state.copyWith(bomb: value);
+
+  /// Mesma régua do Martelo: fase em andamento e nada em encenação.
+  @override
+  bool get acceptsBomb =>
+      state.status == GameStatus.playing && !state.isResolving;
+
+  /// Mira da bomba e seleção de troca também não convivem — mesmo motivo do
+  /// Martelo.
+  @override
+  void onBombTargetingStarted() {
+    state = state.copyWith(
+      clearSelectedTile: true,
+      clearRejectedSwap: true,
+      clearPendingSupernova: true,
+    );
+  }
+
+  @override
+  void playBombResolution(MatchEngine engine, Resolution resolution) {
+    if (JuiceTimings.instantResolution) {
+      _finishMove(
+        engine,
+        resolution,
+        extraScore: resolution.score,
+        countsAsMove: false,
+      );
+    } else {
+      _playResolution(engine, resolution, countsAsMove: false);
+    }
+  }
+
+  @override
+  GameStorage get brushStorage => _storage;
+
+  @override
+  MatchEngine? get brushEngine => _engine;
+
+  @override
+  Board get brushBoard => state.board;
+
+  @override
+  BrushState get brush => state.brush;
+
+  @override
+  void writeBrush(BrushState value) => state = state.copyWith(brush: value);
+
+  @override
+  bool get acceptsBrush =>
+      state.status == GameStatus.playing && !state.isResolving;
+
+  @override
+  void onBrushTargetingStarted() {
+    state = state.copyWith(
+      clearSelectedTile: true,
+      clearRejectedSwap: true,
+      clearPendingSupernova: true,
+    );
+  }
+
+  @override
+  void playBrushResolution(MatchEngine engine, Resolution resolution) {
+    if (JuiceTimings.instantResolution) {
+      _finishMove(
+        engine,
+        resolution,
+        extraScore: resolution.score,
+        countsAsMove: false,
+      );
+    } else {
+      _playResolution(engine, resolution, countsAsMove: false);
+    }
+  }
+
   /// Espera entre os quadros da encenação. Injetável para os testes rodarem
   /// sem gastar tempo real — e para não dependerem de `pumpAndSettle` em
   /// lógica que não é de widget.
@@ -125,14 +217,18 @@ class GameNotifier extends StateNotifier<GameState>
       // O inventário atravessa a fase nova (é do jogador, não da partida), mas
       // a mira e o estilhaço ficam para trás com a partida que acabou.
       hammer: state.hammer.inventoryOnly,
+      bomb: state.bomb.inventoryOnly,
+      brush: state.brush.inventoryOnly,
       consecutiveLosses: samePhase ? state.consecutiveLosses : 0,
       endlessOfferShown: samePhase ? state.endlessOfferShown : false,
     );
 
-    // O Endless pode ter gastado um martelo enquanto esta tela estava viva: os
-    // dois notifiers compartilham o estoque, e quem chegou por último ao disco
-    // manda.
+    // O Endless pode ter gastado um martelo (ou uma bomba) enquanto esta tela
+    // estava viva: os dois notifiers compartilham o estoque, e quem chegou
+    // por último ao disco manda.
     refreshHammers();
+    refreshBombs();
+    refreshBrushes();
   }
 
   /// O alvo de um objetivo "limpe todas as coberturas", medido **no tabuleiro
@@ -360,6 +456,39 @@ class GameNotifier extends StateNotifier<GameState>
         // mesmo peso, nasça ele de uma troca ou de uma criação.
         await _delay(JuiceTimings.supernovaHitstop);
         if (!mounted) return;
+      }
+
+      // A Nova: hitstop curto antes do payoff (onda + faíscas, no
+      // `JuiceOverlay`), e o tranco de tela dedicado (`novaStrikes`, 2.0x —
+      // mais intenso que o da Bomba) sobe exatamente quando o hitstop
+      // termina — é o pico visual da celebração, não o instante em que ela
+      // começa a sumir. Fora de `shakeSerial`/`explosions` pelo mesmo motivo
+      // do tranco da Bomba: um contador compartilhado faria os dois se
+      // cancelarem.
+      if (step.novaEvents.isNotEmpty) {
+        await _delay(JuiceTimings.novaHitstop);
+        if (!mounted) return;
+        _explosionFeedback();
+
+        // Recompensa: a única fusão do jogo que paga moeda direto — soma dos
+        // tiers (no máximo uma Nova por jogada, mas soma por segurança se
+        // isso um dia mudar) — e +1 booster sorteado entre Bomba e Pincel.
+        // Nunca o Martelo: ele já é o mais fácil de conseguir (anúncio
+        // sempre disponível), e a Nova é o clímax mais raro do jogo — a
+        // recompensa deveria empurrar o jogador para os boosters mais
+        // difíceis de acumular.
+        final coinsGained = step.novaEvents
+            .map((nova) => novaCoinsForTier(nova.tier))
+            .fold(0, (a, b) => a + b);
+        state = state.copyWith(
+          novaStrikes: state.novaStrikes + 1,
+          novaCoinsGranted: state.novaCoinsGranted + coinsGained,
+        );
+        if (_random.nextBool()) {
+          grantBomb();
+        } else {
+          grantBrush();
+        }
       }
 
       await _delay(JuiceTimings.fusion);

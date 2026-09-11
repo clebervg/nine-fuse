@@ -88,7 +88,9 @@ void main() {
     expect(buyButton().onPressed, isNotNull);
   });
 
-  testWidgets('o convite lista as três formas de ganhar moeda', (tester) async {
+  testWidgets('o convite lista as quatro formas de ganhar moeda', (
+    tester,
+  ) async {
     await pumpOffer(tester, coins: 0);
 
     expect(find.byKey(coinSourcesKey), findsOneWidget);
@@ -98,6 +100,7 @@ void main() {
       l10n.coinSourcesStars,
       l10n.coinSourcesAds,
       l10n.coinSourcesChests,
+      l10n.coinSourceNova,
     ]) {
       expect(find.text(source), findsOneWidget);
     }

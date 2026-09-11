@@ -103,6 +103,8 @@ flutter:
   assets:
     - assets/fonts/OFL.txt
     - assets/images/
+    - assets/sprites/tiles/
+    - assets/sprites/obstacles/
 
   # Nunito vem empacotada, não baixada em runtime: uma fonte que depende de
   # rede cai silenciosamente no padrão do sistema quando o aparelho está

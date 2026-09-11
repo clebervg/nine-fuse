@@ -1,12 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:nine_fuse/core/assets/tile_sprite_manager.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/constants/tile_shape.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/obstacle_overlay.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/strike_shake.dart';
 
 /// Duração do pulo de uma peça que acabou de evoluir.
 const Duration kTilePopDuration = Duration(milliseconds: 260);
+
+/// Duração da compressão (squash & stretch) do toque/arraste e da fusão
+/// instantânea dos dígitos 1-8.
+const Duration kTileSquashDuration = Duration(milliseconds: 190);
+
+/// Duração de um ciclo de respiração do Bloco 9 em repouso.
+const Duration kApexPulseDuration = Duration(milliseconds: 1100);
+
+/// O pulso do Bloco 9 **não** roda em teste: é uma animação repetitiva, e
+/// `pumpAndSettle` nunca terminaria com ela em curso — mesma regra do brilho
+/// da dica no tabuleiro e do pulso do pin do mapa (`debugDisableMapPulse`).
+/// Ligado para a suíte inteira em `test/flutter_test_config.dart`.
+bool debugDisableApexPulse = false;
 
 /// Até quantas peças podem carregar o maior valor do tabuleiro e ainda assim
 /// receber o brilho de destaque. Acima disso o valor é comum, e brilho comum
@@ -71,14 +86,15 @@ class TileWidget extends StatefulWidget {
 }
 
 class _TileWidgetState extends State<TileWidget>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: kTilePopDuration,
   );
 
   /// Cresce e volta: dá peso à fusão sem deslocar a peça. Combinação grande
-  /// cresce mais.
+  /// cresce mais. O retorno usa `elasticOut` — a peça "estoura" a mola em vez
+  /// de simplesmente desacelerar, o efeito de física tátil que a fusão pede.
   Animation<double> get _pop {
     final peak = widget.fromBigMatch ? 1.45 : 1.22;
     return TweenSequence<double>([
@@ -87,10 +103,56 @@ class _TileWidgetState extends State<TileWidget>
         tween: Tween(
           begin: peak,
           end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeOut)),
+        ).chain(CurveTween(curve: Curves.elasticOut)),
         weight: 2,
       ),
     ]).animate(_controller);
+  }
+
+  /// Compressão (squash & stretch) do toque/arraste e da fusão instantânea
+  /// dos dígitos 1-8: achata na vertical e alarga na horizontal, depois volta
+  /// com um leve estouro — a mesma física tátil do `_pop`, só que assimétrica
+  /// entre os eixos, o que é o que faz o efeito ler como "compressão" em vez
+  /// de "salto".
+  late final AnimationController _squash = AnimationController(
+    vsync: this,
+    duration: kTileSquashDuration,
+  );
+
+  late final Animation<double> _squashT = TweenSequence<double>([
+    TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 1),
+    TweenSequenceItem(
+      tween: Tween(
+        begin: 1.0,
+        end: 0.0,
+      ).chain(CurveTween(curve: Curves.easeOutBack)),
+      weight: 2,
+    ),
+  ]).animate(_squash);
+
+  /// Respiração contínua do Bloco 9 parado no tabuleiro: escala e brilho
+  /// pulsando enquanto não há sprite animado para substituir o efeito.
+  /// Nula fora desse estado — nasce e morre com ele, em vez de rodar sempre e
+  /// só ser ignorada, para não gastar um `Ticker` por peça comum do
+  /// tabuleiro.
+  AnimationController? _apexPulse;
+
+  bool get _isApexPulsing =>
+      widget.tile.value >= kMaxDigit &&
+      !TileSpriteManager.hasSprite(widget.tile.value) &&
+      !debugDisableApexPulse;
+
+  void _syncApexPulse() {
+    final shouldPulse = _isApexPulsing;
+    if (shouldPulse && _apexPulse == null) {
+      _apexPulse = AnimationController(
+        vsync: this,
+        duration: kApexPulseDuration,
+      )..repeat(reverse: true);
+    } else if (!shouldPulse && _apexPulse != null) {
+      _apexPulse!.dispose();
+      _apexPulse = null;
+    }
   }
 
   /// Clarão branco que some junto com o pulo. Só em combinação grande.
@@ -108,7 +170,14 @@ class _TileWidgetState extends State<TileWidget>
     } else {
       _controller.value = _controller.upperBound;
     }
+    _syncApexPulse();
   }
+
+  /// Conta os impactos parciais que a cobertura desta célula já levou (dano
+  /// que reduz o hp sem quebrar). É o sinal do [StrikeShake] em volta da
+  /// peça — só ele reage a "número novo", e um dano que não chega a zerar o
+  /// hp não muda `tile.value` nem o restante do widget.
+  int _obstacleDamageSerial = 0;
 
   @override
   void didUpdateWidget(TileWidget oldWidget) {
@@ -117,12 +186,39 @@ class _TileWidgetState extends State<TileWidget>
     // Mesma peça com valor novo significa fusão: vale um pulo.
     if (widget.tile.value != oldWidget.tile.value) {
       _controller.forward(from: 0);
+
+      // Squash & stretch só nos dígitos 1-8: o 9 recém-nascido já ganha o
+      // tratamento próprio do ápice (pulso + brilho), e os dois efeitos
+      // competindo na mesma peça no mesmo instante seria ruído, não ênfase.
+      if (widget.tile.value < kMaxDigit) {
+        _squash.forward(from: 0);
+      }
     }
+
+    // Toque/arraste: a peça comprime ao ser selecionada, não ao ser solta —
+    // é a mesma janela em que o jogador "pega" a peça.
+    if (widget.isSelected && !oldWidget.isSelected) {
+      _squash.forward(from: 0);
+    }
+
+    // Dano parcial: cobertura seguiu bloqueada, mas perdeu hp. A quebra final
+    // (hp chega a zero) já tem o próprio `ObstacleShatter` de partículas — o
+    // tranco aqui é só para o degrau intermediário (ex.: Pedra 3 -> 2).
+    if (widget.tile.isBlocked &&
+        oldWidget.tile.isBlocked &&
+        widget.tile.obstacle == oldWidget.tile.obstacle &&
+        widget.tile.obstacleHp < oldWidget.tile.obstacleHp) {
+      _obstacleDamageSerial++;
+    }
+
+    _syncApexPulse();
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _squash.dispose();
+    _apexPulse?.dispose();
     super.dispose();
   }
 
@@ -146,16 +242,49 @@ class _TileWidgetState extends State<TileWidget>
     // esse destaque vinha de um halo que vazava para fora da célula.
     final lift = widget.isSelected ? 1.08 : 1 + 0.03 * glow;
 
-    return ScaleTransition(
+    Widget tile = ScaleTransition(
       key: tilePopKey,
       scale: _pop,
-      child: AnimatedScale(
-        scale: lift,
-        duration: const Duration(milliseconds: 140),
-        curve: Curves.easeOut,
-        child: _body(value, color, textColor, isTop, glow, radius, widget.side),
+      child: AnimatedBuilder(
+        // Squash & stretch: eixos assimétricos, então não dá para expressar
+        // isto com `AnimatedScale` (que só aceita um fator uniforme).
+        animation: _squashT,
+        builder: (context, child) {
+          final s = _squashT.value;
+          return Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.identity()
+              ..scaleByDouble(1 + 0.12 * s, 1 - 0.12 * s, 1, 1),
+            child: child,
+          );
+        },
+        child: AnimatedScale(
+          scale: lift,
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOut,
+          child: _apexPulse == null
+              ? _body(value, color, textColor, isTop, glow, radius, widget.side, 0)
+              : AnimatedBuilder(
+                  animation: _apexPulse!,
+                  builder: (context, child) => Transform.scale(
+                    scale: 1 + 0.05 * _apexPulse!.value,
+                    child: _body(
+                      value,
+                      color,
+                      textColor,
+                      isTop,
+                      glow,
+                      radius,
+                      widget.side,
+                      _apexPulse!.value,
+                    ),
+                  ),
+                ),
+        ),
       ),
     );
+
+    return StrikeShake(serial: _obstacleDamageSerial, child: tile);
   }
 
   Widget _body(
@@ -166,14 +295,22 @@ class _TileWidgetState extends State<TileWidget>
     double glow,
     BorderRadius radius,
     double side,
+    double apexPulseT,
   ) {
+    // Ponto único de decisão entre o sprite (quando a arte já foi produzida
+    // e carregada) e o renderizador vetorial de sempre. A migração é
+    // gradual — um dígito pode ter sprite enquanto os outros nove ainda não
+    // têm —, então a checagem é por valor, não um interruptor global.
+    final sprite = TileSpriteManager.spriteFor(value);
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       decoration: BoxDecoration(
         // Degradê no lugar de cor chapada: dá volume à peça, que é o que
         // separa um protótipo de um jogo acabado. São 64 objetos ocupando a
-        // tela inteira, então é aqui que o ganho aparece.
-        gradient: AppColors.tileGradient(value),
+        // tela inteira, então é aqui que o ganho aparece. Só entra quando não
+        // há sprite — a arte já traz o próprio volume desenhado.
+        gradient: sprite == null ? AppColors.tileGradient(value) : null,
         borderRadius: radius,
         border: Border.all(
           // A dica usa a mesma borda branca da seleção, mais fina: comunica
@@ -199,7 +336,13 @@ class _TileWidgetState extends State<TileWidget>
           // fora da célula e invade as vizinhas: só o clímax do jogo paga esse
           // preço.
           if (isTop)
-            ...AppColors.apexGlow(spread: 2)
+            // A respiração contínua modula a própria intensidade do brilho —
+            // `scale`/`spread` sobem e descem junto com a escala da peça, em
+            // vez de ficar acesa num valor fixo o tempo todo.
+            ...AppColors.apexGlow(
+              scale: 1 + apexPulseT * 0.3,
+              spread: 2 + apexPulseT * 2,
+            )
           else
             // A peça mais alta em jogo brilha o suficiente para o olho achá-la
             // no meio das 64; o resto só recebe um assentamento. Aqui o
@@ -219,33 +362,50 @@ class _TileWidgetState extends State<TileWidget>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Base mais escura, como a lateral de uma tecla. Substituiu o
-          // reflexo esférico de plástico, que datava o visual e achatava a
-          // peça em vez de lhe dar volume.
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: FractionallySizedBox(
-              heightFactor: 0.16,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: radius.bottomLeft,
-                    bottomRight: radius.bottomRight,
+          if (sprite != null)
+            // Sprite já carregado: a arte ocupa a célula inteira, recortada
+            // pela mesma silhueta da peça vetorial. `gaplessPlayback` evita
+            // um frame em branco quando o dígito muda (fusão) e o widget é
+            // reconstruído com outro `ImageProvider`.
+            ClipRRect(
+              borderRadius: radius,
+              child: Image(
+                image: sprite,
+                width: side,
+                height: side,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+              ),
+            )
+          else ...[
+            // Base mais escura, como a lateral de uma tecla. Substituiu o
+            // reflexo esférico de plástico, que datava o visual e achatava a
+            // peça em vez de lhe dar volume.
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: FractionallySizedBox(
+                heightFactor: 0.16,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: radius.bottomLeft,
+                      bottomRight: radius.bottomRight,
+                    ),
+                    color: AppColors.darken(color, 0.13),
                   ),
-                  color: AppColors.darken(color, 0.13),
                 ),
               ),
             ),
-          ),
-          Center(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: _OutlinedDigit(value: value, side: side, apex: isTop),
+            Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: _OutlinedDigit(value: value, side: side, apex: isTop),
+                ),
               ),
             ),
-          ),
+          ],
           if (widget.fromBigMatch)
             // Por cima do número: o clarão cobre a peça inteira e revela a
             // cor conforme desaparece.
@@ -265,16 +425,34 @@ class _TileWidgetState extends State<TileWidget>
           // Por cima de tudo, inclusive do clarão: a cobertura é o que está
           // fisicamente entre o jogador e a peça.
           if (widget.tile.isBlocked)
-            ObstacleOverlay(
-              type: widget.tile.obstacle,
-              cracked: widget.tile.isDamaged,
-              radius: radius,
-              // Derivado da posição, não sorteado: coberturas vizinhas não
-              // repetem a mesma estampa, e cada uma delas é idêntica em todo
-              // quadro reconstruído.
-              cellIndex:
-                  widget.tile.position.row * 31 + widget.tile.position.col,
-            ),
+            if (TileSpriteManager.spriteForObstacle(
+                  widget.tile.obstacle,
+                  widget.tile.obstacleHp,
+                )
+                case final sprite?)
+              // Sprite já produzido para este tipo/hp: a arte substitui o
+              // CustomPainter, recortada pela mesma silhueta da peça.
+              ClipRRect(
+                borderRadius: radius,
+                child: Image(
+                  image: sprite,
+                  width: side,
+                  height: side,
+                  fit: BoxFit.cover,
+                  gaplessPlayback: true,
+                ),
+              )
+            else
+              ObstacleOverlay(
+                type: widget.tile.obstacle,
+                cracked: widget.tile.isDamaged,
+                radius: radius,
+                // Derivado da posição, não sorteado: coberturas vizinhas não
+                // repetem a mesma estampa, e cada uma delas é idêntica em todo
+                // quadro reconstruído.
+                cellIndex:
+                    widget.tile.position.row * 31 + widget.tile.position.col,
+              ),
         ],
       ),
     );

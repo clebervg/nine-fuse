@@ -51,6 +51,14 @@ class CoinSourcesCard extends StatelessWidget {
             label: l10n.coinSourcesAds,
           ),
           _CoinSource(icon: Icons.flag_rounded, label: l10n.coinSourcesChests),
+          // A Nova (3+ peças no valor máximo alinhadas) também paga moeda —
+          // fonte nova desde que o evento passou a conceder economia junto
+          // com a celebração visual. Mesmo ícone de brilho que o resto do
+          // HUD usa para o clímax do dígito 9.
+          _CoinSource(
+            icon: Icons.auto_awesome_rounded,
+            label: l10n.coinSourceNova,
+          ),
         ],
       ),
     );

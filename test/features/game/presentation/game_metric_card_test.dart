@@ -31,20 +31,16 @@ void main() {
     ),
   );
 
-  /// A caixa de fora, que é onde mora o aro em degradê.
-  ///
-  /// `first` e não `single`: a pílula passou a ser duas caixas encaixadas — a
-  /// de fora desenha o contorno e a base projetada, a de dentro o fundo. Pedir
-  /// "o único `Container`" quebraria a cada camada nova de material.
+  /// A caixa de vidro (o `Container` de dentro do `GlassPanel`), onde mora a
+  /// borda tingida.
   BoxDecoration decorationOf(WidgetTester tester) =>
       tester
-              .widgetList<Container>(
+              .widget<Container>(
                 find.descendant(
                   of: find.byKey(const Key('metric')),
                   matching: find.byType(Container),
                 ),
               )
-              .first
               .decoration!
           as BoxDecoration;
 
@@ -56,25 +52,25 @@ void main() {
     expect(find.byIcon(Icons.bolt), findsOneWidget);
   });
 
-  testWidgets('em alerta o aro fica vermelho e ganha neon', (tester) async {
+  testWidgets('em alerta a borda de vidro fica vermelha', (tester) async {
     await pumpCard(tester, urgent: false);
     final calmo = decorationOf(tester);
 
     await pumpCard(tester, urgent: true);
     final alerta = decorationOf(tester);
 
-    // O aro é um degradê desenhado como caixa por fora, e não um `Border`:
-    // `BoxBorder` só aceita cor chapada, e o contorno claro em cima descendo
-    // para escuro embaixo é o que dá volume à pílula. A asserção segue medindo
-    // a mesma coisa — a cor com que o aro começa.
+    // A borda é a única coisa que muda de cor com a cor de origem (`accent`
+    // ou `AppColors.digit0` em alerta) — o vidro em si (fundo, blur) é neutro.
+    // Compara ignorando o alfa (o tingimento aplica transparência própria).
+    Color opaque(Color c) => c.withValues(alpha: 1);
+
     expect(
-      (alerta.gradient! as LinearGradient).colors.first.toARGB32(),
-      AppColors.digit0.toARGB32(),
+      opaque((calmo.border! as Border).top.color).toARGB32(),
+      isNot(opaque(AppColors.digit0).toARGB32()),
     );
     expect(
-      alerta.boxShadow!.length,
-      greaterThan(calmo.boxShadow!.length),
-      reason: 'o neon vermelho só existe na urgência',
+      opaque((alerta.border! as Border).top.color).toARGB32(),
+      opaque(AppColors.digit0).toARGB32(),
     );
   });
 

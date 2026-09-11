@@ -156,6 +156,18 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             .creditCoins(_chapterStarsGained * kCoinsPerStar);
       }
 
+      // A Nova é a única fonte de moeda **dentro** de uma jogada. O
+      // `GameNotifier` não tem `ref` (é um `StateNotifier` comum, não um
+      // `Consumer`), então ele só acumula o total em `novaCoinsGranted` — é
+      // a tela quem observa o quanto esse total **cresceu** desde o estado
+      // anterior e credita a diferença na carteira. `previous` só é nulo no
+      // primeiro build, quando não há diferença nenhuma a creditar.
+      if (previous != null && next.novaCoinsGranted > previous.novaCoinsGranted) {
+        ref
+            .read(walletProvider.notifier)
+            .creditCoins(next.novaCoinsGranted - previous.novaCoinsGranted);
+      }
+
       // Toda partida que começa mostra o cartão de novo — inclusive ao tentar
       // de novo, quando o jogador pode ter esquecido o objetivo, e ao avançar,
       // quando o objetivo é outro. O sinal é o `runId`, e não uma transição de
@@ -240,6 +252,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                               targeting: state.isHammerTargeting,
                               count: state.hammerCount,
                               onPressed: notifier.toggleHammerTargeting,
+                              bombButtonKey: bombButtonKey,
+                              bombTargeting: state.isBombTargeting,
+                              bombCount: state.bombCount,
+                              onBombPressed: notifier.toggleBombTargeting,
+                              brushButtonKey: brushButtonKey,
+                              brushTargeting: state.isBrushTargeting,
+                              brushCount: state.brushCount,
+                              onBrushPressed: notifier.toggleBrushTargeting,
                             ),
                           ),
                         // O disco do martelo projeta brilho (`blurRadius` 14)
@@ -266,53 +286,75 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                           // efeitos, e não a tela: quem quebrou foi uma peça, e
                           // um estilhaço que ficasse parado enquanto o tabuleiro
                           // anda denunciaria as duas camadas.
+                          // A Bomba treme mais forte que o Martelo/dígito
+                          // máximo — nove células de uma vez pesam mais que
+                          // uma —, e por isso vive num `StrikeShake` **fora**
+                          // do outro em vez de somar ao mesmo `shakeSerial`:
+                          // um tranco maior por cima de um menor ainda lê como
+                          // um tranco só, mas dois contadores independentes no
+                          // mesmo widget se cancelariam. A Nova treme mais
+                          // forte ainda (2.0x): é o clímax mais raro do jogo,
+                          // e por isso vive na camada mais externa das três.
                           child: StrikeShake(
-                            serial: state.shakeSerial,
-                            child: Stack(
-                              key: _boardKey,
-                              children: [
-                                // Enquanto o cartão de início está aberto o
-                                // tabuleiro não aceita toque: um dedo que
-                                // encostasse fora do cartão gastaria movimento
-                                // antes de o jogador ter lido o objetivo.
-                                IgnorePointer(
-                                  ignoring: !_ready,
-                                  child: BoardGridWidget(
-                                    board: state.board,
-                                    selectedTile: state.selectedTile,
-                                    rejectedSwap: state.rejectedSwap,
-                                    hint: state.hint,
-                                    bigFusionTileIds: state.bigFusionTileIds,
-                                    // A dica só começa a contar depois do
-                                    // "JOGAR": senão o relógio de ociosidade
-                                    // corre enquanto o jogador lê o cartão e a
-                                    // dica acende junto com o tabuleiro.
-                                    // Fase acabada também não sugere jogada.
-                                    // A dica não sugere troca durante a mira: o
-                                    // toque do jogador tem outro destino agora, e
-                                    // um par aceso apontaria para a ação errada.
-                                    hintEnabled:
-                                        _ready &&
-                                        !state.isOver &&
-                                        !state.isHammerTargeting,
-                                    // Durante a mira o toque não chega aqui: a
-                                    // camada de mira o intercepta antes, para
-                                    // poder distinguir "bateu na célula" de
-                                    // "tocou fora e desistiu".
-                                    onTileTap: notifier.selectTile,
-                                    onTileSwipe: notifier.swapTiles,
-                                  ),
+                            serial: state.novaStrikes,
+                            amplitude: kStrikeShakeAmplitude * 2.0,
+                            child: StrikeShake(
+                              serial: state.bombStrikes,
+                              amplitude: kStrikeShakeAmplitude * 1.8,
+                              child: StrikeShake(
+                                serial: state.shakeSerial,
+                                child: Stack(
+                                  key: _boardKey,
+                                  children: [
+                                    // Enquanto o cartão de início está aberto o
+                                    // tabuleiro não aceita toque: um dedo que
+                                    // encostasse fora do cartão gastaria movimento
+                                    // antes de o jogador ter lido o objetivo.
+                                    IgnorePointer(
+                                      ignoring: !_ready,
+                                      child: BoardGridWidget(
+                                        board: state.board,
+                                        selectedTile: state.selectedTile,
+                                        rejectedSwap: state.rejectedSwap,
+                                        hint: state.hint,
+                                        bigFusionTileIds:
+                                            state.bigFusionTileIds,
+                                        // A dica só começa a contar depois do
+                                        // "JOGAR": senão o relógio de ociosidade
+                                        // corre enquanto o jogador lê o cartão e a
+                                        // dica acende junto com o tabuleiro.
+                                        // Fase acabada também não sugere jogada.
+                                        // A dica não sugere troca durante a mira: o
+                                        // toque do jogador tem outro destino agora, e
+                                        // um par aceso apontaria para a ação errada.
+                                        hintEnabled:
+                                            _ready &&
+                                            !state.isOver &&
+                                            !state.isHammerTargeting &&
+                                            !state.isBombTargeting &&
+                                            !state.isBrushTargeting,
+                                        // Durante a mira o toque não chega aqui: a
+                                        // camada de mira o intercepta antes, para
+                                        // poder distinguir "bateu na célula" de
+                                        // "tocou fora e desistiu".
+                                        onTileTap: notifier.selectTile,
+                                        onTileSwipe: notifier.swapTiles,
+                                      ),
+                                    ),
+                                    Positioned.fill(
+                                      child: JuiceOverlay(
+                                        step: state.activeStep,
+                                        comboCount: state.comboCount,
+                                        hammerStrike: state.hammerStrike,
+                                        strikeSerial: state.hammerStrikes,
+                                        bombStrike: state.bombStrike,
+                                        bombStrikeSerial: state.bombStrikes,
+                                        showSupernova: state.pendingSupernova,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Positioned.fill(
-                                  child: JuiceOverlay(
-                                    step: state.activeStep,
-                                    comboCount: state.comboCount,
-                                    hammerStrike: state.hammerStrike,
-                                    strikeSerial: state.hammerStrikes,
-                                    showSupernova: state.pendingSupernova,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -339,6 +381,24 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 boardKey: _boardKey,
                 onCell: notifier.useHammer,
                 onCancel: notifier.cancelHammerTargeting,
+              ),
+            // Mesma camada, área maior: `areaRadius: 1` recorta o 3x3 em vez
+            // da célula única. A Bomba não tem Modo Fantasma, então não há
+            // `pendingBombTarget` para checar aqui.
+            if (state.isBombTargeting)
+              HammerTargetingLayer(
+                boardKey: _boardKey,
+                areaRadius: 1,
+                onCell: notifier.useBomb,
+                onCancel: notifier.cancelBombTargeting,
+              ),
+            // O Pincel mira uma célula só, como o Martelo — `areaRadius`
+            // padrão (0) — e também não tem Modo Fantasma.
+            if (state.isBrushTargeting)
+              HammerTargetingLayer(
+                boardKey: _boardKey,
+                onCell: notifier.usePaint,
+                onCancel: notifier.cancelBrushTargeting,
               ),
             ComboBanner(step: state.activeStep, comboCount: state.comboCount),
             // A chave amarrada à partida faz a comemoração renascer a cada

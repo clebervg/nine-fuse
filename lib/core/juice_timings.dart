@@ -57,4 +57,12 @@ class JuiceTimings {
   /// Quanto tempo o banner e o véu do Supernova ficam na tela depois do
   /// hitstop.
   static const Duration supernovaPayoff = Duration(milliseconds: 900);
+
+  /// Hitstop do evento Nova: mais curto que o do Supernova — a Nova nasce de
+  /// peças que já estavam no tabuleiro, então o "segurar a respiração" é uma
+  /// pausa rápida antes do estouro, não um anúncio de página inteira.
+  static const Duration novaHitstop = Duration(milliseconds: 90);
+
+  /// Onda de choque e faíscas da Nova, depois do hitstop.
+  static const Duration novaPayoff = Duration(milliseconds: 700);
 }

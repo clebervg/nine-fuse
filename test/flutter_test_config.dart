@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/saga_map.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/tile_widget.dart';
 
 /// Configuração aplicada a toda a suíte de testes.
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
@@ -22,6 +23,11 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   // `pumpAndSettle` nunca terminar, então ela fica desligada na suíte inteira —
   // mesma regra do brilho da dica no tabuleiro.
   debugDisableMapPulse = true;
+
+  // O Bloco 9 em repouso também respira sem parar — mesma regra, mesmo
+  // motivo: sem isto, qualquer teste cujo tabuleiro chegue a ter um `9` e
+  // chame `pumpAndSettle` travaria para sempre.
+  debugDisableApexPulse = true;
 
   await testMain();
 }

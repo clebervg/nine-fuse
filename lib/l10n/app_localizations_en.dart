@@ -419,8 +419,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coinSourcesChests => 'Complete the chapters on the map';
 
   @override
+  String get coinSourceNova => 'Trigger a Nova Fusion';
+
+  @override
   String hammerSemantics(int count) {
     return 'Fusion Hammer, $count in stock. Smashes one cell without spending a move.';
+  }
+
+  @override
+  String bombSemantics(int count) {
+    return 'Bomb, $count in stock. Blasts a 3x3 area without spending a move.';
+  }
+
+  @override
+  String brushSemantics(int count) {
+    return 'Brush, $count in stock. Adds 1 to a tile\'s value without spending a move.';
   }
 
   @override

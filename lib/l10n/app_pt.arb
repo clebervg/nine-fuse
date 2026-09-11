@@ -144,6 +144,7 @@
   "coinSourcesStars": "Vença fases com 3 estrelas",
   "coinSourcesAds": "Assista a vídeos de recompensa",
   "coinSourcesChests": "Conclua os capítulos do mapa",
+  "coinSourceNova": "Dispare uma Fusão Nova",
 
   "hammerOfferNoCoins": "Moedas insuficientes",
   "@hammerOfferNoCoins": {
@@ -151,6 +152,10 @@
   },
 
   "hammerSemantics": "Martelo de Fusão, {count} em estoque. Quebra uma célula sem gastar movimento.",
+
+  "bombSemantics": "Bomba, {count} em estoque. Explode uma área 3x3 sem gastar movimento.",
+
+  "brushSemantics": "Pincel, {count} em estoque. Soma 1 ao valor de uma peça sem gastar movimento.",
 
   "movesOfferTitle": "Quase lá!",
   "movesOfferBody": "{count, plural, =1{Resta 1 movimento} other{Restam {count} movimentos}}. Assista a um anúncio curto e ganhe mais {reward}.",

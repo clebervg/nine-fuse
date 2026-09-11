@@ -648,6 +648,94 @@ class MatchEngine {
   }
 
   // ---------------------------------------------------------------------------
+  // Booster: Bomba
+  // ---------------------------------------------------------------------------
+
+  /// Oblitera a vizinhança 3x3 de [at] — peça e cobertura de cada célula que
+  /// exista, recortada nas bordas e nos cantos do tabuleiro — e reassenta.
+  ///
+  /// Nulo quando a área inteira está vazia, pelo mesmo motivo de [smash]: o
+  /// notifier recusa a bomba sem cobrar quando não há nada para destruir.
+  ///
+  /// Reaproveita [_zoneAround] (o mesmo 3x3 que o Bloco 9 usa para limpar
+  /// cobertura ao redor) em vez de somar `[-1, 0, 1]` à mão duas vezes: é a
+  /// única função do arquivo que já sabe recortar um quadrado nas bordas do
+  /// tabuleiro, e divergir dela aqui arriscaria uma bomba que "vaza" para
+  /// fora do grid num canto.
+  Resolution? smashArea(Board board, Position at) {
+    if (!Board.contains(at)) return null;
+
+    final zone = _zoneAround(at, 1);
+    final hasVictim = zone.any((p) => board.getTileAt(p) != null);
+    if (!hasVictim) return null;
+
+    var struck = board;
+    final hits = <ObstacleHit>[];
+    for (final pos in zone) {
+      final tile = struck.getTileAt(pos);
+      if (tile == null) continue;
+      if (tile.isBlocked) {
+        hits.add(
+          ObstacleHit(position: pos, type: tile.obstacle, remainingHp: 0),
+        );
+      }
+      struck = struck.updateTile(pos, null);
+    }
+
+    final settled = refill(applyGravity(struck));
+
+    // Mesmo desenho de `smash`: passo 0, sem fusão nem combo, só o buraco e o
+    // assentamento — a bomba também não é fusão e não pontua por si.
+    final blast = ResolutionStep(
+      cascade: 0,
+      fusions: const [],
+      boardAfterFusion: struck,
+      boardAfterSettle: settled,
+      score: 0,
+      obstacleHits: hits,
+    );
+
+    final cascades = resolve(settled);
+
+    return Resolution(
+      board: cascades.board,
+      steps: [blast, ...cascades.steps],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Booster: Pincel
+  // ---------------------------------------------------------------------------
+
+  /// Soma 1 ao valor da peça em [at] e resolve a partir daí — se o incremento
+  /// fechar uma combinação, ela funde normalmente, com [at] como âncora
+  /// (mesma regra de qualquer troca: a fusão nasce onde o jogador tocou).
+  ///
+  /// Nulo quando não há o que pintar: célula vazia, cobertura (o Pincel não
+  /// afeta obstáculo nenhum), peça especial (Super 9 — repintar destruiria a
+  /// invidualidade que o nasce/morre de [SpecialTileType] já controla) ou
+  /// peça já no dígito máximo, que não tem "+1" para receber. Como em
+  /// [smash]/[smashArea], é este nulo que deixa o notifier recusar sem cobrar
+  /// o item.
+  ///
+  /// Ao contrário da Bomba, não há passo 0 próprio: o Pincel não destrói
+  /// nada, só muda um valor — o `didUpdateWidget` que já anima toda mudança
+  /// de valor de peça cobre o feedback sozinho, e criar um `ResolutionStep`
+  /// vazio só para existir seria estado sem uso.
+  Resolution? paintTile(Board board, Position at) {
+    final tile = board.getTileAt(at);
+    if (tile == null ||
+        tile.isBlocked ||
+        tile.specialType != null ||
+        tile.value >= kMaxDigit) {
+      return null;
+    }
+
+    final painted = board.updateTile(at, tile.copyWith(value: tile.value + 1));
+    return resolve(painted, anchor: at);
+  }
+
+  // ---------------------------------------------------------------------------
   // Resolução (combinação → fusão → queda → reposição → repete)
   // ---------------------------------------------------------------------------
 

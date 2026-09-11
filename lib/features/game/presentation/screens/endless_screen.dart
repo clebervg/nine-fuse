@@ -15,6 +15,7 @@ import 'package:nine_fuse/features/game/presentation/widgets/hammer_targeting_la
 import 'package:nine_fuse/features/game/presentation/widgets/strike_shake.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
+import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 /// Modo Endless: joga até travar, valendo placar.
@@ -46,6 +47,18 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(endlessProvider);
     final notifier = ref.read(endlessProvider.notifier);
+
+    // A Nova é a única fonte de moeda dentro de uma corrida — mesma régua da
+    // campanha (`GameScreen`): o notifier só acumula o total em
+    // `novaCoinsGranted`, e é a tela quem credita o delta na carteira.
+    ref.listen(endlessProvider, (previous, next) {
+      if (previous != null &&
+          next.novaCoinsGranted > previous.novaCoinsGranted) {
+        ref
+            .read(walletProvider.notifier)
+            .creditCoins(next.novaCoinsGranted - previous.novaCoinsGranted);
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
@@ -93,6 +106,14 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                               targeting: state.isHammerTargeting,
                               count: state.hammerCount,
                               onPressed: notifier.toggleHammerTargeting,
+                              bombButtonKey: endlessBombButtonKey,
+                              bombTargeting: state.isBombTargeting,
+                              bombCount: state.bombCount,
+                              onBombPressed: notifier.toggleBombTargeting,
+                              brushButtonKey: endlessBrushButtonKey,
+                              brushTargeting: state.isBrushTargeting,
+                              brushCount: state.brushCount,
+                              onBrushPressed: notifier.toggleBrushTargeting,
                             ),
                           ),
                         // Mesma folga da campanha: o brilho do disco do martelo
@@ -116,35 +137,48 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                             // e um estilhaço parado sobre um tabuleiro que anda
                             // denunciaria as duas camadas.
                             child: StrikeShake(
-                              serial: state.shakeSerial,
-                              child: Stack(
-                                key: _boardKey,
-                                children: [
-                                  BoardGridWidget(
-                                    board: state.board,
-                                    selectedTile: state.selectedTile,
-                                    rejectedSwap: state.rejectedSwap,
-                                    hint: state.hint,
-                                    bigFusionTileIds: state.bigFusionTileIds,
-                                    // A dica não sugere troca durante a mira: o
-                                    // toque tem outro destino agora.
-                                    hintEnabled:
-                                        !state.isOver &&
-                                        !state.isHammerTargeting,
-                                    // Durante a mira o toque não chega aqui: a
-                                    // camada de mira o intercepta antes.
-                                    onTileTap: notifier.selectTile,
-                                    onTileSwipe: notifier.swapTiles,
+                              serial: state.novaStrikes,
+                              amplitude: kStrikeShakeAmplitude * 2.0,
+                              child: StrikeShake(
+                                serial: state.bombStrikes,
+                                amplitude: kStrikeShakeAmplitude * 1.8,
+                                child: StrikeShake(
+                                  serial: state.shakeSerial,
+                                  child: Stack(
+                                    key: _boardKey,
+                                    children: [
+                                      BoardGridWidget(
+                                        board: state.board,
+                                        selectedTile: state.selectedTile,
+                                        rejectedSwap: state.rejectedSwap,
+                                        hint: state.hint,
+                                        bigFusionTileIds:
+                                            state.bigFusionTileIds,
+                                        // A dica não sugere troca durante a mira:
+                                        // o toque tem outro destino agora.
+                                        hintEnabled:
+                                            !state.isOver &&
+                                            !state.isHammerTargeting &&
+                                            !state.isBombTargeting &&
+                                            !state.isBrushTargeting,
+                                        // Durante a mira o toque não chega aqui:
+                                        // a camada de mira o intercepta antes.
+                                        onTileTap: notifier.selectTile,
+                                        onTileSwipe: notifier.swapTiles,
+                                      ),
+                                      Positioned.fill(
+                                        child: JuiceOverlay(
+                                          step: state.activeStep,
+                                          comboCount: state.comboCount,
+                                          hammerStrike: state.hammerStrike,
+                                          strikeSerial: state.hammerStrikes,
+                                          bombStrike: state.bombStrike,
+                                          bombStrikeSerial: state.bombStrikes,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  Positioned.fill(
-                                    child: JuiceOverlay(
-                                      step: state.activeStep,
-                                      comboCount: state.comboCount,
-                                      hammerStrike: state.hammerStrike,
-                                      strikeSerial: state.hammerStrikes,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
@@ -164,6 +198,19 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                 boardKey: _boardKey,
                 onCell: notifier.useHammer,
                 onCancel: notifier.cancelHammerTargeting,
+              ),
+            if (state.isBombTargeting)
+              HammerTargetingLayer(
+                boardKey: _boardKey,
+                areaRadius: 1,
+                onCell: notifier.useBomb,
+                onCancel: notifier.cancelBombTargeting,
+              ),
+            if (state.isBrushTargeting)
+              HammerTargetingLayer(
+                boardKey: _boardKey,
+                onCell: notifier.usePaint,
+                onCancel: notifier.cancelBrushTargeting,
               ),
             if (state.pendingHammerTarget != null && !state.isOver)
               Positioned.fill(

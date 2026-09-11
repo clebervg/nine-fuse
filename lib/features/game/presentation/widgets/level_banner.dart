@@ -4,6 +4,7 @@ import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/features/game/domain/star_rating.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/obstacle_overlay.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_metric_card.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/glass_panel.dart';
 import 'package:nine_fuse/features/game/presentation/l10n_labels.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
@@ -64,29 +65,8 @@ class LevelBanner extends StatelessWidget {
     // na tela de vitória é alarme falso.
     final urgent = !state.isOver && state.movesLeft <= kUrgentMovesLeft;
 
-    return Container(
+    return GlassPanel(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        // Degradê em vez de cor chapada, e um aro claro no topo: o cabeçalho
-        // passa a ter volume, como as peças do tabuleiro.
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF262631), Color(0xFF17171D)],
-        ),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.10),
-          width: 1.5,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x99000000),
-            blurRadius: 14,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
       child: Column(
         children: [
           IntrinsicHeight(

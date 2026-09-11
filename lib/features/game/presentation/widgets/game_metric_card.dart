@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/glass_panel.dart';
 
 /// Duração de uma batida da pílula em alerta.
 ///
@@ -63,7 +64,9 @@ class GameMetricCard extends StatelessWidget {
   /// as três informações valem o mesmo — e não valem: os pontos são placar, o
   /// objetivo é consulta, e o **saldo de movimentos** é o relógio que decide a
   /// fase. O destaque é o que dá hierarquia sem precisar de um rótulo dizendo
-  /// "olhe aqui": aro em degradê quente, base mais funda e número maior.
+  /// "olhe aqui": borda mais acesa (a própria `accent`, âmbar neste card) e
+  /// número maior — sem uma segunda moldura por fora, que era o antigo aro em
+  /// degradê.
   final bool hero;
 
   /// Corpo do número, quando o padrão da pílula não serve.
@@ -73,125 +76,62 @@ class GameMetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ring = urgent ? AppColors.digit0 : accent;
 
-    // A borda é um degradê, e por isso é uma **caixa por fora** e não um
-    // `Border.all`: `BoxBorder` só aceita cor chapada. O aro claro em cima
-    // descendo para escuro embaixo é o que faz a peça parecer iluminada de
-    // cima, como as do tabuleiro — um contorno de cor única lê como contorno
-    // de formulário.
-    final pill = Container(
-      padding: EdgeInsets.all(urgent || hero ? 2 : 1.4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: hero && !urgent
-              ? [
-                  AppColors.lighten(AppColors.digit3, 0.35),
-                  AppColors.digit4.withValues(alpha: 0.75),
-                ]
-              : [
-                  ring.withValues(alpha: urgent ? 1 : 0.72),
-                  ring.withValues(alpha: urgent ? 0.7 : 0.18),
-                ],
-        ),
-        boxShadow: [
-          if (urgent)
-            // Neon vermelho só na urgência: aceso o tempo todo, deixaria de
-            // significar alguma coisa.
-            BoxShadow(
-              color: AppColors.digit0.withValues(alpha: 0.5),
-              blurRadius: 16,
-              spreadRadius: 1,
-            )
-          else if (hero)
-            BoxShadow(
-              color: AppColors.digit3.withValues(alpha: 0.32),
-              blurRadius: 14,
+    // Vidro fosco em vez do aro-degradê + caixa dupla de antes: a hierarquia
+    // (objetivo/pontos vs. o "relógio" da fase) agora vem só da cor da borda e
+    // do tamanho da fonte, não de uma segunda moldura por fora.
+    final pill = GlassPanel(
+      borderRadius: 14.5,
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 14,
+        vertical: compact ? 8 : 10,
+      ),
+      tint: ring,
+      emphasis: hero,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Encolhe em vez de cortar. "Maior Blo…" não diz de que "maior" se
+          // trata — que é exatamente o problema que o rótulo longo veio
+          // resolver —, então aqui reticência é pior que letra menor.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: compact ? 13 : 14, color: ring),
+                const SizedBox(width: 5),
+                Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.62),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.7,
+                  ),
+                ),
+              ],
             ),
-          // A base projetada é o que dá os três de "3D": a caixa passa a ter
-          // um lado de baixo, em vez de estar colada no fundo. Mais funda no
-          // cartão principal, porque quem está mais à frente projeta mais
-          // longe.
-          BoxShadow(
-            color: const Color(0xB3000000),
-            blurRadius: hero ? 14 : 10,
-            offset: Offset(0, hero ? 6 : 4),
+          ),
+          const SizedBox(height: 3),
+          // Encolhe em vez de cortar: um placar com reticências não é placar.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child:
+                valueWidget ??
+                Text(
+                  value!,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontFamily: AppFonts.display,
+                    color: urgent ? AppColors.digit0 : Colors.white,
+                    fontSize: valueFontSize ?? (compact ? 20 : 22),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.2,
+                  ),
+                ),
           ),
         ],
-      ),
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: compact ? 10 : 14,
-          vertical: compact ? 8 : 10,
-        ),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14.5),
-          // Escuro translúcido com um fio da cor no topo: é o "brilho interno"
-          // que separa a pílula do fundo sem clarear a caixa inteira. No cartão
-          // principal o fundo puxa para o quente, para ele se distinguir dos
-          // irmãos mesmo em foto sem cor de aro visível.
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.lerp(
-                const Color(0xFF23232B),
-                hero && !urgent ? AppColors.digit4 : ring,
-                hero ? 0.22 : 0.16,
-              )!,
-              hero && !urgent
-                  ? const Color(0xFF1A1512)
-                  : const Color(0xFF141419),
-            ],
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Encolhe em vez de cortar. "Maior Blo…" não diz de que "maior" se
-            // trata — que é exatamente o problema que o rótulo longo veio
-            // resolver —, então aqui reticência é pior que letra menor.
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: compact ? 13 : 14, color: ring),
-                  const SizedBox(width: 5),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.62),
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.7,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 3),
-            // Encolhe em vez de cortar: um placar com reticências não é placar.
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child:
-                  valueWidget ??
-                  Text(
-                    value!,
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontFamily: AppFonts.display,
-                      color: urgent ? AppColors.digit0 : Colors.white,
-                      fontSize: valueFontSize ?? (compact ? 20 : 22),
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-            ),
-          ],
-        ),
       ),
     );
 

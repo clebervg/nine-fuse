@@ -7,7 +7,10 @@ import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/endless_progression.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
+import 'package:nine_fuse/features/game/domain/nova_event.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
+import 'package:nine_fuse/features/game/providers/bomb_booster.dart';
+import 'package:nine_fuse/features/game/providers/brush_booster.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
@@ -21,7 +24,10 @@ import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
 /// janela dobra a duração e leva ao 9. Ver [EndlessProgression], e
 /// `tool/simulate_economy.dart --mode=endless` para os números.
 class EndlessNotifier extends StateNotifier<EndlessState>
-    with HammerBooster<EndlessState> {
+    with
+        HammerBooster<EndlessState>,
+        BombBooster<EndlessState>,
+        BrushBooster<EndlessState> {
   EndlessNotifier({
     Random? random,
     GameStorage? storage,
@@ -87,6 +93,83 @@ class EndlessNotifier extends StateNotifier<EndlessState>
     }
   }
 
+  @override
+  GameStorage get bombStorage => _storage;
+
+  @override
+  MatchEngine? get bombEngine => _engine;
+
+  @override
+  Board get bombBoard => state.board;
+
+  @override
+  BombState get bomb => state.bomb;
+
+  @override
+  void writeBomb(BombState value) => state = state.copyWith(bomb: value);
+
+  @override
+  bool get acceptsBomb =>
+      state.status == EndlessStatus.playing && !state.isResolving;
+
+  @override
+  void onBombTargetingStarted() {
+    state = state.copyWith(clearSelectedTile: true, clearRejectedSwap: true);
+  }
+
+  /// O estouro também não conta como movimento, mesmo motivo do Martelo.
+  @override
+  void playBombResolution(MatchEngine engine, Resolution resolution) {
+    if (JuiceTimings.instantResolution) {
+      _finishMove(
+        engine,
+        resolution,
+        extraScore: resolution.score,
+        countsAsMove: false,
+      );
+    } else {
+      _playResolution(engine, resolution, countsAsMove: false);
+    }
+  }
+
+  @override
+  GameStorage get brushStorage => _storage;
+
+  @override
+  MatchEngine? get brushEngine => _engine;
+
+  @override
+  Board get brushBoard => state.board;
+
+  @override
+  BrushState get brush => state.brush;
+
+  @override
+  void writeBrush(BrushState value) => state = state.copyWith(brush: value);
+
+  @override
+  bool get acceptsBrush =>
+      state.status == EndlessStatus.playing && !state.isResolving;
+
+  @override
+  void onBrushTargetingStarted() {
+    state = state.copyWith(clearSelectedTile: true, clearRejectedSwap: true);
+  }
+
+  @override
+  void playBrushResolution(MatchEngine engine, Resolution resolution) {
+    if (JuiceTimings.instantResolution) {
+      _finishMove(
+        engine,
+        resolution,
+        extraScore: resolution.score,
+        countsAsMove: false,
+      );
+    } else {
+      _playResolution(engine, resolution, countsAsMove: false);
+    }
+  }
+
   int _highScore = 0;
 
   /// Recorde conhecido. Zero até [start] carregar o valor salvo.
@@ -119,11 +202,16 @@ class EndlessNotifier extends StateNotifier<EndlessState>
       // O estoque atravessa a corrida nova; a mira e o estilhaço ficam com a
       // que acabou.
       hammer: state.hammer.inventoryOnly,
+      bomb: state.bomb.inventoryOnly,
+      brush: state.brush.inventoryOnly,
     );
 
-    // A campanha pode ter gastado um martelo enquanto esta tela estava viva: o
-    // estoque é o mesmo, e quem chegou por último ao disco manda.
+    // A campanha pode ter gastado um martelo (ou uma bomba) enquanto esta tela
+    // estava viva: o estoque é o mesmo, e quem chegou por último ao disco
+    // manda.
     await refreshHammers();
+    await refreshBombs();
+    await refreshBrushes();
   }
 
   void _applyWindow(MatchEngine engine, int step) {
@@ -274,6 +362,29 @@ class EndlessNotifier extends StateNotifier<EndlessState>
             if (fusion.isBig) fusion.tileId,
         },
       );
+
+      // A Nova, mesmo desenho da campanha (ver `GameNotifier._playResolution`):
+      // hitstop antes do payoff, tranco dedicado (`novaStrikes`) e a
+      // recompensa de moeda + 1 booster sorteado (Bomba ou Pincel).
+      if (step.novaEvents.isNotEmpty) {
+        await _delay(JuiceTimings.novaHitstop);
+        if (!mounted) return;
+        explosionFeedback();
+
+        final coinsGained = step.novaEvents
+            .map((nova) => novaCoinsForTier(nova.tier))
+            .fold(0, (a, b) => a + b);
+        state = state.copyWith(
+          novaStrikes: state.novaStrikes + 1,
+          novaCoinsGranted: state.novaCoinsGranted + coinsGained,
+        );
+        if (_random.nextBool()) {
+          grantBomb();
+        } else {
+          grantBrush();
+        }
+      }
+
       await _delay(JuiceTimings.fusion);
       if (!mounted) return;
 

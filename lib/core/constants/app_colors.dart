@@ -7,7 +7,7 @@ class AppColors {
   static const Color digit0 = Color(0xFFE53935); // Vermelho vibrante
   static const Color digit1 = Color(0xFF1E88E5); // Azul neon
   static const Color digit2 = Color(0xFF43A047); // Verde lima
-  static const Color digit3 = Color(0xFFFDD835); // Amarelo/Dourado
+  static const Color digit3 = Color(0xFF8BC34A);
   static const Color digit4 = Color(0xFFFB8C00); // Laranja
   static const Color digit5 = Color(0xFF8E24AA); // Roxo
   /// Rosa neon. Não é o "rosa choque" original (`0xFFD81B60`): aquele ficava a

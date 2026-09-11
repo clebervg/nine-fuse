@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:nine_fuse/core/ads/ad_providers.dart';
+import 'package:nine_fuse/core/assets/tile_sprite_manager.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/features/game/presentation/screens/splash_screen.dart';
@@ -24,6 +27,13 @@ void main() {
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   AppFonts.registerLicense();
+
+  // Também não é esperado, pelo mesmo motivo do SDK de anúncio: é a produção
+  // artística chegando aos poucos, e nenhum dígito/obstáculo tem sprite
+  // ainda. Um asset ausente é engolido pelo próprio manager — não há por que
+  // segurar a abertura do jogo por isso.
+  unawaited(TileSpriteManager.preload());
+  unawaited(TileSpriteManager.preloadObstacles());
 
   // A inicialização do SDK é assíncrona e **não é esperada**: ela leva algumas
   // centenas de milissegundos, e segurar o `runApp` até lá trocaria a abertura

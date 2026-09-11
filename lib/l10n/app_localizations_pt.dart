@@ -421,8 +421,21 @@ class AppLocalizationsPt extends AppLocalizations {
   String get coinSourcesChests => 'Conclua os capítulos do mapa';
 
   @override
+  String get coinSourceNova => 'Dispare uma Fusão Nova';
+
+  @override
   String hammerSemantics(int count) {
     return 'Martelo de Fusão, $count em estoque. Quebra uma célula sem gastar movimento.';
+  }
+
+  @override
+  String bombSemantics(int count) {
+    return 'Bomba, $count em estoque. Explode uma área 3x3 sem gastar movimento.';
+  }
+
+  @override
+  String brushSemantics(int count) {
+    return 'Pincel, $count em estoque. Soma 1 ao valor de uma peça sem gastar movimento.';
   }
 
   @override

@@ -2187,6 +2187,289 @@ void main() {
     });
   });
 
+  group('smashArea (Bomba)', () {
+    Board cover(Board board, Position at, ObstacleType type) =>
+        board.updateTile(at, board.getTileAt(at)!.withObstacle(type));
+
+    test('devolve nulo fora do tabuleiro', () {
+      final board = boardFromValues(baseGrid());
+
+      expect(
+        engine.smashArea(board, const Position(row: -1, col: 0)),
+        isNull,
+      );
+    });
+
+    test('devolve nulo quando a área inteira está vazia', () {
+      var board = boardFromValues(baseGrid());
+      // Esvazia todo o 3x3 ao redor de (4,4).
+      for (int row = 3; row <= 5; row++) {
+        for (int col = 3; col <= 5; col++) {
+          board = board.updateTile(Position(row: row, col: col), null);
+        }
+      }
+
+      expect(engine.smashArea(board, const Position(row: 4, col: 4)), isNull);
+    });
+
+    test('oblitera as 9 peças do 3x3 central e devolve o tabuleiro cheio', () {
+      final board = boardFromValues(baseGrid());
+      final victimIds = [
+        for (int row = 3; row <= 5; row++)
+          for (int col = 3; col <= 5; col++)
+            board.getTileAt(Position(row: row, col: col))!.id,
+      ];
+
+      final resolution = engine.smashArea(
+        board,
+        const Position(row: 4, col: 4),
+      )!;
+
+      for (final id in victimIds) {
+        expect(
+          resolution.board.getAllTiles().where((t) => t.id == id),
+          isEmpty,
+          reason: 'peça $id devia ter sido destruída',
+        );
+      }
+      expect(resolution.board.isFull, isTrue);
+    });
+
+    test('numa borda, recorta a área em vez de vazar para fora do grid', () {
+      // (0, 4): a linha -1 não existe, então só 6 células (2x3) são atingidas.
+      final board = boardFromValues(baseGrid());
+      final untouchedAbove = board.getTileAt(const Position(row: 0, col: 4));
+      expect(untouchedAbove, isNotNull);
+
+      final resolution = engine.smashArea(
+        board,
+        const Position(row: 0, col: 4),
+      )!;
+
+      // A peça em (0,3) e (0,5) (mesma linha, dentro da área) somem; nada
+      // fora do tabuleiro é sequer consultado — se o recorte vazasse, o
+      // motor já teria estourado ao tentar ler a linha -1.
+      expect(resolution.board.isFull, isTrue);
+    });
+
+    test('num canto, recorta para o quadrante 2x2 que existe', () {
+      final board = boardFromValues(baseGrid());
+      final cornerId = board.getTileAt(const Position(row: 0, col: 0))!.id;
+
+      final resolution = engine.smashArea(
+        board,
+        const Position(row: 0, col: 0),
+      )!;
+
+      expect(
+        resolution.board.getAllTiles().where((t) => t.id == cornerId),
+        isEmpty,
+      );
+      expect(resolution.board.isFull, isTrue);
+    });
+
+    test('oblitera cobertura dentro da área, mesmo longe do centro', () {
+      final board = cover(
+        boardFromValues(baseGrid()),
+        const Position(row: 3, col: 3),
+        ObstacleType.stone,
+      );
+
+      final resolution = engine.smashArea(
+        board,
+        const Position(row: 4, col: 4),
+      )!;
+
+      expect(resolution.board.countObstacles(ObstacleType.stone), 0);
+    });
+
+    test('conta cada cobertura destruída na área como limpa', () {
+      var board = boardFromValues(baseGrid());
+      board = cover(board, const Position(row: 3, col: 3), ObstacleType.ice);
+      board = cover(board, const Position(row: 5, col: 5), ObstacleType.ice);
+
+      final resolution = engine.smashArea(
+        board,
+        const Position(row: 4, col: 4),
+      )!;
+
+      expect(resolution.countCleared(ObstacleType.ice), 2);
+    });
+
+    test('não evolui os dígitos destruídos', () {
+      final values = baseGrid();
+      values[4][4] = 7;
+      final board = boardFromValues(values);
+
+      final resolution = engine.smashArea(
+        board,
+        const Position(row: 4, col: 4),
+      )!;
+
+      expect(resolution.producedDigits, isNot(contains(8)));
+    });
+
+    test('uma célula vazia dentro da área não impede a bomba', () {
+      final board = boardFromValues(
+        baseGrid(),
+      ).updateTile(const Position(row: 4, col: 5), null);
+
+      final resolution = engine.smashArea(
+        board,
+        const Position(row: 4, col: 4),
+      )!;
+
+      expect(resolution.board.isFull, isTrue);
+    });
+
+    test('a queda que forma combinação resolve normalmente', () {
+      // Duas peças de `5` já na linha final (fora das colunas que a bomba
+      // limpa) e uma terceira acima da zona, na coluna 3: a bomba esvazia as
+      // linhas 3-5 da coluna 3, e a queda arrasta essa peça exatamente três
+      // linhas, encostando nas outras duas e fechando o trio horizontal — a
+      // combinação nasce da queda, não existia no tabuleiro original.
+      final values = baseGrid();
+      values[5][1] = 5;
+      values[5][2] = 5;
+      values[2][3] = 5;
+      final board = boardFromValues(values);
+      expect(
+        engine.detectMatches(board),
+        isEmpty,
+        reason: 'ainda não há combinação antes da bomba cair',
+      );
+
+      final resolution = engine.smashArea(
+        board,
+        const Position(row: 4, col: 4),
+      )!;
+
+      expect(resolution.steps, isNotEmpty);
+      expect(resolution.producedDigits, contains(6));
+    });
+  });
+
+  group('paintTile (Pincel)', () {
+    Board cover(Board board, Position at, ObstacleType type) =>
+        board.updateTile(at, board.getTileAt(at)!.withObstacle(type));
+
+    test('devolve nulo fora do tabuleiro', () {
+      final board = boardFromValues(baseGrid());
+
+      expect(
+        engine.paintTile(board, const Position(row: -1, col: 0)),
+        isNull,
+      );
+    });
+
+    test('devolve nulo na casa vazia', () {
+      final board = boardFromValues(
+        baseGrid(),
+      ).updateTile(const Position(row: 4, col: 4), null);
+
+      expect(engine.paintTile(board, const Position(row: 4, col: 4)), isNull);
+    });
+
+    test('devolve nulo sobre cobertura — o Pincel não afeta obstáculo', () {
+      final board = cover(
+        boardFromValues(baseGrid()),
+        const Position(row: 4, col: 4),
+        ObstacleType.ice,
+      );
+
+      expect(engine.paintTile(board, const Position(row: 4, col: 4)), isNull);
+    });
+
+    test('devolve nulo sobre o dígito máximo — não há "+1" a dar', () {
+      final values = baseGrid();
+      values[4][4] = kMaxDigit;
+      final board = boardFromValues(values);
+
+      expect(engine.paintTile(board, const Position(row: 4, col: 4)), isNull);
+    });
+
+    test('devolve nulo sobre peça especial (Super 9)', () {
+      final board = boardFromValues(baseGrid()).updateTile(
+        const Position(row: 4, col: 4),
+        Tile.withSpecial(
+          id: 'super',
+          value: kMaxDigit,
+          position: const Position(row: 4, col: 4),
+          specialType: SpecialTileType.superNine,
+        ),
+      );
+
+      expect(engine.paintTile(board, const Position(row: 4, col: 4)), isNull);
+    });
+
+    test('soma 1 ao valor da peça, sem combinação por perto', () {
+      final values = baseGrid();
+      values[4][4] = 3;
+      final board = boardFromValues(values);
+
+      final resolution = engine.paintTile(
+        board,
+        const Position(row: 4, col: 4),
+      )!;
+
+      expect(
+        resolution.board.getTileAt(const Position(row: 4, col: 4))?.value,
+        4,
+      );
+    });
+
+    test('preserva o id da peça pintada quando não forma combinação', () {
+      final values = baseGrid();
+      values[4][4] = 3;
+      final board = boardFromValues(values);
+      final id = board.getTileAt(const Position(row: 4, col: 4))!.id;
+
+      final resolution = engine.paintTile(
+        board,
+        const Position(row: 4, col: 4),
+      )!;
+
+      expect(
+        resolution.board.getTileAt(const Position(row: 4, col: 4))?.id,
+        id,
+      );
+    });
+
+    test('se o incremento fechar uma combinação, ela funde na célula tocada', () {
+      // Duas peças de valor 4 encostando a que vai virar 4 pelo pincel.
+      final values = baseGrid();
+      values[4][3] = 4;
+      values[4][5] = 4;
+      values[4][4] = 3;
+      final board = boardFromValues(values);
+
+      final resolution = engine.paintTile(
+        board,
+        const Position(row: 4, col: 4),
+      )!;
+
+      expect(resolution.producedDigits, contains(5));
+      expect(
+        resolution.board.getTileAt(const Position(row: 4, col: 4))?.value,
+        5,
+        reason: 'a fusão nasce onde o jogador tocou',
+      );
+    });
+
+    test('não gasta cascata quando não forma combinação', () {
+      final values = baseGrid();
+      values[4][4] = 3;
+      final board = boardFromValues(values);
+
+      final resolution = engine.paintTile(
+        board,
+        const Position(row: 4, col: 4),
+      )!;
+
+      expect(resolution.steps, isEmpty);
+    });
+  });
+
   group('ativação do Super 9', () {
     Board withSuperNineAt(Position at, {int neighbourValue = 3}) {
       var board = boardFromValues(baseGrid());

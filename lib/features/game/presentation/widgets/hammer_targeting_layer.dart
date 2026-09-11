@@ -62,6 +62,7 @@ class HammerTargetingLayer extends StatefulWidget {
     required this.boardKey,
     required this.onCell,
     required this.onCancel,
+    this.areaRadius = 0,
   });
 
   /// Chave do widget do tabuleiro, para descobrir onde ele está na tela.
@@ -72,6 +73,15 @@ class HammerTargetingLayer extends StatefulWidget {
 
   /// O jogador tocou fora do tabuleiro.
   final VoidCallback onCancel;
+
+  /// Quantas células o destaque estende além da tocada, em cada direção.
+  ///
+  /// `0` é o Martelo: só a célula sob o dedo. `1` é a Bomba: o quadrado 3x3
+  /// centrado nela — a mesma camada de mira dos dois boosters, generalizada
+  /// por este único número em vez de um segundo widget quase idêntico.
+  /// [onCell] continua entregando o **centro**; é o motor (`smash` ou
+  /// `smashArea`) quem decide o que a área realmente cobre.
+  final int areaRadius;
 
   @override
   State<HammerTargetingLayer> createState() => _HammerTargetingLayerState();
@@ -202,11 +212,12 @@ class _HammerTargetingLayerState extends State<HammerTargetingLayer>
     if (cell == null) return board;
 
     final geometry = BoardGeometry(availableWidth: board.width);
+    final span = 2 * widget.areaRadius + 1;
     final rect = Rect.fromLTWH(
-      board.left + geometry.left(cell.col),
-      board.top + geometry.top(cell.row),
-      geometry.tileSize,
-      geometry.tileSize,
+      board.left + geometry.left(cell.col - widget.areaRadius),
+      board.top + geometry.top(cell.row - widget.areaRadius),
+      geometry.tileSize * span,
+      geometry.tileSize * span,
     );
     // Cresce a partir do centro: o recorte tem de acompanhar o destaque, senão
     // a borda que cresce nasce por baixo do véu.

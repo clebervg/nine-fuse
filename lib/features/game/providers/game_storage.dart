@@ -49,6 +49,15 @@ abstract interface class GameStorage {
   Future<int> readHammerCount();
   Future<void> writeHammerCount(int count);
 
+  /// Bombas em estoque. Mesmo tratamento do Martelo: inventário do jogador,
+  /// não da fase.
+  Future<int> readBombCount();
+  Future<void> writeBombCount(int count);
+
+  /// Pincéis em estoque. Mesmo tratamento do Martelo e da Bomba.
+  Future<int> readBrushCount();
+  Future<void> writeBrushCount(int count);
+
   /// Moedas em carteira.
   ///
   /// Como o martelo, é do **jogador** e não da fase. Diferente dele, nenhuma
@@ -75,6 +84,8 @@ class PrefsGameStorage implements GameStorage {
   static const String _archivedStarsKey = 'campaign_archived_stars';
   static const String _prunedBelowKey = 'campaign_pruned_below';
   static const String _hammerKey = 'booster_hammer_count';
+  static const String _bombKey = 'booster_bomb_count';
+  static const String _brushKey = 'booster_brush_count';
   static const String _coinsKey = 'wallet_coins';
   static const String _chestsKey = 'campaign_chests_claimed';
 
@@ -101,6 +112,22 @@ class PrefsGameStorage implements GameStorage {
   @override
   Future<void> writeHammerCount(int count) async =>
       (await SharedPreferences.getInstance()).setInt(_hammerKey, count);
+
+  @override
+  Future<int> readBombCount() async =>
+      (await SharedPreferences.getInstance()).getInt(_bombKey) ?? 0;
+
+  @override
+  Future<void> writeBombCount(int count) async =>
+      (await SharedPreferences.getInstance()).setInt(_bombKey, count);
+
+  @override
+  Future<int> readBrushCount() async =>
+      (await SharedPreferences.getInstance()).getInt(_brushKey) ?? 0;
+
+  @override
+  Future<void> writeBrushCount(int count) async =>
+      (await SharedPreferences.getInstance()).setInt(_brushKey, count);
 
   @override
   Future<int> readCoins() async =>
@@ -199,6 +226,8 @@ class InMemoryGameStorage implements GameStorage {
     this.campaignProgress = 0,
     this.highScore = 0,
     this.hammerCount = 0,
+    this.bombCount = 0,
+    this.brushCount = 0,
     this.coins = 0,
     this.archivedStars = 0,
     this.prunedBelow = 0,
@@ -210,6 +239,8 @@ class InMemoryGameStorage implements GameStorage {
   int campaignProgress;
   int highScore;
   int hammerCount;
+  int bombCount;
+  int brushCount;
   int coins;
   int archivedStars;
   int prunedBelow;
@@ -234,6 +265,18 @@ class InMemoryGameStorage implements GameStorage {
 
   @override
   Future<void> writeHammerCount(int count) async => hammerCount = count;
+
+  @override
+  Future<int> readBombCount() async => bombCount;
+
+  @override
+  Future<void> writeBombCount(int count) async => bombCount = count;
+
+  @override
+  Future<int> readBrushCount() async => brushCount;
+
+  @override
+  Future<void> writeBrushCount(int count) async => brushCount = count;
 
   @override
   Future<int> readCoins() async => coins;

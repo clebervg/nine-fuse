@@ -58,6 +58,26 @@ void main() {
     expect(find.text('0'), findsOneWidget);
   });
 
+  testWidgets(
+    'com o asset de moeda em disco, desenha o sprite em vez do emoji',
+    (tester) async {
+      // `ic_coin.png` já foi produzido e está em `assets/images/`: com o
+      // arquivo presente, `Image.asset` carrega normalmente e o glifo passa a
+      // ser o sprite, não mais o emoji.
+      await pumpBadge(tester, coins: 12);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byKey(coinsHeaderBadgeKey),
+          matching: find.byType(Image),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('🪙'), findsNothing);
+    },
+  );
+
   testWidgets('o martelo só entra quando pedido', (tester) async {
     await pumpBadge(tester, coins: 250, hammers: 3);
 

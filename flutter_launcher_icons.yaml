@@ -1,42 +1,42 @@
-# Ícones nativos de todas as plataformas, gerados a partir dos mestres.
+# Ícones nativos de todas as plataformas, gerados a partir do mestre em
+# assets/icon/app_icon.png.
 #
-#   dart run tool/prepare_icons.dart      # SVG -> mestres (chama o rsvg-convert)
-#   dart run flutter_launcher_icons       # mestres -> todos os tamanhos
+#   dart run flutter_launcher_icons       # mestre -> todos os tamanhos
 #
-# Os mestres em assets/icon/ (e o próprio assets/images/logo.png) são derivados
-# de assets/images/logo.svg, a fonte da verdade, e não devem ser editados à mão
-# — regere-os com a ferramenta acima.
+# **Mudança de fonte (2026-09-10):** o mestre passou a ser um PNG 1024x1024
+# entregue pronto (o brasão dourado com o "9"), e não mais derivado de
+# `assets/images/logo.svg` via `tool/prepare_icons.dart`. Os dois artefatos
+# antigos daquele pipeline (`app_icon_old.png`, `app_icon_foreground.png`)
+# ficaram para trás em `assets/icon/` como referência — não apague sem
+# confirmar que ninguém vai precisar recompor o pipeline do SVG.
 #
-# A cor de fundo é o stop externo do gradiente do SVG. Ela precisa acompanhar
-# qualquer mudança nesse stop: é ela que preenche o que a arte não cobre, e uma
-# divergência aparece como um halo quadrado atrás do ícone.
+# **Sem ícone adaptativo (Android) desta vez, e é decisão explícita.** O
+# mestre novo não veio com uma camada de frente separada (fundo transparente,
+# arte recortada na zona segura de 66%) nem com o SVG de origem para a
+# ferramenta extrair uma — as faíscas do brasão encostam perto da borda, e
+# usar o quadro inteiro como `adaptive_icon_foreground` cortaria pontas em
+# aparelhos que aplicam máscara circular. Até uma frente de verdade ser
+# produzida, o Android usa o mestre como ícone único (legado, sem recorte
+# adaptativo) — pior do que o ícone adaptativo, melhor do que uma faísca
+# decepada.
 flutter_launcher_icons:
-  # Quadrado opaco. O logo original tem cantos transparentes, o que a App Store
-  # rejeita; o arredondamento é aplicado por cada sistema.
   image_path: "assets/icon/app_icon.png"
 
   ios: true
-  # Redundante com o mestre já achatado, mas mantido como rede de segurança:
-  # se alguém trocar o `image_path` por um PNG com alfa, o envio continua
+  # O mestre já é opaco (sem canal alfa em uso), mas mantido como rede de
+  # segurança: se um mestre futuro vier com transparência, o envio continua
   # válido em vez de ser recusado na revisão.
   remove_alpha_ios: true
-  background_color_ios: "#000028"
+  # Amostrado do canto do próprio mestre novo (`#06091F`), não mais do stop
+  # do gradiente do SVG antigo — é o que preenche atrás do ícone quando o
+  # sistema aplica a máscara arredondada do iOS.
+  background_color_ios: "#06091F"
 
   android: "ic_launcher"
   min_sdk_android: 21
 
-  # Android 8+ recorta a frente em círculo, quadrado ou outras máscaras
-  # conforme o aparelho. `app_icon_foreground.png` É gerado por
-  # `tool/prepare_icons.dart` (função `_insetForAdaptive`), a partir do grupo
-  # `<g id="mark">` de `assets/images/logo.svg` — a arte sem o retângulo de
-  # fundo, recortada pelo raio da zona segura de 66% (o sistema recorta tudo
-  # fora dela). Não é editado à mão: regere-o com a ferramenta sempre que o
-  # SVG mudar.
-  adaptive_icon_background: "#000028"
-  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
-
   web:
     generate: true
     image_path: "assets/icon/app_icon.png"
-    background_color: "#000028"
-    theme_color: "#000028"
+    background_color: "#06091F"
+    theme_color: "#06091F"

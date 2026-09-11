@@ -673,11 +673,29 @@ abstract class AppLocalizations {
   /// **'Complete the chapters on the map'**
   String get coinSourcesChests;
 
+  /// No description provided for @coinSourceNova.
+  ///
+  /// In en, this message translates to:
+  /// **'Trigger a Nova Fusion'**
+  String get coinSourceNova;
+
   /// No description provided for @hammerSemantics.
   ///
   /// In en, this message translates to:
   /// **'Fusion Hammer, {count} in stock. Smashes one cell without spending a move.'**
   String hammerSemantics(int count);
+
+  /// No description provided for @bombSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Bomb, {count} in stock. Blasts a 3x3 area without spending a move.'**
+  String bombSemantics(int count);
+
+  /// No description provided for @brushSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Brush, {count} in stock. Adds 1 to a tile\'s value without spending a move.'**
+  String brushSemantics(int count);
 
   /// No description provided for @movesOfferTitle.
   ///

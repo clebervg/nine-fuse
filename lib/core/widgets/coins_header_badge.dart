@@ -71,10 +71,13 @@ class CoinsHeaderBadge extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _Amount(emoji: '🪙', value: coins),
+            _Amount(glyph: const _CoinGlyph(), value: coins),
             if (hammers case final count?) ...[
               const _Divider(),
-              _Amount(emoji: '🔨', value: count),
+              _Amount(
+                glyph: const Text('🔨', style: TextStyle(fontSize: 14)),
+                value: count,
+              ),
             ],
             const SizedBox(width: 6),
             _AddButton(onPressed: () => showCoinStore(context)),
@@ -99,18 +102,18 @@ Future<void> showCoinStore(BuildContext context) => showDialog<void>(
   builder: (_) => const _CoinStoreDialog(),
 );
 
-/// Um valor da pílula: emoji e número.
+/// Um valor da pílula: glifo (emoji ou ícone) e número.
 class _Amount extends StatelessWidget {
-  const _Amount({required this.emoji, required this.value});
+  const _Amount({required this.glyph, required this.value});
 
-  final String emoji;
+  final Widget glyph;
   final int value;
 
   @override
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Text(emoji, style: const TextStyle(fontSize: 14)),
+      glyph,
       const SizedBox(width: 5),
       Text(
         '$value',
@@ -123,6 +126,26 @@ class _Amount extends StatelessWidget {
         ),
       ),
     ],
+  );
+}
+
+/// Glifo da moeda: o ícone em imagem, quando existir, com o emoji atual como
+/// fallback.
+///
+/// `assets/images/` já é uma pasta inteira declarada no `pubspec.yaml`, então
+/// não há nada a registrar ali para este asset entrar em vigor — só precisa
+/// existir no disco. Até lá, `Image.asset` falha ao carregar e o
+/// `errorBuilder` cai de volta no emoji, sem propagar erro para a tela.
+class _CoinGlyph extends StatelessWidget {
+  const _CoinGlyph();
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+    'assets/images/ic_coin.png',
+    width: 16,
+    height: 16,
+    errorBuilder: (context, error, stackTrace) =>
+        const Text('🪙', style: TextStyle(fontSize: 14)),
   );
 }
 
@@ -270,10 +293,7 @@ class _CoinStoreDialogState extends ConsumerState<_CoinStoreDialog> {
                 Text(
                   l10n.hammerOfferEarnedCoins(kCoinsPerRewardedAd),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.digit2,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: AppColors.digit2, fontSize: 12),
                 ),
               ],
               const SizedBox(height: 14),

@@ -198,7 +198,18 @@ void main() {
 
       expect(notifier.state.isHammerTargeting, isFalse);
       expect(find.byIcon(Icons.close_rounded), findsNothing);
-      expect(find.byIcon(Icons.gavel_rounded), findsOneWidget);
+      // O martelo pode aparecer como sprite (`ic_hammer.png`, já produzido) ou
+      // como o ícone Material de fallback — o teste não deve depender de qual
+      // dos dois está em disco, só que o botão voltou a mostrar o martelo.
+      expect(
+        find.descendant(
+          of: find.byKey(hammerButtonKey),
+          matching: find.byWidgetPredicate(
+            (w) => w is Image || (w is Icon && w.icon == Icons.gavel_rounded),
+          ),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('não aparece na fase encerrada', (tester) async {

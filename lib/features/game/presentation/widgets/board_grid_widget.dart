@@ -374,7 +374,9 @@ class _BoardGridWidgetState extends State<BoardGridWidget>
                   AnimatedPositioned(
                     key: tileVisualKey(tile.id),
                     duration: kTileMoveDuration,
-                    curve: Curves.easeOutCubic,
+                    // A peça quica ao chegar na célula — física tátil da queda
+                    // e da troca, no lugar do desacelerar liso de antes.
+                    curve: Curves.bounceOut,
                     left: geometry.left(tile.position.col),
                     top: geometry.top(tile.position.row),
                     width: tileSize,
