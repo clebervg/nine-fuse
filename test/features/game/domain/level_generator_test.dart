@@ -182,6 +182,20 @@ void main() {
           expect(level.moveLimit, greaterThanOrEqualTo(kMinMoveLimit));
         }
       });
+
+      group('Densidade de obstáculos em fases hard', () {
+        test('fase hard tem o dobro de cada tipo de obstáculo do bloco, respeitando o teto', () {
+          final hardLevel = [
+            for (var n = kHardLevelStart; n < kHardLevelStart + kBlockSize * 3; n++)
+              if (isHardLevel(n)) n,
+          ].first;
+          final hard = generateLevel(hardLevel);
+          final notHard = generateLevel(hardLevel - 1);
+
+          expect(hard.obstacles.total, greaterThan(notHard.obstacles.total));
+          expect(hard.obstacles.total, lessThanOrEqualTo(kMaxObstacles));
+        });
+      });
     });
   });
 }

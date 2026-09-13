@@ -196,7 +196,7 @@ GameLevel generateLevel(int number) {
   final block = _blockOf(number);
   final spawnMin = _spawnMinFor(block);
   final spawnMax = spawnMin + kSpawnWidth - 1;
-  final obstacles = _obstaclesFor(block);
+  final obstacles = _obstaclesFor(block, hard: isHardLevel(number));
   final objective = _finalObjectiveFor(number);
 
   return GameLevel(
@@ -229,7 +229,7 @@ Objective _finalObjectiveFor(int number) {
     final block = _blockOf(number);
     final position = _positionOf(number);
     final spawnMax = _spawnMinFor(block) + kSpawnWidth - 1;
-    final obstacles = _obstaclesFor(block);
+    final obstacles = _obstaclesFor(block, hard: isHardLevel(number));
 
     final candidate = _objectiveFor(
       position: position,
@@ -469,7 +469,7 @@ Objective _objectiveFor({
 /// escolhem seu alvo daqui, e um bloco sem cobertura nenhuma não teria o que
 /// pedir. A dureza entra por bloco, do mais macio para o mais duro, na mesma
 /// ordem em que a campanha artesanal as apresentou.
-ObstacleLayout _obstaclesFor(int block) {
+ObstacleLayout _obstaclesFor(int block, {bool hard = false}) {
   final ice = (2 + block % 3).clamp(1, 4);
   final glass = (1 + block ~/ 2).clamp(1, 3);
   // O teto da pedra voltou a 3. O motivo do teto reduzido a 2 era um bug do
@@ -485,16 +485,24 @@ ObstacleLayout _obstaclesFor(int block) {
   // de folga que o teto 2 comprava.
   final stone = (block ~/ 3).clamp(0, 3);
 
+  // Fase hard: camada dupla — dobra cada tipo presente antes do teto. Só
+  // dobra o que já existe (multiplicar zero continua zero); o teto de
+  // tabuleiro é o mesmo de qualquer fase, então o corte por baixo (menos
+  // gelo primeiro) segue valendo igual.
+  final doubledIce = hard ? ice * 2 : ice;
+  final doubledGlass = hard ? glass * 2 : glass;
+  final doubledStone = hard ? stone * 2 : stone;
+
   // O teto é do tabuleiro, não do desenho: o excesso é aparado da cobertura
   // mais macia, que é a que menos muda o que a fase pede.
-  var trimmedIce = ice;
-  var total = ice + glass + stone;
+  var trimmedIce = doubledIce;
+  var total = doubledIce + doubledGlass + doubledStone;
   while (total > kMaxObstacles && trimmedIce > 1) {
     trimmedIce--;
     total--;
   }
 
-  return ObstacleLayout(ice: trimmedIce, glass: glass, stone: stone);
+  return ObstacleLayout(ice: trimmedIce, glass: doubledGlass, stone: doubledStone);
 }
 
 /// O teto de contagem que vale para um objetivo de dígito [digit] a
