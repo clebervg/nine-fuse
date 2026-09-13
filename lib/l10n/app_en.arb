@@ -297,6 +297,34 @@
   "@continueOfferBalance": {
     "placeholders": { "coins": { "type": "int" } }
   },
+  "bombOfferTitle": "Out of bombs",
+  "bombOfferBody": "Watch a short ad and blast the 3x3 area you picked.",
+  "bombOfferWatch": "WATCH AD",
+  "bombOfferBuy": "Buy for {price} 🪙",
+  "@bombOfferBuy": {
+    "placeholders": { "price": { "type": "int" } }
+  },
+  "bombOfferDecline": "NOT NOW",
+  "bombOfferFailed": "No ad available right now.",
+  "bombOfferNoCoins": "Not enough coins",
+  "bombOfferBalance": "You have {coins} 🪙",
+  "@bombOfferBalance": {
+    "placeholders": { "coins": { "type": "int" } }
+  },
+  "brushOfferTitle": "Out of brushes",
+  "brushOfferBody": "Watch a short ad and raise the piece you picked by one.",
+  "brushOfferWatch": "WATCH AD",
+  "brushOfferBuy": "Buy for {price} 🪙",
+  "@brushOfferBuy": {
+    "placeholders": { "price": { "type": "int" } }
+  },
+  "brushOfferDecline": "NOT NOW",
+  "brushOfferFailed": "No ad available right now.",
+  "brushOfferNoCoins": "Not enough coins",
+  "brushOfferBalance": "You have {coins} 🪙",
+  "@brushOfferBalance": {
+    "placeholders": { "coins": { "type": "int" } }
+  },
   "coinStoreTitle": "Your coins",
   "coinStoreClose": "CLOSE",
   "coinsBadgeSemantics": "{coins} coins",

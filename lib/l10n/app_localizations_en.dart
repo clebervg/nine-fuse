@@ -423,6 +423,64 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get bombOfferTitle => 'Out of bombs';
+
+  @override
+  String get bombOfferBody =>
+      'Watch a short ad and blast the 3x3 area you picked.';
+
+  @override
+  String get bombOfferWatch => 'WATCH AD';
+
+  @override
+  String bombOfferBuy(int price) {
+    return 'Buy for $price 🪙';
+  }
+
+  @override
+  String get bombOfferDecline => 'NOT NOW';
+
+  @override
+  String get bombOfferFailed => 'No ad available right now.';
+
+  @override
+  String get bombOfferNoCoins => 'Not enough coins';
+
+  @override
+  String bombOfferBalance(int coins) {
+    return 'You have $coins 🪙';
+  }
+
+  @override
+  String get brushOfferTitle => 'Out of brushes';
+
+  @override
+  String get brushOfferBody =>
+      'Watch a short ad and raise the piece you picked by one.';
+
+  @override
+  String get brushOfferWatch => 'WATCH AD';
+
+  @override
+  String brushOfferBuy(int price) {
+    return 'Buy for $price 🪙';
+  }
+
+  @override
+  String get brushOfferDecline => 'NOT NOW';
+
+  @override
+  String get brushOfferFailed => 'No ad available right now.';
+
+  @override
+  String get brushOfferNoCoins => 'Not enough coins';
+
+  @override
+  String brushOfferBalance(int coins) {
+    return 'You have $coins 🪙';
+  }
+
+  @override
   String get coinStoreTitle => 'Your coins';
 
   @override

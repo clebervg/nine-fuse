@@ -425,6 +425,64 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get bombOfferTitle => 'Sem bombas';
+
+  @override
+  String get bombOfferBody =>
+      'Assista a um anúncio curto e destrua a área 3x3 escolhida.';
+
+  @override
+  String get bombOfferWatch => 'ASSISTIR ANÚNCIO';
+
+  @override
+  String bombOfferBuy(int price) {
+    return 'Comprar por $price 🪙';
+  }
+
+  @override
+  String get bombOfferDecline => 'AGORA NÃO';
+
+  @override
+  String get bombOfferFailed => 'Nenhum anúncio disponível agora.';
+
+  @override
+  String get bombOfferNoCoins => 'Moedas insuficientes';
+
+  @override
+  String bombOfferBalance(int coins) {
+    return 'Você tem $coins 🪙';
+  }
+
+  @override
+  String get brushOfferTitle => 'Sem pincéis';
+
+  @override
+  String get brushOfferBody =>
+      'Assista a um anúncio curto e eleve em 1 a peça escolhida.';
+
+  @override
+  String get brushOfferWatch => 'ASSISTIR ANÚNCIO';
+
+  @override
+  String brushOfferBuy(int price) {
+    return 'Comprar por $price 🪙';
+  }
+
+  @override
+  String get brushOfferDecline => 'AGORA NÃO';
+
+  @override
+  String get brushOfferFailed => 'Nenhum anúncio disponível agora.';
+
+  @override
+  String get brushOfferNoCoins => 'Moedas insuficientes';
+
+  @override
+  String brushOfferBalance(int coins) {
+    return 'Você tem $coins 🪙';
+  }
+
+  @override
   String get coinStoreTitle => 'Suas moedas';
 
   @override
