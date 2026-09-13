@@ -415,6 +415,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 child: LevelStartDialog(
                   level: state.level,
                   onPlay: () => setState(() => _ready = true),
+                  onClose: () => Navigator.of(context).pop(),
                 ),
               ),
             // O convite de aquisição vem antes do cartão de desfecho na ordem

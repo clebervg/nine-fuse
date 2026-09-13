@@ -14,6 +14,9 @@ const Key levelStartKey = Key('level_start');
 /// Chave do botão que libera o tabuleiro.
 const Key startLevelKey = Key('start_level');
 
+/// Chave do 'X' que fecha o cartão sem jogar, voltando ao mapa.
+const Key levelStartCloseKey = Key('level_start_close');
+
 /// Cartão que abre a fase: o que fazer, com quantos movimentos, e um botão.
 ///
 /// Existe porque o jogador entrava direto num tabuleiro cheio, com o objetivo
@@ -30,10 +33,15 @@ class LevelStartDialog extends StatelessWidget {
     super.key,
     required this.level,
     required this.onPlay,
+    this.onClose,
   });
 
   final GameLevel level;
   final VoidCallback onPlay;
+
+  /// Fecha o cartão sem começar a fase, voltando à tela anterior (o mapa).
+  /// Nulo omite o 'X' — hoje só a `GameScreen` sabe voltar ao mapa.
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +65,8 @@ class LevelStartDialog extends StatelessWidget {
       title: l10n.levelTitle(level.number),
       titleFontSize: 24,
       accent: accent,
+      onClose: onClose,
+      closeKey: levelStartCloseKey,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

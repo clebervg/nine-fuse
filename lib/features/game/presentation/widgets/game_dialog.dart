@@ -47,6 +47,8 @@ class GameDialog extends StatelessWidget {
     this.cardKey,
     this.maxWidth = 360,
     this.titleFontSize = 22,
+    this.onClose,
+    this.closeKey,
   });
 
   /// Texto do selo. Vai para o alto da caixa, não para dentro dela.
@@ -63,6 +65,14 @@ class GameDialog extends StatelessWidget {
 
   final double maxWidth;
   final double titleFontSize;
+
+  /// Fecha o cartão explicitamente. Nulo omite o 'X' — a maioria das caixas
+  /// do jogo já fecha por um botão de ação própria (JOGAR, CONTINUAR), e um
+  /// 'X' ali seria uma segunda saída para a mesma decisão.
+  final VoidCallback? onClose;
+
+  /// Chave do 'X', para o cartão que precisar endereçá-lo em teste.
+  final Key? closeKey;
 
   @override
   Widget build(BuildContext context) {
@@ -131,9 +141,36 @@ class GameDialog extends StatelessWidget {
           fontSize: titleFontSize,
           maxWidth: maxWidth,
         ),
+        if (onClose case final close?)
+          Positioned(
+            top: kGameDialogBannerOverhang + 8,
+            right: 8,
+            child: _CloseButton(key: closeKey, onPressed: close),
+          ),
       ],
     );
   }
+}
+
+/// O 'X' que fecha o cartão explicitamente, no canto superior direito.
+class _CloseButton extends StatelessWidget {
+  const _CloseButton({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.black.withValues(alpha: 0.35),
+    shape: const CircleBorder(),
+    child: InkWell(
+      onTap: onPressed,
+      customBorder: const CircleBorder(),
+      child: const Padding(
+        padding: EdgeInsets.all(6),
+        child: Icon(Icons.close_rounded, color: Colors.white70, size: 20),
+      ),
+    ),
+  );
 }
 
 /// O selo curvo do título, projetado para fora do cartão.
@@ -268,17 +305,23 @@ class _GameButtonState extends State<GameButton> {
           const SizedBox(width: 8),
         ],
         Flexible(
-          child: Text(
-            widget.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: AppFonts.display,
-              color: fg,
-              fontSize: widget.fontSize,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.8,
+          // Rótulos longos (ex.: "Ganhar +25 🪙 (Assistir Vídeo)") encolhem
+          // para caber, em vez de serem cortados com "...". `FittedBox` não
+          // faz nada quando o texto já cabe, então botões curtos não mudam.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              widget.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppFonts.display,
+                color: fg,
+                fontSize: widget.fontSize,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.8,
+              ),
             ),
           ),
         ),

@@ -547,15 +547,26 @@ class _StaticPin extends StatelessWidget {
       child: Center(
         child: locked
             ? const Icon(Icons.lock_outline, color: Colors.white38, size: 26)
-            : Text(
-                '${level.number}',
-                style: TextStyle(
-                  fontFamily: AppFonts.display,
-                  color: level.objective.isObstacleGoal
-                      ? AppColors.darkBackground
-                      : AppColors.getTextColorForDigit(level.objective.digit!),
-                  fontSize: highlighted ? 29 : 26,
-                  fontWeight: FontWeight.w900,
+            : Padding(
+                // FittedBox precisa de folga lateral para encolher o número de
+                // 4 dígitos (fase 1000+) sem ele encostar no aro do círculo.
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    '${level.number}',
+                    maxLines: 1,
+                    softWrap: false,
+                    style: TextStyle(
+                      fontFamily: AppFonts.display,
+                      color: level.objective.isObstacleGoal
+                          ? AppColors.darkBackground
+                          : AppColors.getTextColorForDigit(
+                              level.objective.digit!),
+                      fontSize: highlighted ? 29 : 26,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ),
               ),
       ),

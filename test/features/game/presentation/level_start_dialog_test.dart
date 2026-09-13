@@ -1,18 +1,51 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nine_fuse/core/assets/tile_sprite_manager.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/obstacle_overlay.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
+
+/// Mesmo bundle de mentira de `tile_sprite_test.dart`: só "tem" as chaves
+/// passadas.
+class _FakeAssetBundle extends CachingAssetBundle {
+  _FakeAssetBundle(this.available);
+
+  final Map<String, ByteData> available;
+
+  @override
+  Future<ByteData> load(String key) async {
+    final data = available[key];
+    if (data == null) {
+      throw FlutterError('Unable to load asset: "$key".');
+    }
+    return data;
+  }
+}
+
+final Uint8List _kOnePixelPng = Uint8List.fromList(const [
+  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+  0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+  0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+  0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+  0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+  0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+  0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+  0x42, 0x60, 0x82,
+]);
 
 void main() {
   late GameNotifier notifier;
@@ -26,7 +59,10 @@ void main() {
 
   setUp(() {
     notifier = GameNotifier(random: Random(42), storage: InMemoryGameStorage());
+    TileSpriteManager.clearCache();
   });
+
+  tearDown(TileSpriteManager.clearCache);
 
   Future<void> pumpGame(WidgetTester tester, {GameLevel target = level}) async {
     tester.view.physicalSize = const Size(1200, 2600);
@@ -194,6 +230,82 @@ void main() {
       expect(rect.bottom, lessThanOrEqualTo(screen.height));
       expect(rect.left, greaterThanOrEqualTo(0.0));
       expect(rect.right, lessThanOrEqualTo(screen.width));
+    });
+
+    const stoneLevel = GameLevel(
+      number: 70,
+      objective: Objective.clearObstacles(obstacle: ObstacleType.stone, count: 3),
+      moveLimit: 20,
+    );
+
+    testWidgets(
+      'sem sprite de Pedra, cai no ObstacleOverlay procedural (fallback)',
+      (tester) async {
+        await pumpGame(tester, target: stoneLevel);
+
+        expect(
+          find.descendant(
+            of: find.byKey(levelStartObstacleKey),
+            matching: find.byType(ObstacleOverlay),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'com o sprite real de Pedra em disco, desenha a imagem em vez do placeholder',
+      (tester) async {
+        final bundle = _FakeAssetBundle({
+          TileSpriteManager.assetKeyForObstacle(ObstacleType.stone, 3):
+              ByteData.view(_kOnePixelPng.buffer),
+        });
+        await TileSpriteManager.preloadObstacles(bundle: bundle);
+
+        await pumpGame(tester, target: stoneLevel);
+
+        expect(
+          find.descendant(
+            of: find.byKey(levelStartObstacleKey),
+            matching: find.byType(ObstacleOverlay),
+          ),
+          findsNothing,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(levelStartObstacleKey),
+            matching: find.byType(Image),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('o X fecha o cartão e volta ao mapa', (tester) async {
+      final navigatorKey = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [gameProvider.overrideWith((ref) => notifier)],
+          child: MaterialApp(
+            locale: kTestLocale,
+            navigatorKey: navigatorKey,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const Scaffold(body: Text('Mapa')),
+          ),
+        ),
+      );
+      navigatorKey.currentState!.push(
+        MaterialPageRoute<void>(builder: (_) => GameScreen(level: level)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(levelStartKey), findsOneWidget);
+      await tester.tap(find.byKey(levelStartCloseKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(levelStartKey), findsNothing);
+      expect(find.text('Mapa'), findsOneWidget);
     });
   });
 }

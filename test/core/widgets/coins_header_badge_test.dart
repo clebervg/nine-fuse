@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/core/widgets/coins_header_badge.dart';
@@ -99,6 +100,51 @@ void main() {
 
     expect(find.text('50'), findsOneWidget);
   });
+
+  testWidgets(
+    'a loja usa o mesmo asset de moeda do header, não o emoji',
+    (tester) async {
+      await pumpBadge(tester, coins: 0);
+
+      await tester.tap(find.byKey(coinsHeaderAddKey));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byKey(coinStoreKey),
+          matching: find.byType(Image),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('🪙'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'o rótulo do botão de vídeo não estoura numa tela estreita',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await pumpBadge(tester, coins: 0);
+
+      await tester.tap(find.byKey(coinsHeaderAddKey));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final labelFinder = find.descendant(
+        of: find.byKey(coinStoreWatchKey),
+        matching: find.byType(Text),
+      );
+      final paragraph = tester.renderObject<RenderParagraph>(labelFinder);
+      expect(
+        paragraph.didExceedMaxLines,
+        isFalse,
+        reason: 'o texto deve encolher (FittedBox), não ser cortado com "..."',
+      );
+    },
+  );
 
   testWidgets('o + abre a loja, e o vídeo credita ali mesmo', (tester) async {
     final wallet = await pumpBadge(tester, coins: 0);

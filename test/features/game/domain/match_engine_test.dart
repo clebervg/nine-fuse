@@ -513,11 +513,17 @@ void main() {
     });
 
     test(
-      'o orçamento de cascata para o loop em 4 passos, mesmo com match pendente',
+      'uma corrente de cascatas mais longa que o orçamento normal ainda '
+      'resolve por completo, sem deixar match pendente',
       () {
         // Corrente de match-3 que se realimenta: cada fusão de "1" cria um "2"
-        // que completa outro trio na linha de baixo, e assim por diante — sem
-        // limite, isso rodaria mais de 4 vezes.
+        // que completa outro trio na linha de baixo, e assim por diante —
+        // mais de kCascadeBudgetPerTurn cascatas seguidas. O orçamento fixo
+        // achatava esse caso em Fase 999 (janela de sorteio saturada de
+        // dígitos altos): a jogada estourava o teto com match ainda no
+        // tabuleiro, e ele ficava congelado — visível para o jogador como
+        // "não fez a fusão automática". O teto de verdade agora é só
+        // `_maxCascades`, a rede de segurança contra loop infinito.
         final grid = baseGrid();
         for (int row = 0; row < 6; row++) {
           grid[row][0] = 1;
@@ -536,11 +542,18 @@ void main() {
         grid[7][1] = 7;
         grid[7][2] = 7;
 
-        final resolution = engine.resolve(boardFromValues(grid));
+        final board = boardFromValues(grid);
+        final resolution = engine.resolve(board);
 
         expect(
           resolution.steps.length,
-          lessThanOrEqualTo(kCascadeBudgetPerTurn),
+          greaterThan(kCascadeBudgetPerTurn),
+          reason: 'a corrente tem mais elos que o antigo teto fixo',
+        );
+        expect(
+          engine.detectMatches(resolution.board),
+          isEmpty,
+          reason: 'nenhum match deveria sobrar congelado no tabuleiro final',
         );
       },
     );

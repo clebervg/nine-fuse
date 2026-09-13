@@ -137,15 +137,17 @@ class _Amount extends StatelessWidget {
 /// existir no disco. Até lá, `Image.asset` falha ao carregar e o
 /// `errorBuilder` cai de volta no emoji, sem propagar erro para a tela.
 class _CoinGlyph extends StatelessWidget {
-  const _CoinGlyph();
+  const _CoinGlyph({this.size = 16});
+
+  final double size;
 
   @override
   Widget build(BuildContext context) => Image.asset(
     'assets/images/ic_coin.png',
-    width: 16,
-    height: 16,
+    width: size,
+    height: size,
     errorBuilder: (context, error, stackTrace) =>
-        const Text('🪙', style: TextStyle(fontSize: 14)),
+        Text('🪙', style: TextStyle(fontSize: size * 0.85)),
   );
 }
 
@@ -265,7 +267,14 @@ class _CoinStoreDialogState extends ConsumerState<_CoinStoreDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('🪙', style: TextStyle(fontSize: 40)),
+              // O mesmo asset da pílula do header, e não o emoji: a loja é a
+              // tela em que o jogador olha mais de perto para a moeda, e um
+              // glifo diferente ali leria como uma moeda diferente.
+              const SizedBox(
+                width: 40,
+                height: 40,
+                child: _CoinGlyph(size: 40),
+              ),
               const SizedBox(height: 8),
               Text(
                 l10n.hammerOfferBalance(coins),
