@@ -168,17 +168,60 @@ void main() {
         expect(blocks.length, hardInRange.length);
       });
 
-      test('fase hard tem limite de movimentos ~25% menor que a fase equivalente não-hard do mesmo bloco', () {
-        final hardLevel = [
-          for (var n = kHardLevelStart; n < kHardLevelStart + kBlockSize * 3; n++)
-            if (isHardLevel(n)) n,
-        ].first;
-        final hard = generateLevel(hardLevel);
-        final notHard = generateLevel(hardLevel - 1); // vizinha, mesmo bloco, não-hard
+      test(
+        'kHardMoveMultiplier reduz o limite de movimentos em ~25% para a '
+        'mesma fase, isolado do arquétipo de objetivo',
+        () {
+          // A posição hard cicla entre arquétipos (Fix 3: fases hard tanto de
+          // dígito quanto de cobertura), então comparar generateLevel(hardLevel)
+          // com generateLevel(hardLevel - 1) mediria também a diferença de
+          // fórmula entre reachDigit/clearObstacles, não só o multiplicador.
+          // moveLimitForTesting recalcula a MESMA fase (mesmo objetivo, mesmo
+          // bloco, mesma janela) com e sem o multiplicador aplicado, isolando
+          // seu efeito.
+          final hardLevels = [
+            for (var n = kHardLevelStart; n < kHardLevelStart + kBlockSize * 10; n++)
+              if (isHardLevel(n)) n,
+          ];
+          expect(hardLevels, isNotEmpty);
 
-        expect(hard.moveLimit, lessThan(notHard.moveLimit));
-        expect(hard.moveLimit, greaterThanOrEqualTo(kMinMoveLimit));
-      });
+          for (final number in hardLevels) {
+            final withHard = moveLimitForTesting(number, hard: true);
+            final withoutHard = moveLimitForTesting(number, hard: false);
+
+            expect(
+              withHard,
+              greaterThanOrEqualTo(kMinMoveLimit),
+              reason: 'fase $number',
+            );
+
+            // O piso de movimentos (kMinMoveLimit/kHeavyDigitMoveFloor) pode
+            // interceptar o valor calculado de qualquer um dos dois lados —
+            // quando isso acontece, "hard" e "não-hard" convergem no mesmo
+            // piso e o multiplicador deixa de se manifestar no resultado
+            // final. A checagem de redução (estrita e de ~25%) só vale
+            // quando nenhum dos dois esbarrou no piso; do contrário, o piso
+            // já garante que nenhum dos dois ficou baixo demais.
+            final hitFloor =
+                withHard == kMinMoveLimit ||
+                withHard == kHeavyDigitMoveFloor ||
+                withoutHard == kMinMoveLimit ||
+                withoutHard == kHeavyDigitMoveFloor;
+            if (!hitFloor) {
+              expect(
+                withHard,
+                lessThan(withoutHard),
+                reason: 'fase $number',
+              );
+              expect(
+                withHard / withoutHard,
+                closeTo(kHardMoveMultiplier, 0.05),
+                reason: 'fase $number',
+              );
+            }
+          }
+        },
+      );
 
       test('fase hard nunca cai abaixo do piso de movimentos, mesmo em blocos distantes', () {
         final start = kHandcraftedLevels + 1 + 40 * kBlockSize;

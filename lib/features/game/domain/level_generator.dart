@@ -229,6 +229,34 @@ GameLevel generateLevel(int number) {
   );
 }
 
+/// Isola o efeito de [kHardMoveMultiplier] no limite de movimentos da fase
+/// [number], para teste.
+///
+/// Recalcula o mesmo `moveLimit` que [generateLevel] calcularia para
+/// [number] — mesmo objetivo, mesmo bloco, mesma janela de sorteio —, mas
+/// forçando [hard] em vez de deixar [_movesFor] ler `isHardLevel(number)`
+/// sozinho. Sem isso, comparar `generateLevel(hardLevel)` contra
+/// `generateLevel(hardLevel - 1)` mede a diferença de **duas** fases que
+/// podem ter arquétipo de objetivo diferente (a posição hard cicla entre
+/// dígito e cobertura, ver [isHardLevel]) — o multiplicador fica misturado
+/// com a diferença de fórmula entre `reachDigit` e `clearObstacles`. Aqui as
+/// duas chamadas usam o objetivo real da própria fase [number]; só o `hard`
+/// varia.
+int moveLimitForTesting(int number, {required bool hard}) {
+  final block = _blockOf(number);
+  final spawnMin = _spawnMinFor(block);
+  final spawnMax = spawnMin + kSpawnWidth - 1;
+  final objective = _finalObjectiveFor(number);
+  return _movesFor(
+    objective: objective,
+    block: block,
+    spawnMin: spawnMin,
+    spawnMax: spawnMax,
+    number: number,
+    hardOverride: hard,
+  );
+}
+
 /// Objetivo final da fase [number], já passado pelo controle de
 /// anti-repetição.
 ///
@@ -573,6 +601,7 @@ int _movesFor({
   required int spawnMin,
   required int spawnMax,
   required int number,
+  bool? hardOverride,
 }) {
   final double base = switch (objective.type) {
     ObjectiveType.reachDigit => _digitMoves(objective, spawnMin: spawnMin, spawnMax: spawnMax),
@@ -592,7 +621,8 @@ int _movesFor({
   // par, não quem define a tendência de longo prazo — essa continua sendo o
   // aperto por bloco.
   final paced = base * tighteningFactor * _pacingFactor(number);
-  final hardened = isHardLevel(number) ? paced * kHardMoveMultiplier : paced;
+  final hard = hardOverride ?? isHardLevel(number);
+  final hardened = hard ? paced * kHardMoveMultiplier : paced;
 
   final distance = objective.type == ObjectiveType.reachDigit
       ? objective.digit! - _averageBoardTileLevel(spawnMax)
