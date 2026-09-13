@@ -31,6 +31,11 @@
 
   "playButton": "JOGAR",
 
+  "levelStartShopHammer": "Martelo",
+  "levelStartShopBomb": "Bomba",
+  "levelStartShopBrush": "Pincel",
+  "levelStartShopBuy": "{price} 🪙",
+
   "tipAlignThree": "Alinhe três peças iguais: a do seu toque evolui.",
   "tipRepeatFusion": "Repita a fusão. Trocas que não formam trio não gastam movimento.",
   "tipChainFusion": "Três 4 viram um 5. Planeje a fusão em cadeia.",

@@ -439,6 +439,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 child: LevelStartDialog(
                   level: state.level,
                   onPlay: () => setState(() => _ready = true),
+                  onBuyHammer: notifier.grantHammer,
+                  onBuyBomb: notifier.grantBomb,
+                  onBuyBrush: notifier.grantBrush,
                 ),
               ),
             // O convite de aquisição vem antes do cartão de desfecho na ordem

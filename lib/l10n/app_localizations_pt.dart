@@ -109,6 +109,20 @@ class AppLocalizationsPt extends AppLocalizations {
   String get playButton => 'JOGAR';
 
   @override
+  String get levelStartShopHammer => 'Martelo';
+
+  @override
+  String get levelStartShopBomb => 'Bomba';
+
+  @override
+  String get levelStartShopBrush => 'Pincel';
+
+  @override
+  String levelStartShopBuy(int price) {
+    return '$price 🪙';
+  }
+
+  @override
   String get tipAlignThree =>
       'Alinhe três peças iguais: a do seu toque evolui.';
 

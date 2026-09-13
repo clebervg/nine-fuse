@@ -83,6 +83,12 @@
 
   "playButton": "PLAY",
 
+  "levelStartShopHammer": "Hammer",
+  "levelStartShopBomb": "Bomb",
+  "levelStartShopBrush": "Brush",
+  "levelStartShopBuy": "{price} 🪙",
+  "@levelStartShopBuy": { "placeholders": { "price": { "type": "int" } } },
+
   "tipAlignThree": "Line up three equal tiles: the one you touched evolves.",
   "tipRepeatFusion": "Fuse again. Swaps that form no trio cost no move.",
   "tipChainFusion": "Three 4s become a 5. Plan the chain fusion.",

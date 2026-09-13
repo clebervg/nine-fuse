@@ -194,6 +194,30 @@ abstract class AppLocalizations {
   /// **'PLAY'**
   String get playButton;
 
+  /// No description provided for @levelStartShopHammer.
+  ///
+  /// In en, this message translates to:
+  /// **'Hammer'**
+  String get levelStartShopHammer;
+
+  /// No description provided for @levelStartShopBomb.
+  ///
+  /// In en, this message translates to:
+  /// **'Bomb'**
+  String get levelStartShopBomb;
+
+  /// No description provided for @levelStartShopBrush.
+  ///
+  /// In en, this message translates to:
+  /// **'Brush'**
+  String get levelStartShopBrush;
+
+  /// No description provided for @levelStartShopBuy.
+  ///
+  /// In en, this message translates to:
+  /// **'{price} 🪙'**
+  String levelStartShopBuy(int price);
+
   /// No description provided for @tipAlignThree.
   ///
   /// In en, this message translates to:
