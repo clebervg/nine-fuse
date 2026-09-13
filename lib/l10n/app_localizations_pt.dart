@@ -109,6 +109,20 @@ class AppLocalizationsPt extends AppLocalizations {
   String get playButton => 'JOGAR';
 
   @override
+  String get levelStartShopHammer => 'Martelo';
+
+  @override
+  String get levelStartShopBomb => 'Bomba';
+
+  @override
+  String get levelStartShopBrush => 'Pincel';
+
+  @override
+  String levelStartShopBuy(int price) {
+    return '$price 🪙';
+  }
+
+  @override
   String get tipAlignThree =>
       'Alinhe três peças iguais: a do seu toque evolui.';
 
@@ -390,6 +404,96 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String hammerOfferEarnedCoins(int reward) {
     return '+$reward 🪙 creditadas no seu saldo!';
+  }
+
+  @override
+  String get continueOfferTitle => 'Sem movimentos';
+
+  @override
+  String continueOfferBody(int bonus) {
+    return 'Assista a um anúncio curto ou gaste moedas para ganhar $bonus movimentos extras e continuar.';
+  }
+
+  @override
+  String continueOfferWatch(int bonus) {
+    return 'ASSISTIR (+$bonus)';
+  }
+
+  @override
+  String continueOfferBuy(int price) {
+    return 'Comprar por $price 🪙';
+  }
+
+  @override
+  String get continueOfferDecline => 'DESISTIR';
+
+  @override
+  String get continueOfferFailed => 'Nenhum anúncio disponível agora.';
+
+  @override
+  String get continueOfferNoCoins => 'Moedas insuficientes';
+
+  @override
+  String continueOfferBalance(int coins) {
+    return 'Você tem $coins 🪙';
+  }
+
+  @override
+  String get bombOfferTitle => 'Sem bombas';
+
+  @override
+  String get bombOfferBody =>
+      'Assista a um anúncio curto e destrua a área 3x3 escolhida.';
+
+  @override
+  String get bombOfferWatch => 'ASSISTIR ANÚNCIO';
+
+  @override
+  String bombOfferBuy(int price) {
+    return 'Comprar por $price 🪙';
+  }
+
+  @override
+  String get bombOfferDecline => 'AGORA NÃO';
+
+  @override
+  String get bombOfferFailed => 'Nenhum anúncio disponível agora.';
+
+  @override
+  String get bombOfferNoCoins => 'Moedas insuficientes';
+
+  @override
+  String bombOfferBalance(int coins) {
+    return 'Você tem $coins 🪙';
+  }
+
+  @override
+  String get brushOfferTitle => 'Sem pincéis';
+
+  @override
+  String get brushOfferBody =>
+      'Assista a um anúncio curto e eleve em 1 a peça escolhida.';
+
+  @override
+  String get brushOfferWatch => 'ASSISTIR ANÚNCIO';
+
+  @override
+  String brushOfferBuy(int price) {
+    return 'Comprar por $price 🪙';
+  }
+
+  @override
+  String get brushOfferDecline => 'AGORA NÃO';
+
+  @override
+  String get brushOfferFailed => 'Nenhum anúncio disponível agora.';
+
+  @override
+  String get brushOfferNoCoins => 'Moedas insuficientes';
+
+  @override
+  String brushOfferBalance(int coins) {
+    return 'Você tem $coins 🪙';
   }
 
   @override

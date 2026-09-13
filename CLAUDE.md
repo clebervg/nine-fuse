@@ -1611,3 +1611,86 @@ objetivo de fase + fonte de dano nova; orçamento de cascata + criação de
 match fora do match original) se cruzaram ao mesmo tempo — exatamente o
 tipo de interseção que um teste unitário isolado de cada mecânica não
 cobre sozinho.
+
+### Calibragem das fases hard (-25% movimentos + obstáculo dobrado) (2026-09-13)
+
+**Metodologia, mesma disciplina de todas as calibragens anteriores: medir
+com `simulate_economy.dart`, nunca escolher constante no olho.** As Tasks
+10-11 (commits `dbe4fbb` e `e675c4c`) introduziram `isHardLevel`,
+`kHardMoveMultiplier = 0.75` (-25% de movimentos) e a duplicação da
+densidade de obstáculo nas fases hard do gerador procedural
+(`_obstaclesFor(block, hard: isHardLevel(number))`), sem medir o efeito
+combinado das duas intensificações juntas. Esta task é essa medição.
+Um novo modo `--mode=hard` em `tool/simulate_economy.dart` reaproveita o
+mesmo bot guloso e a mesma leitura de alvo/progresso
+(`_targetOf`/`_gainOf`) que `--mode=generated` já usa — extraído para
+`_simulateGeneratedLevel` — e compara cada fase hard contra a vizinha
+`n - 1` (não-hard) do mesmo bloco: mesmo objetivo, mesma janela de
+sorteio, só a intensificação hard muda. Isolar na vizinha imediata (em
+vez de uma fase distante qualquer) é o que permite atribuir a diferença
+de taxa só ao efeito hard, e não a uma mudança de arquétipo entre fases
+que a distância já explicaria sozinha.
+
+**Amostra: as primeiras 15 fases hard a partir de `kHardLevelStart` (30),
+`--games=200`.** `isHardLevel` marca a penúltima posição de cada bloco
+(`kBlockSize - 2`), o que faz toda fase hard cair na posição de objetivo
+"quebre N coberturas" ou "limpe todo X" — nunca na de dígito (posições
+0-6) nem no fecho de bloco (posição 9, "limpe tudo"). A amostra saiu por
+isso inteira de cobertura, e não por viés de escolha:
+
+| fase | objetivo        | mov hard | vit hard | mov vizinho | vit vizinho |
+|------|-----------------|----------|----------|-------------|-------------|
+| 39   | Quebre 3 glass  | 22       | 93%      | 25          | 89%         |
+| 49   | Quebre 2 stone  | 14       | 23%      | 12          | 46%         |
+| 59   | Quebre 2 stone  | 14       | 20%      | 12          | 47%         |
+| 69   | Quebre 2 stone  | 14       | 19%      | 12          | 47%         |
+| 79   | Quebre 4 stone  | 27       | 65%      | 23          | 74%         |
+| 89   | Quebre 4 stone  | 27       | 23%      | 23          | 39%         |
+| 99   | Quebre 4 stone  | 26       | 22%      | 22          | 37%         |
+| 109  | Quebre 6 stone  | 38       | 24%      | 33          | 41%         |
+| 119  | Quebre 6 stone  | 38       | 82%      | 32          | 93%         |
+| 129  | Quebre 6 stone  | 37       | 17%      | 31          | 36%         |
+| 139  | Quebre 6 stone  | 36       | 17%      | 30          | 34%         |
+| 149  | Quebre 6 stone  | 35       | 20%      | 30          | 37%         |
+| 159  | Quebre 6 stone  | 35       | 77%      | 30          | 91%         |
+| 169  | Quebre 6 stone  | 35       | 16%      | 30          | 34%         |
+| 179  | Quebre 6 stone  | 35       | 16%      | 30          | 34%         |
+
+**Nenhuma fase hard mede 0%, e nenhuma mede 95%+ (o outro sinal de
+alarme do brief — teria dito que o modificador hard não fez nada).** O
+piso medido é 16% (fases 169 e 179); o teto é 93% (fase 39, glass). A
+combinação -25% movimentos + obstáculo dobrado empurra a taxa de vitória
+para baixo em toda a amostra — 12 das 15 linhas, a hard perde entre 10 e
+23 pontos percentuais contra a vizinha — mas nunca até zero.
+
+**Conclusão: os números seguem dentro do já documentado piso das fases
+de cobertura, e nenhuma constante precisou ser ajustada nesta task.**
+Toda a amostra é do arquétipo "quebre N"/"limpe todo X", e a seção da
+Fase 13/Fase 15 já registra que esse número é sempre um **piso**, não uma
+nota: o bot guloso persegue a fusão de maior valor e nunca mira a
+cobertura de propósito, então taxas na casa dos 16-25% em fases de pedra
+já eram esperadas mesmo **sem** a intensificação hard (ver a fase 108 na
+tabela de `--mode=generated`, 40-45% antes de qualquer hard). O
+`kHardMoveMultiplier = 0.75` reduz esse piso ainda mais, o que é
+exatamente o que "-25% de movimentos" deveria fazer — uma fase hard que
+não ficasse mensuravelmente mais dura que a vizinha seria a intensificação
+não fazendo nada, o segundo alarme que o brief pedia para vigiar. Não há
+aqui uma fase matematicamente impossível (0%) nem uma fase em que a
+dificuldade dobrada não se refletiu (95%+): o efeito é real, mensurável, e
+nenhum dos dois sintomas de alarme apareceu. Por isso a constante não foi
+tocada — mexer nela sem um sintoma de quebra seria fazer o oposto do que
+esta disciplina de calibragem existe para evitar (deformar a fórmula até
+a métrica ceder, o erro que a Fase 15 já registrou e reverteu uma vez).
+
+**Fases hard >200, quando aplicável, são as que a leitura de produto do
+spec associa ao uso esperado de Bomba/Pincel — sem enforcement de
+código.** Nada no motor ou no gerador verifica se o jogador tem
+booster nenhum antes de servir uma fase hard tardia; a leitura é de
+produto, não de regra: a essa altura da campanha infinita o jogo já
+apresentou os boosters de compra avulsa (Martelo/Bomba/Pincel, ver
+commits `d861807`/`17d0757`), e o piso mais baixo medido aqui (16%, bot
+sem boosters) é a taxa de quem joga só de fusão — a mesma leitura que
+toda fase de cobertura já registrava antes deste modo existir. Um
+jogador real com Bomba ou Pincel disponível mira a cobertura de
+propósito, o que o bot guloso nunca faz; medir esse uso exigiria simular
+o booster no bot, fora do escopo desta task.

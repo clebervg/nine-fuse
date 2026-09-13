@@ -109,6 +109,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playButton => 'PLAY';
 
   @override
+  String get levelStartShopHammer => 'Hammer';
+
+  @override
+  String get levelStartShopBomb => 'Bomb';
+
+  @override
+  String get levelStartShopBrush => 'Brush';
+
+  @override
+  String levelStartShopBuy(int price) {
+    return '$price 🪙';
+  }
+
+  @override
   String get tipAlignThree =>
       'Line up three equal tiles: the one you touched evolves.';
 
@@ -388,6 +402,96 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String hammerOfferEarnedCoins(int reward) {
     return '+$reward 🪙 added to your balance!';
+  }
+
+  @override
+  String get continueOfferTitle => 'Out of moves';
+
+  @override
+  String continueOfferBody(int bonus) {
+    return 'Watch a short ad or spend coins to get $bonus extra moves and keep going.';
+  }
+
+  @override
+  String continueOfferWatch(int bonus) {
+    return 'WATCH AD (+$bonus)';
+  }
+
+  @override
+  String continueOfferBuy(int price) {
+    return 'Buy for $price 🪙';
+  }
+
+  @override
+  String get continueOfferDecline => 'GIVE UP';
+
+  @override
+  String get continueOfferFailed => 'No ad available right now.';
+
+  @override
+  String get continueOfferNoCoins => 'Not enough coins';
+
+  @override
+  String continueOfferBalance(int coins) {
+    return 'You have $coins 🪙';
+  }
+
+  @override
+  String get bombOfferTitle => 'Out of bombs';
+
+  @override
+  String get bombOfferBody =>
+      'Watch a short ad and blast the 3x3 area you picked.';
+
+  @override
+  String get bombOfferWatch => 'WATCH AD';
+
+  @override
+  String bombOfferBuy(int price) {
+    return 'Buy for $price 🪙';
+  }
+
+  @override
+  String get bombOfferDecline => 'NOT NOW';
+
+  @override
+  String get bombOfferFailed => 'No ad available right now.';
+
+  @override
+  String get bombOfferNoCoins => 'Not enough coins';
+
+  @override
+  String bombOfferBalance(int coins) {
+    return 'You have $coins 🪙';
+  }
+
+  @override
+  String get brushOfferTitle => 'Out of brushes';
+
+  @override
+  String get brushOfferBody =>
+      'Watch a short ad and raise the piece you picked by one.';
+
+  @override
+  String get brushOfferWatch => 'WATCH AD';
+
+  @override
+  String brushOfferBuy(int price) {
+    return 'Buy for $price 🪙';
+  }
+
+  @override
+  String get brushOfferDecline => 'NOT NOW';
+
+  @override
+  String get brushOfferFailed => 'No ad available right now.';
+
+  @override
+  String get brushOfferNoCoins => 'Not enough coins';
+
+  @override
+  String brushOfferBalance(int coins) {
+    return 'You have $coins 🪙';
   }
 
   @override

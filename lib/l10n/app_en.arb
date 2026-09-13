@@ -83,6 +83,12 @@
 
   "playButton": "PLAY",
 
+  "levelStartShopHammer": "Hammer",
+  "levelStartShopBomb": "Bomb",
+  "levelStartShopBrush": "Brush",
+  "levelStartShopBuy": "{price} 🪙",
+  "@levelStartShopBuy": { "placeholders": { "price": { "type": "int" } } },
+
   "tipAlignThree": "Line up three equal tiles: the one you touched evolves.",
   "tipRepeatFusion": "Fuse again. Swaps that form no trio cost no move.",
   "tipChainFusion": "Three 4s become a 5. Plan the chain fusion.",
@@ -276,6 +282,54 @@
   "@hammerOfferEarnedCoins": {
     "description": "Confirmation shown after the coin rewarded ad completes.",
     "placeholders": { "reward": { "type": "int" } }
+  },
+  "continueOfferTitle": "Out of moves",
+  "continueOfferBody": "Watch a short ad or spend coins to get {bonus} extra moves and keep going.",
+  "@continueOfferBody": {
+    "placeholders": { "bonus": { "type": "int" } }
+  },
+  "continueOfferWatch": "WATCH AD (+{bonus})",
+  "@continueOfferWatch": {
+    "placeholders": { "bonus": { "type": "int" } }
+  },
+  "continueOfferBuy": "Buy for {price} 🪙",
+  "@continueOfferBuy": {
+    "placeholders": { "price": { "type": "int" } }
+  },
+  "continueOfferDecline": "GIVE UP",
+  "continueOfferFailed": "No ad available right now.",
+  "continueOfferNoCoins": "Not enough coins",
+  "continueOfferBalance": "You have {coins} 🪙",
+  "@continueOfferBalance": {
+    "placeholders": { "coins": { "type": "int" } }
+  },
+  "bombOfferTitle": "Out of bombs",
+  "bombOfferBody": "Watch a short ad and blast the 3x3 area you picked.",
+  "bombOfferWatch": "WATCH AD",
+  "bombOfferBuy": "Buy for {price} 🪙",
+  "@bombOfferBuy": {
+    "placeholders": { "price": { "type": "int" } }
+  },
+  "bombOfferDecline": "NOT NOW",
+  "bombOfferFailed": "No ad available right now.",
+  "bombOfferNoCoins": "Not enough coins",
+  "bombOfferBalance": "You have {coins} 🪙",
+  "@bombOfferBalance": {
+    "placeholders": { "coins": { "type": "int" } }
+  },
+  "brushOfferTitle": "Out of brushes",
+  "brushOfferBody": "Watch a short ad and raise the piece you picked by one.",
+  "brushOfferWatch": "WATCH AD",
+  "brushOfferBuy": "Buy for {price} 🪙",
+  "@brushOfferBuy": {
+    "placeholders": { "price": { "type": "int" } }
+  },
+  "brushOfferDecline": "NOT NOW",
+  "brushOfferFailed": "No ad available right now.",
+  "brushOfferNoCoins": "Not enough coins",
+  "brushOfferBalance": "You have {coins} 🪙",
+  "@brushOfferBalance": {
+    "placeholders": { "coins": { "type": "int" } }
   },
   "coinStoreTitle": "Your coins",
   "coinStoreClose": "CLOSE",

@@ -19,6 +19,17 @@ const int kCoinsPerStar = 10;
 /// não um substituto.
 const int kHammerCoinPrice = 100;
 
+/// Preço avulso da Bomba em moedas.
+///
+/// Mais cara que Martelo e Pincel (100): a Bomba afeta uma área 3x3 inteira
+/// de uma vez, não uma célula única — o preço reflete o poder, não só a
+/// categoria "booster avulso".
+const int kBombCoinPrice = 150;
+
+/// Preço avulso do Pincel em moedas. Mesma ordem do Martelo (100): afeta uma
+/// célula só, sem a área da Bomba.
+const int kBrushCoinPrice = 100;
+
 /// O que o baú de fim de capítulo paga, uma única vez por capítulo.
 const int kChapterChestReward = 200;
 
@@ -56,3 +67,16 @@ const int kRewardedMinMoves = 4;
 /// Teto do prêmio. Sem ele uma fase de objetivo alto renderia meia fase nova
 /// por um vídeo, e o limite de movimentos deixaria de significar alguma coisa.
 const int kRewardedMaxMoves = 10;
+
+/// Movimentos pagos pelo resgate de derrota (Continue Offer).
+///
+/// Fixo, e não escalado por alvo restante como o [kMovesPerTarget] do
+/// reforço de saldo pre-churn: este convite só aparece uma vez, depois da
+/// fase já ter sido perdida — não há mais "quanto falta" para escalar contra,
+/// só a decisão de tentar mais cinco movimentos ou aceitar a derrota.
+const int kContinueBonusMoves = 5;
+
+/// Preço em moedas do resgate de derrota, quando o jogador não quer assistir
+/// ao vídeo. Mesmo preço do Martelo — mesma ordem de grandeza de "um item
+/// avulso caro".
+const int kContinueCoinPrice = 100;

@@ -5,15 +5,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/core/assets/tile_sprite_manager.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/obstacle_overlay.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
+import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
@@ -306,6 +309,88 @@ void main() {
 
       expect(find.byKey(levelStartKey), findsNothing);
       expect(find.text('Mapa'), findsOneWidget);
+    });
+  });
+
+  group('mini-loja de boosters no início de fase', () {
+    // A mini-loja compra direto, sem tabuleiro para mirar (o cartão abre
+    // antes de "JOGAR") — por isso monta a `GameScreen` de verdade, com o
+    // `walletProvider` também sobreposto, e afirma contra o inventário real
+    // do notifier (`GameNotifier.grantHammer`/`grantBomb`/`grantBrush`), o
+    // mesmo caminho que a tela usa em produção.
+    Future<WalletNotifier> pumpGameWithWallet(
+      WidgetTester tester, {
+      required int coins,
+    }) async {
+      tester.view.physicalSize = const Size(1200, 2600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      final wallet = WalletNotifier(storage: InMemoryGameStorage(coins: coins));
+      await wallet.refresh();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            gameProvider.overrideWith((ref) => notifier),
+            walletProvider.overrideWith((ref) => wallet),
+          ],
+          child: localizedApp(home: const GameScreen(level: level)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return wallet;
+    }
+
+    testWidgets('comprar Martelo debita a carteira e credita o inventário', (
+      tester,
+    ) async {
+      final wallet = await pumpGameWithWallet(tester, coins: kHammerCoinPrice);
+
+      await tester.tap(find.byKey(levelStartBuyHammerKey));
+      await tester.pumpAndSettle();
+
+      expect(wallet.state.coins, 0);
+      expect(notifier.state.hammerCount, 1);
+    });
+
+    testWidgets('comprar Bomba debita a carteira e credita o inventário', (
+      tester,
+    ) async {
+      final wallet = await pumpGameWithWallet(tester, coins: kBombCoinPrice);
+
+      await tester.tap(find.byKey(levelStartBuyBombKey));
+      await tester.pumpAndSettle();
+
+      expect(wallet.state.coins, 0);
+      expect(notifier.state.bombCount, 1);
+    });
+
+    testWidgets('comprar Pincel debita a carteira e credita o inventário', (
+      tester,
+    ) async {
+      final wallet = await pumpGameWithWallet(tester, coins: kBrushCoinPrice);
+
+      await tester.tap(find.byKey(levelStartBuyBrushKey));
+      await tester.pumpAndSettle();
+
+      expect(wallet.state.coins, 0);
+      expect(notifier.state.brushCount, 1);
+    });
+
+    testWidgets('botões ficam desabilitados sem saldo suficiente', (
+      tester,
+    ) async {
+      await pumpGameWithWallet(tester, coins: 0);
+
+      for (final key in [
+        levelStartBuyHammerKey,
+        levelStartBuyBombKey,
+        levelStartBuyBrushKey,
+      ]) {
+        final button = tester.widget<GameButton>(find.byKey(key));
+        expect(button.onPressed, isNull, reason: '$key deveria estar desabilitado');
+      }
     });
   });
 }

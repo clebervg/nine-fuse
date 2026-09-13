@@ -194,6 +194,30 @@ abstract class AppLocalizations {
   /// **'PLAY'**
   String get playButton;
 
+  /// No description provided for @levelStartShopHammer.
+  ///
+  /// In en, this message translates to:
+  /// **'Hammer'**
+  String get levelStartShopHammer;
+
+  /// No description provided for @levelStartShopBomb.
+  ///
+  /// In en, this message translates to:
+  /// **'Bomb'**
+  String get levelStartShopBomb;
+
+  /// No description provided for @levelStartShopBrush.
+  ///
+  /// In en, this message translates to:
+  /// **'Brush'**
+  String get levelStartShopBrush;
+
+  /// No description provided for @levelStartShopBuy.
+  ///
+  /// In en, this message translates to:
+  /// **'{price} 🪙'**
+  String levelStartShopBuy(int price);
+
   /// No description provided for @tipAlignThree.
   ///
   /// In en, this message translates to:
@@ -624,6 +648,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'+{reward} 🪙 added to your balance!'**
   String hammerOfferEarnedCoins(int reward);
+
+  /// No description provided for @continueOfferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of moves'**
+  String get continueOfferTitle;
+
+  /// No description provided for @continueOfferBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch a short ad or spend coins to get {bonus} extra moves and keep going.'**
+  String continueOfferBody(int bonus);
+
+  /// No description provided for @continueOfferWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'WATCH AD (+{bonus})'**
+  String continueOfferWatch(int bonus);
+
+  /// No description provided for @continueOfferBuy.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy for {price} 🪙'**
+  String continueOfferBuy(int price);
+
+  /// No description provided for @continueOfferDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'GIVE UP'**
+  String get continueOfferDecline;
+
+  /// No description provided for @continueOfferFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'No ad available right now.'**
+  String get continueOfferFailed;
+
+  /// No description provided for @continueOfferNoCoins.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough coins'**
+  String get continueOfferNoCoins;
+
+  /// No description provided for @continueOfferBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {coins} 🪙'**
+  String continueOfferBalance(int coins);
+
+  /// No description provided for @bombOfferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of bombs'**
+  String get bombOfferTitle;
+
+  /// No description provided for @bombOfferBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch a short ad and blast the 3x3 area you picked.'**
+  String get bombOfferBody;
+
+  /// No description provided for @bombOfferWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'WATCH AD'**
+  String get bombOfferWatch;
+
+  /// No description provided for @bombOfferBuy.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy for {price} 🪙'**
+  String bombOfferBuy(int price);
+
+  /// No description provided for @bombOfferDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT NOW'**
+  String get bombOfferDecline;
+
+  /// No description provided for @bombOfferFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'No ad available right now.'**
+  String get bombOfferFailed;
+
+  /// No description provided for @bombOfferNoCoins.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough coins'**
+  String get bombOfferNoCoins;
+
+  /// No description provided for @bombOfferBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {coins} 🪙'**
+  String bombOfferBalance(int coins);
+
+  /// No description provided for @brushOfferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of brushes'**
+  String get brushOfferTitle;
+
+  /// No description provided for @brushOfferBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch a short ad and raise the piece you picked by one.'**
+  String get brushOfferBody;
+
+  /// No description provided for @brushOfferWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'WATCH AD'**
+  String get brushOfferWatch;
+
+  /// No description provided for @brushOfferBuy.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy for {price} 🪙'**
+  String brushOfferBuy(int price);
+
+  /// No description provided for @brushOfferDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT NOW'**
+  String get brushOfferDecline;
+
+  /// No description provided for @brushOfferFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'No ad available right now.'**
+  String get brushOfferFailed;
+
+  /// No description provided for @brushOfferNoCoins.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough coins'**
+  String get brushOfferNoCoins;
+
+  /// No description provided for @brushOfferBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {coins} 🪙'**
+  String brushOfferBalance(int coins);
 
   /// No description provided for @coinStoreTitle.
   ///

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/nova_event.dart';
@@ -286,6 +287,37 @@ class GameNotifier extends StateNotifier<GameState>
       // O convite se fecha por ter sido pago, e não só por ter sido mostrado:
       // sem isto ele reabriria assim que o saldo voltasse ao limiar.
       movesOfferShown: true,
+    );
+  }
+
+  /// O convite de resgate de derrota (Continue Offer) abriu na tela.
+  ///
+  /// Quem marca é a UI, mesma razão de [markMovesOfferShown]: a regra sabe
+  /// dizer que a fase justifica o resgate, só a tela sabe se o cartão chegou
+  /// a subir.
+  void markContinueOfferShown() {
+    if (state.continueOfferShown) return;
+    state = state.copyWith(continueOfferShown: true);
+  }
+
+  /// Credita o resgate de derrota: +[kContinueBonusMoves] movimentos, e
+  /// revive a fase (volta a `playing`, sem motivo de derrota).
+  ///
+  /// Só surte efeito se [GameState.shouldOfferContinue] for verdadeiro no
+  /// instante da chamada — mesma guarda que [grantBonusMoves] aplica contra
+  /// double-crédito, aqui replicada porque o gatilho é o oposto (a fase
+  /// **precisa** estar perdida por falta de movimentos, não em andamento).
+  void grantContinueMoves() {
+    if (state.status != GameStatus.lost ||
+        state.lossReason != LossReason.moveLimitReached ||
+        state.continueOfferShown) {
+      return;
+    }
+    state = state.copyWith(
+      status: GameStatus.playing,
+      clearLossReason: true,
+      bonusMoves: state.bonusMoves + kContinueBonusMoves,
+      continueOfferShown: true,
     );
   }
 

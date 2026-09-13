@@ -5,6 +5,8 @@ import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/widgets/coins_header_badge.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/apex_celebration.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/bomb_offer_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/brush_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/combo_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/juice_overlay.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_banner.dart';
@@ -199,14 +201,14 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                 onCell: notifier.useHammer,
                 onCancel: notifier.cancelHammerTargeting,
               ),
-            if (state.isBombTargeting)
+            if (state.isBombTargeting && state.pendingBombTarget == null)
               HammerTargetingLayer(
                 boardKey: _boardKey,
                 areaRadius: 1,
                 onCell: notifier.useBomb,
                 onCancel: notifier.cancelBombTargeting,
               ),
-            if (state.isBrushTargeting)
+            if (state.isBrushTargeting && state.pendingBrushTarget == null)
               HammerTargetingLayer(
                 boardKey: _boardKey,
                 onCell: notifier.usePaint,
@@ -223,6 +225,40 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
                         child: HammerOfferDialog(
                           onGranted: notifier.grantHammer,
                           onDecline: notifier.cancelHammerTargeting,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (state.pendingBombTarget != null && !state.isOver)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black.withValues(alpha: 0.75),
+                  child: SafeArea(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Center(
+                        child: BombOfferDialog(
+                          onGranted: notifier.grantBomb,
+                          onDecline: notifier.cancelBombTargeting,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (state.pendingBrushTarget != null && !state.isOver)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black.withValues(alpha: 0.75),
+                  child: SafeArea(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Center(
+                        child: BrushOfferDialog(
+                          onGranted: notifier.grantBrush,
+                          onDecline: notifier.cancelBrushTargeting,
                         ),
                       ),
                     ),
