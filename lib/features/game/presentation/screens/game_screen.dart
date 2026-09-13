@@ -14,6 +14,7 @@ import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/apex_celebration.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/combo_banner.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/continue_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_suggestion_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_button.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
@@ -92,6 +93,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   /// contador — só `markEndlessOfferShown()` o gasta, e é a tela quem decide
   /// chamá-lo.
   bool _endlessSuggestionOpen = false;
+
+  /// O convite de resgate de derrota está aberto agora?
+  ///
+  /// Mesmo motivo de [_movesOfferOpen]: `shouldOfferContinue` também é
+  /// consumido por quem chama `grantContinueMoves` (que já muda o status para
+  /// `playing` e apaga a condição), então só a tela sabe se o cartão chegou a
+  /// subir.
+  bool _continueOfferOpen = false;
 
   /// Onde o tabuleiro está na tela. A camada de mira do martelo precisa saber:
   /// é o que separa "bateu numa célula" de "tocou fora e desistiu".
@@ -180,6 +189,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           // `startLevel`); um convite aberto da partida anterior ficaria por
           // cima do cartão de início da nova.
           _movesOfferOpen = false;
+          _continueOfferOpen = false;
           _endlessSuggestionOpen = false;
         });
       }
@@ -191,6 +201,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       if (!_movesOfferOpen && _ready && next.shouldOfferMoves) {
         _movesOfferOpen = true;
         ref.read(gameProvider.notifier).markMovesOfferShown();
+      }
+
+      // O convite de resgate não depende de `_ready`: a fase já perdeu, o
+      // cartão de início não está mais no caminho. Ao contrário do convite de
+      // movimentos, `markContinueOfferShown()` não é chamado aqui: quem marca
+      // `continueOfferShown` é `grantContinueMoves()` ao aceitar, ou o
+      // `onDecline` abaixo ao recusar — marcar cedo demais faria
+      // `grantContinueMoves()` recusar o próprio crédito, já que ele mesmo
+      // usa `continueOfferShown` como guarda contra double-crédito.
+      if (!_continueOfferOpen && next.shouldOfferContinue) {
+        _continueOfferOpen = true;
       }
 
       // O convite de migração só sobe depois de a fase acabar em derrota —
@@ -452,6 +473,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   onBack: () => Navigator.of(context).maybePop(),
                   starsInChapter: chapterStars,
                   starsGained: _chapterStarsGained,
+                ),
+              ),
+            // Sobe **sobre** o cartão de derrota: recusar revela o mesmo
+            // cartão, com o botão de tentar de novo intacto. Aceitar revive a
+            // fase e `state.isOver` vira falso no mesmo estado.
+            if (_continueOfferOpen)
+              _OutcomeOverlay(
+                child: ContinueOfferDialog(
+                  onGranted: () {
+                    ref.read(gameProvider.notifier).grantContinueMoves();
+                    setState(() => _continueOfferOpen = false);
+                  },
+                  onDecline: () {
+                    ref.read(gameProvider.notifier).markContinueOfferShown();
+                    setState(() => _continueOfferOpen = false);
+                  },
                 ),
               ),
             // Sobe **sobre** o cartão de desfecho: recusar revela o mesmo
