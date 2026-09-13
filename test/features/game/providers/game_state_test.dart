@@ -6,6 +6,8 @@ import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
+import 'package:nine_fuse/features/game/providers/bomb_booster.dart';
+import 'package:nine_fuse/features/game/providers/brush_booster.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
@@ -355,6 +357,18 @@ void main() {
         base.copyWith(endlessOfferShown: true).shouldOfferEndless,
         isFalse,
       );
+    });
+  });
+
+  group('pendingBombTarget e pendingBrushTarget', () {
+    test('espelham o estado dos boosters', () {
+      final state = GameState.initial().copyWith(
+        bomb: const BombState(pendingTarget: Position(row: 1, col: 1)),
+        brush: const BrushState(pendingTarget: Position(row: 2, col: 2)),
+      );
+
+      expect(state.pendingBombTarget, const Position(row: 1, col: 1));
+      expect(state.pendingBrushTarget, const Position(row: 2, col: 2));
     });
   });
 }

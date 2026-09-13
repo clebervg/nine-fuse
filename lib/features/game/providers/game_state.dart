@@ -237,6 +237,7 @@ class GameState {
   bool get isBombTargeting => bomb.isTargeting;
   (Position, Map<Position, int>)? get bombStrike => bomb.strike;
   int get bombStrikes => bomb.strikes;
+  Position? get pendingBombTarget => bomb.pendingTarget;
 
   /// O Pincel: estoque e mira — sem estilhaço nem tranco próprios, ver
   /// [BrushState].
@@ -244,6 +245,7 @@ class GameState {
 
   int get brushCount => brush.count;
   bool get isBrushTargeting => brush.isTargeting;
+  Position? get pendingBrushTarget => brush.pendingTarget;
 
   /// Quantos eventos Nova já aconteceram nesta partida. Alimenta o
   /// `StrikeShake` dedicado da Nova (2.0x, mais intenso que o da Bomba) — o
