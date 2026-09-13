@@ -500,7 +500,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             // Sobe **sobre** o cartão de derrota: recusar revela o mesmo
             // cartão, com o botão de tentar de novo intacto. Aceitar revive a
             // fase e `state.isOver` vira falso no mesmo estado.
-            if (_continueOfferOpen)
+            if (_continueOfferOpen && state.isOver)
               _OutcomeOverlay(
                 child: ContinueOfferDialog(
                   onGranted: () {

@@ -220,7 +220,11 @@ mixin BombBooster<S> on StateNotifier<S> {
 
     final resolution = engine.smashArea(board, pos);
     if (resolution == null) {
+      // Inalcançável hoje: `useBomb`/`grantBomb` já validam o centro antes de
+      // chegar aqui. Ainda assim limpa o alvo pendente, espelhando `_paint`
+      // do Pincel — consistência entre boosters irmãos, não um bug vivo.
       rejectionFeedback();
+      writeBomb(bomb.copyWith(clearPendingTarget: true));
       return;
     }
 
