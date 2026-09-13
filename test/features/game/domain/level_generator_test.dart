@@ -185,15 +185,29 @@ void main() {
 
       group('Densidade de obstáculos em fases hard', () {
         test('fase hard tem o dobro de cada tipo de obstáculo do bloco, respeitando o teto', () {
-          final hardLevel = [
-            for (var n = kHardLevelStart; n < kHardLevelStart + kBlockSize * 3; n++)
+          final hardLevels = [
+            for (var n = kHardLevelStart; n < kHardLevelStart + kBlockSize * 30; n++)
               if (isHardLevel(n)) n,
-          ].first;
-          final hard = generateLevel(hardLevel);
-          final notHard = generateLevel(hardLevel - 1);
+          ];
 
-          expect(hard.obstacles.total, greaterThan(notHard.obstacles.total));
-          expect(hard.obstacles.total, lessThanOrEqualTo(kMaxObstacles));
+          for (final hardLevel in hardLevels) {
+            final hard = generateLevel(hardLevel);
+            final notHard = generateLevel(hardLevel - 1);
+
+            // A partir do bloco em que o dobro já satura o teto dos dois
+            // lados, hard e não-hard empatam no mesmo total aparado — nunca
+            // menor, porque dobrar não pode reduzir a densidade de origem.
+            expect(
+              hard.obstacles.total,
+              greaterThanOrEqualTo(notHard.obstacles.total),
+              reason: 'fase hard $hardLevel',
+            );
+            expect(
+              hard.obstacles.total,
+              lessThanOrEqualTo(kMaxObstacles),
+              reason: 'fase hard $hardLevel excedeu o teto',
+            );
+          }
         });
       });
     });

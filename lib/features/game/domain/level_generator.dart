@@ -494,15 +494,30 @@ ObstacleLayout _obstaclesFor(int block, {bool hard = false}) {
   final doubledStone = hard ? stone * 2 : stone;
 
   // O teto é do tabuleiro, não do desenho: o excesso é aparado da cobertura
-  // mais macia, que é a que menos muda o que a fase pede.
+  // mais macia primeiro (gelo, até o piso de 1), depois da próxima mais macia
+  // (vidro, até o mesmo piso), e só em último caso da pedra (também até o
+  // piso de 1) — a mais dura entrega primeiro e é a última a perder unidade.
+  // Sem os dois estágios seguintes, uma fase hard cujo vidro e/ou pedra já
+  // dobrados sozinhos excedem o teto furava `kMaxObstacles` mesmo com o gelo
+  // já no piso — foi o que a densidade dobrada da fase hard expôs.
   var trimmedIce = doubledIce;
+  var trimmedGlass = doubledGlass;
+  var trimmedStone = doubledStone;
   var total = doubledIce + doubledGlass + doubledStone;
   while (total > kMaxObstacles && trimmedIce > 1) {
     trimmedIce--;
     total--;
   }
+  while (total > kMaxObstacles && trimmedGlass > 1) {
+    trimmedGlass--;
+    total--;
+  }
+  while (total > kMaxObstacles && trimmedStone > 1) {
+    trimmedStone--;
+    total--;
+  }
 
-  return ObstacleLayout(ice: trimmedIce, glass: doubledGlass, stone: doubledStone);
+  return ObstacleLayout(ice: trimmedIce, glass: trimmedGlass, stone: trimmedStone);
 }
 
 /// O teto de contagem que vale para um objetivo de dígito [digit] a
