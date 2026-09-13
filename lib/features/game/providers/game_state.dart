@@ -74,6 +74,7 @@ class GameState {
     this.apexCelebrated = false,
     this.explosions = 0,
     this.movesOfferShown = false,
+    this.continueOfferShown = false,
     this.boardObstacleGoal,
     this.hammer = const HammerState(),
     this.bomb = const BombState(),
@@ -184,6 +185,12 @@ class GameState {
   /// Vive na partida, e não no jogador: recomeçar a fase devolve o convite,
   /// porque a aflição também recomeça.
   final bool movesOfferShown;
+
+  /// O convite de resgate de derrota (Continue Offer) já foi mostrado nesta
+  /// partida. Mesmo papel de [movesOfferShown]: sem a trava,
+  /// [shouldOfferContinue] continuaria verdadeiro a cada nova checagem depois
+  /// de recusado, e o convite reabriria sozinho.
+  final bool continueOfferShown;
 
   /// Quantas vezes seguidas o jogador perdeu **esta mesma fase**.
   ///
@@ -329,6 +336,17 @@ class GameState {
       moves > 0 &&
       movesLeft <= kPreChurnMovesLeft;
 
+  /// A fase acabou de perder por falta de movimentos, e o jogador ainda não
+  /// viu o resgate?
+  ///
+  /// Só [LossReason.moveLimitReached] — um tabuleiro travado
+  /// ([LossReason.boardStuck]) não é resolvido por mais movimentos, e
+  /// oferecer o resgate ali prometeria uma saída que ele não entrega.
+  bool get shouldOfferContinue =>
+      status == GameStatus.lost &&
+      lossReason == LossReason.moveLimitReached &&
+      !continueOfferShown;
+
   /// A fase acabou de perder feio o bastante para valer sugerir o Modo
   /// Recorde?
   ///
@@ -372,6 +390,7 @@ class GameState {
     bool? apexCelebrated,
     int? explosions,
     bool? movesOfferShown,
+    bool? continueOfferShown,
     int? boardObstacleGoal,
     bool clearBoardObstacleGoal = false,
     HammerState? hammer,
@@ -407,6 +426,7 @@ class GameState {
     apexCelebrated: apexCelebrated ?? this.apexCelebrated,
     explosions: explosions ?? this.explosions,
     movesOfferShown: movesOfferShown ?? this.movesOfferShown,
+    continueOfferShown: continueOfferShown ?? this.continueOfferShown,
     boardObstacleGoal: clearBoardObstacleGoal
         ? null
         : (boardObstacleGoal ?? this.boardObstacleGoal),
@@ -452,6 +472,7 @@ class GameState {
           apexCelebrated == other.apexCelebrated &&
           explosions == other.explosions &&
           movesOfferShown == other.movesOfferShown &&
+          continueOfferShown == other.continueOfferShown &&
           boardObstacleGoal == other.boardObstacleGoal &&
           hammer == other.hammer &&
           bomb == other.bomb &&
@@ -482,6 +503,7 @@ class GameState {
     apexCelebrated,
     explosions,
     movesOfferShown,
+    continueOfferShown,
     boardObstacleGoal,
     hammer,
     bomb,

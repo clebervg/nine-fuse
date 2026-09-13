@@ -56,3 +56,16 @@ const int kRewardedMinMoves = 4;
 /// Teto do prêmio. Sem ele uma fase de objetivo alto renderia meia fase nova
 /// por um vídeo, e o limite de movimentos deixaria de significar alguma coisa.
 const int kRewardedMaxMoves = 10;
+
+/// Movimentos pagos pelo resgate de derrota (Continue Offer).
+///
+/// Fixo, e não escalado por alvo restante como o [kMovesPerTarget] do
+/// reforço de saldo pre-churn: este convite só aparece uma vez, depois da
+/// fase já ter sido perdida — não há mais "quanto falta" para escalar contra,
+/// só a decisão de tentar mais cinco movimentos ou aceitar a derrota.
+const int kContinueBonusMoves = 5;
+
+/// Preço em moedas do resgate de derrota, quando o jogador não quer assistir
+/// ao vídeo. Mesmo preço do Martelo — mesma ordem de grandeza de "um item
+/// avulso caro".
+const int kContinueCoinPrice = 100;

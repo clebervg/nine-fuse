@@ -4,7 +4,9 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
@@ -1694,5 +1696,65 @@ void main() {
 
       expect(notifier.state, before);
     });
+  });
+
+  group('Continue Offer', () {
+    test(
+      'shouldOfferContinue é verdadeiro só quando perdeu por falta de movimentos e ainda não foi mostrado',
+      () {
+        final notifier = GameNotifier(storage: InMemoryGameStorage());
+        notifier.startLevel(const GameLevel(
+          number: 500,
+          objective: Objective(digit: 9, count: 6),
+          moveLimit: 1,
+          spawnMin: 0,
+          spawnMax: 3,
+          obstacles: ObstacleLayout.none,
+        ));
+        // Uma troca qualquer que não forme combinação esgota o único movimento
+        // sem cumprir o objetivo — usa o hint do motor para garantir uma troca
+        // válida que não vença a fase (objetivo pede o dígito 9).
+        final hint = notifier.state.hint!;
+        notifier.swapTiles(hint.$1, hint.$2);
+
+        expect(notifier.state.status, GameStatus.lost);
+        expect(notifier.state.lossReason, LossReason.moveLimitReached);
+        expect(notifier.state.shouldOfferContinue, isTrue);
+      },
+    );
+
+    test('grantContinueMoves credita +5 e revive a fase', () {
+      final notifier = GameNotifier(storage: InMemoryGameStorage());
+      notifier.startLevel(const GameLevel(
+        number: 500,
+        objective: Objective(digit: 9, count: 6),
+        moveLimit: 1,
+        spawnMin: 0,
+        spawnMax: 3,
+        obstacles: ObstacleLayout.none,
+      ));
+      final hint = notifier.state.hint!;
+      notifier.swapTiles(hint.$1, hint.$2);
+      expect(notifier.state.status, GameStatus.lost);
+
+      notifier.grantContinueMoves();
+
+      expect(notifier.state.status, GameStatus.playing);
+      expect(notifier.state.lossReason, isNull);
+      expect(notifier.state.bonusMoves, kContinueBonusMoves);
+      expect(notifier.state.continueOfferShown, isTrue);
+      expect(notifier.state.shouldOfferContinue, isFalse);
+    });
+
+    test(
+      'grantContinueMoves não faz nada se a fase não estiver perdida por falta de movimentos',
+      () {
+        final notifier = GameNotifier(storage: InMemoryGameStorage());
+        notifier.startLevel(levelAt(1));
+        notifier.grantContinueMoves();
+        expect(notifier.state.status, GameStatus.playing);
+        expect(notifier.state.bonusMoves, 0);
+      },
+    );
   });
 }
