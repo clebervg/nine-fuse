@@ -19,6 +19,13 @@ const int kCoinsPerStar = 10;
 /// não um substituto.
 const int kHammerCoinPrice = 100;
 
+/// Preço avulso da Bomba em moedas.
+///
+/// Mais cara que Martelo e Pincel (100): a Bomba afeta uma área 3x3 inteira
+/// de uma vez, não uma célula única — o preço reflete o poder, não só a
+/// categoria "booster avulso".
+const int kBombCoinPrice = 150;
+
 /// O que o baú de fim de capítulo paga, uma única vez por capítulo.
 const int kChapterChestReward = 200;
 

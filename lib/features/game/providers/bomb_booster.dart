@@ -22,6 +22,7 @@ class BombState {
     this.isTargeting = false,
     this.strike,
     this.strikes = 0,
+    this.pendingTarget,
   });
 
   /// Bombas em estoque. Inventário do jogador, como o Martelo.
@@ -29,9 +30,9 @@ class BombState {
 
   /// O jogador está escolhendo o centro da área 3x3.
   ///
-  /// Sem Modo Fantasma: ao contrário do Martelo, a Bomba não tem funil de
-  /// aquisição hoje — estoque zero simplesmente recusa o toque no dock, sem
-  /// entrar em mira.
+  /// Ligado inclusive com estoque zero — o Modo Fantasma, mesma regra do
+  /// Martelo: deixá-lo escolher o alvo antes de descobrir que não tem bomba
+  /// é o que dá sentido ao convite de aquisição.
   final bool isTargeting;
 
   /// O centro do último estouro e **cada célula realmente destruída**, com o
@@ -47,16 +48,28 @@ class BombState {
   /// animação, mesmo papel de `HammerState.strikes`.
   final int strikes;
 
+  /// Centro da área escolhido no Modo Fantasma, à espera da bomba.
+  ///
+  /// Mesma regra do Martelo: guardá-lo evita cobrar duas vezes pelo mesmo
+  /// golpe, e quem assistiu ao anúncio (ou comprou) não precisa mirar de
+  /// novo.
+  final Position? pendingTarget;
+
   BombState copyWith({
     int? count,
     bool? isTargeting,
     (Position, Map<Position, int>)? strike,
     int? strikes,
+    Position? pendingTarget,
+    bool clearPendingTarget = false,
   }) => BombState(
     count: count ?? this.count,
     isTargeting: isTargeting ?? this.isTargeting,
     strike: strike ?? this.strike,
     strikes: strikes ?? this.strikes,
+    pendingTarget: clearPendingTarget
+        ? null
+        : (pendingTarget ?? this.pendingTarget),
   );
 
   /// O mesmo estoque, sem nada de uma partida — mesmo papel de
@@ -70,10 +83,12 @@ class BombState {
           count == other.count &&
           isTargeting == other.isTargeting &&
           strike == other.strike &&
-          strikes == other.strikes;
+          strikes == other.strikes &&
+          pendingTarget == other.pendingTarget;
 
   @override
-  int get hashCode => Object.hash(count, isTargeting, strike, strikes);
+  int get hashCode =>
+      Object.hash(count, isTargeting, strike, strikes, pendingTarget);
 
   @override
   String toString() =>
@@ -82,9 +97,9 @@ class BombState {
 }
 
 /// A regra da Bomba, compartilhada pelos dois modos de jogo — mesmo desenho
-/// de [HammerBooster], sem o funil de aquisição (Modo Fantasma, anúncio,
-/// compra): não foi pedido para a Bomba, e adicioná-lo sem pedido inventaria
-/// um fluxo de monetização que o dono do produto não decidiu ainda.
+/// de [HammerBooster], Modo Fantasma incluído: mirar com estoque zero guarda
+/// o alvo, e [grantBomb] explode nele assim que a bomba existir (anúncio ou
+/// compra).
 mixin BombBooster<S> on StateNotifier<S> {
   /// Mesmos três avisos do Martelo, e pelo mesmo motivo: engajar a mira,
   /// errar a mira e o estouro precisam soar diferentes um do outro.
@@ -123,8 +138,7 @@ mixin BombBooster<S> on StateNotifier<S> {
 
   // --- ações -----------------------------------------------------------------
 
-  /// Liga ou desliga o modo de mira. Estoque zero recusa em vez de entrar em
-  /// mira — sem Modo Fantasma aqui.
+  /// Liga ou desliga o modo de mira.
   void toggleBombTargeting() {
     if (!acceptsBomb) return;
 
@@ -133,11 +147,9 @@ mixin BombBooster<S> on StateNotifier<S> {
       return;
     }
 
-    if (bomb.count <= 0) {
-      rejectionFeedback();
-      return;
-    }
-
+    // Modo Fantasma: entra em mira mesmo com estoque zero — mesma regra do
+    // Martelo. `useBomb` é quem decide, na hora do toque, se explode de
+    // verdade ou só guarda o alvo.
     targetingFeedback();
     writeBomb(bomb.copyWith(isTargeting: true));
     onBombTargetingStarted();
@@ -147,15 +159,51 @@ mixin BombBooster<S> on StateNotifier<S> {
   /// mesmo papel de `HammerBooster.onHammerTargetingStarted`.
   void onBombTargetingStarted() {}
 
+  /// Sai do modo de mira, descartando o alvo pendente.
   void cancelBombTargeting() {
-    writeBomb(bomb.copyWith(isTargeting: false));
+    writeBomb(bomb.copyWith(isTargeting: false, clearPendingTarget: true));
   }
 
   /// Explode a área 3x3 centrada em [pos]. Mira errada (fora do tabuleiro,
   /// área inteira vazia) avisa e não cobra — mesma régua do Martelo.
+  ///
+  /// Com estoque zero o alvo é apenas guardado, e quem abre o convite de
+  /// aquisição é a tela. O estouro sai depois, em [grantBomb].
   void useBomb(Position pos) {
-    if (bombEngine == null || !acceptsBomb || bomb.count <= 0) return;
+    if (bombEngine == null || !acceptsBomb) return;
 
+    if (!Board.contains(pos) || bombBoard.getTileAt(pos) == null) {
+      rejectionFeedback();
+      return;
+    }
+
+    if (bomb.count <= 0) {
+      writeBomb(bomb.copyWith(pendingTarget: pos));
+      return;
+    }
+
+    _strikeArea(pos);
+  }
+
+  /// Credita bombas e, se havia alvo escolhido no Modo Fantasma, explode
+  /// nele.
+  void grantBomb({int count = 1}) {
+    _setBombCount(bomb.count + count);
+
+    final pending = bomb.pendingTarget;
+    if (pending == null || bombEngine == null || !acceptsBomb) return;
+
+    if (bombBoard.getTileAt(pending) == null) {
+      // O tabuleiro pode ter andado enquanto o anúncio rodava. A bomba fica
+      // no estoque; o que se perde é só a mira.
+      cancelBombTargeting();
+      return;
+    }
+
+    _strikeArea(pending);
+  }
+
+  void _strikeArea(Position pos) {
     final engine = bombEngine!;
     final board = bombBoard;
 
@@ -181,6 +229,7 @@ mixin BombBooster<S> on StateNotifier<S> {
     writeBomb(
       bomb.copyWith(
         isTargeting: false,
+        clearPendingTarget: true,
         strike: (pos, destroyed),
         strikes: bomb.strikes + 1,
       ),
@@ -188,9 +237,6 @@ mixin BombBooster<S> on StateNotifier<S> {
 
     playBombResolution(engine, resolution);
   }
-
-  /// Credita bombas ao inventário do jogador.
-  void grantBomb({int count = 1}) => _setBombCount(bomb.count + count);
 
   void _setBombCount(int count) {
     writeBomb(bomb.copyWith(count: count));

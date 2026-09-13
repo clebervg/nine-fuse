@@ -18,8 +18,10 @@ import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
 
 /// A Bomba: mesma máquina de mira do Martelo, área 3x3 em vez de célula
-/// única, e sem o funil de aquisição (Modo Fantasma/anúncio) que o Martelo
-/// tem.
+/// única. Agora com o mesmo Modo Fantasma do Martelo na regra
+/// (`bomb_booster_test.dart` em `test/features/game/providers/` cobre o
+/// alvo pendente e `grantBomb`); o funil de UI (anúncio/compra) ainda não
+/// existe aqui, e não é escopo deste arquivo.
 void main() {
   late GameNotifier notifier;
   late InMemoryGameStorage storage;
@@ -146,15 +148,18 @@ void main() {
       expect(notifier.state.isBombTargeting, isFalse);
     });
 
-    testWidgets('sem estoque, o toque recusa e não entra em mira', (
+    testWidgets('sem estoque, o toque entra em mira (Modo Fantasma)', (
       tester,
     ) async {
+      // A Bomba ganhou o mesmo Modo Fantasma do Martelo: mirar com estoque
+      // zero guarda o alvo em vez de recusar, e é isso que dá sentido ao
+      // convite de aquisição.
       await pumpGame(tester, bombs: 0);
 
       await tester.tap(find.byKey(bombButtonKey));
       await tester.pumpAndSettle();
 
-      expect(notifier.state.isBombTargeting, isFalse);
+      expect(notifier.state.isBombTargeting, isTrue);
     });
   });
 
