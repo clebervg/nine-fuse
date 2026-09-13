@@ -137,12 +137,29 @@ mixin BrushBooster<S> on StateNotifier<S> {
   void usePaint(Position pos) {
     if (brushEngine == null || !acceptsBrush) return;
 
+    if (!_isPaintable(pos)) {
+      rejectionFeedback();
+      return;
+    }
+
     if (brush.count <= 0) {
       writeBrush(brush.copyWith(pendingTarget: pos));
       return;
     }
 
     _paint(pos);
+  }
+
+  /// Mesma checagem de [MatchEngine.paintTile], repetida aqui para poder
+  /// recusar **antes** do Modo Fantasma guardar um alvo que o motor já sabe
+  /// que nunca vai pintar — mesma régua do Martelo/Bomba.
+  bool _isPaintable(Position pos) {
+    if (!Board.contains(pos)) return false;
+    final tile = brushBoard.getTileAt(pos);
+    return tile != null &&
+        !tile.isBlocked &&
+        tile.specialType == null &&
+        tile.value < kMaxDigit;
   }
 
   /// Credita pincéis e, se havia alvo escolhido no Modo Fantasma, pinta

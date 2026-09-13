@@ -109,6 +109,26 @@ void main() {
       );
     });
 
+    test(
+      'mirar em alvo inválido com estoque zero rejeita na hora, sem guardar '
+      'pendência',
+      () {
+        final harness = _BrushTestNotifier();
+        harness.setBoard(
+          _boardWithTileAt(const Position(row: 1, col: 1), value: kMaxDigit),
+        );
+        var rejections = 0;
+        BrushBooster.rejectionFeedback = () => rejections++;
+
+        harness.toggleBrushTargeting();
+        harness.usePaint(const Position(row: 1, col: 1));
+
+        expect(rejections, 1);
+        expect(harness.brush.pendingTarget, isNull);
+        expect(harness.brush.count, 0);
+      },
+    );
+
     test('grantBrush credita e pinta o alvo pendente', () {
       final harness = _BrushTestNotifier();
       harness.setBoard(
