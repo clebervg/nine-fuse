@@ -150,16 +150,22 @@ void main() {
         }
       });
 
-      test('isHardLevel marca exatamente 1 fase a cada kBlockSize a partir da 30', () {
+      test('isHardLevel marca exatamente 1 fase por bloco a partir da 30', () {
+        // A posição hard cicla por bloco (Fix 3): o espaçamento numérico
+        // entre fases hard consecutivas não é mais fixo em kBlockSize (varia
+        // com o salto de posição), mas continua havendo exatamente uma fase
+        // hard por bloco — o teste passou a contar por bloco, não por
+        // distância entre números.
         final hardInRange = [
           for (var n = kHardLevelStart; n < kHardLevelStart + kBlockSize * 5; n++)
             if (isHardLevel(n)) n,
         ];
         expect(hardInRange.length, 5);
-        // Espaçadas por kBlockSize.
-        for (var i = 1; i < hardInRange.length; i++) {
-          expect(hardInRange[i] - hardInRange[i - 1], kBlockSize);
-        }
+        // Uma por bloco: nenhum par de fases hard compartilha o mesmo bloco.
+        final blocks = hardInRange
+            .map((n) => (n - kHandcraftedLevels - 1) ~/ kBlockSize)
+            .toSet();
+        expect(blocks.length, hardInRange.length);
       });
 
       test('fase hard tem limite de movimentos ~25% menor que a fase equivalente não-hard do mesmo bloco', () {
@@ -175,13 +181,63 @@ void main() {
       });
 
       test('fase hard nunca cai abaixo do piso de movimentos, mesmo em blocos distantes', () {
-        for (var block = 40; block < 60; block++) {
-          final number = kHandcraftedLevels + 1 + block * kBlockSize + (kBlockSize - 2);
+        final start = kHandcraftedLevels + 1 + 40 * kBlockSize;
+        final end = kHandcraftedLevels + 1 + 60 * kBlockSize;
+        for (var number = start; number < end; number++) {
           if (!isHardLevel(number)) continue;
           final level = generateLevel(number);
           expect(level.moveLimit, greaterThanOrEqualTo(kMinMoveLimit));
         }
       });
+
+      test(
+        'a posição hard cicla por bloco, e nunca cai na primeira nem na '
+        'última posição do bloco',
+        () {
+          final start = kHandcraftedLevels + 1 + 40 * kBlockSize;
+          final end = kHandcraftedLevels + 1 + 80 * kBlockSize;
+          final positions = <int>{};
+          for (var number = start; number < end; number++) {
+            if (!isHardLevel(number)) continue;
+            final position = (number - kHandcraftedLevels - 1) % kBlockSize;
+            expect(position, greaterThan(0));
+            expect(position, lessThan(kBlockSize - 1));
+            positions.add(position);
+          }
+          // Cicla de verdade: mais de uma posição aparece na amostra.
+          expect(positions.length, greaterThan(1));
+        },
+      );
+
+      test(
+        'a fase hard varia de arquétipo entre blocos: não é sempre '
+        'quebra de cobertura',
+        () {
+          final hardLevels = [
+            for (var n = kHardLevelStart; n < kHardLevelStart + kBlockSize * 40; n++)
+              if (isHardLevel(n)) n,
+          ];
+
+          final archetypes = {
+            for (final n in hardLevels) generateLevel(n).objective.type,
+          };
+
+          expect(
+            archetypes,
+            contains(ObjectiveType.reachDigit),
+            reason: 'nenhuma fase hard amostrada caiu em objetivo de dígito',
+          );
+          expect(
+            archetypes.any(
+              (t) =>
+                  t == ObjectiveType.clearObstacles ||
+                  t == ObjectiveType.clearAllObstacles,
+            ),
+            isTrue,
+            reason: 'nenhuma fase hard amostrada caiu em quebra de cobertura',
+          );
+        },
+      );
 
       group('Densidade de obstáculos em fases hard', () {
         test('fase hard tem o dobro de cada tipo de obstáculo do bloco, respeitando o teto', () {

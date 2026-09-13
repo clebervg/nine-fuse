@@ -97,17 +97,31 @@ const double kHardMoveMultiplier = 0.75;
 
 /// A fase [number] é uma fase "hard"?
 ///
-/// Um degrau fixo por bloco (a penúltima posição, [kBlockSize] - 2) a partir
-/// de [kHardLevelStart]: dá exatamente uma fase hard a cada [kBlockSize]
-/// fases, sem precisar de um contador à parte — reaproveita a mesma
-/// aritmética de bloco/posição que [_objectiveFor] já usa. A penúltima
-/// posição, e não a última: a última já é o fecho de bloco ("limpe tudo"),
-/// que tem seu próprio arquétipo fixo e não deveria carregar as duas
-/// intensificações ao mesmo tempo.
+/// Exatamente uma fase hard a cada [kBlockSize] fases, a partir de
+/// [kHardLevelStart] — mas a posição dentro do bloco **cicla** em vez de
+/// ficar presa sempre na mesma (posição 8, `kBlockSize - 2`): fixa, ela
+/// caía sempre no arquétipo de quebra de cobertura (`_objectiveFor` só
+/// devolve `clearObstacles`/`clearAllObstacles` a partir da posição
+/// `kBlockSize - 3`), e a intensificação da fase hard nunca visitava uma
+/// fase de dígito — o oposto do objetivo de reduzir repetição que o resto
+/// deste gerador persegue. [_hardPositionFor] cicla pela mesma razão que
+/// [_spawnMinFor] cicla a janela de sorteio: nunca a posição 0 (a costura
+/// teria uma fase hard logo na abertura do bloco, sem nenhuma fase normal
+/// antes para contrastar) e nunca a última posição, `kBlockSize - 1` (o
+/// fecho "limpe tudo" já é um arquétipo fixo por conta própria — a mesma
+/// razão que excluía a última posição na versão anterior desta função —, e
+/// não deveria carregar as duas intensificações ao mesmo tempo).
 bool isHardLevel(int number) {
   if (number < kHardLevelStart) return false;
-  return _positionOf(number) == kBlockSize - 2;
+  return _positionOf(number) == _hardPositionFor(_blockOf(number));
 }
+
+/// A posição hard do bloco [block], ciclando por `1..kBlockSize - 2` — nunca
+/// a posição 0 nem a última do bloco (ver [isHardLevel]). O intervalo
+/// cobre tanto posições de dígito (`_objectiveFor` até `kBlockSize - 4`)
+/// quanto as duas de quebra de cobertura, então a fase hard varia de
+/// arquétipo em vez de sempre cair no mesmo.
+int _hardPositionFor(int block) => 1 + block % (kBlockSize - 2);
 
 /// Piso de movimentos das fases "pesadas": mais de dois alvos de dígito
 /// alto (7, 8 ou o próprio [kMaxDigit]) na mesma fase.
