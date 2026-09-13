@@ -11,7 +11,9 @@ import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/brush_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_button.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/hammer_targeting_layer.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/providers/brush_booster.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
@@ -19,7 +21,8 @@ import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
 
 /// O Pincel: mesma máquina de mira do Martelo/Bomba (célula única), soma 1 ao
-/// valor da peça tocada em vez de destruir — sem funil de aquisição.
+/// valor da peça tocada em vez de destruir. O grupo "funil de conversão"
+/// cobre o convite de aquisição ligado à tela.
 void main() {
   late GameNotifier notifier;
   late InMemoryGameStorage storage;
@@ -84,6 +87,7 @@ void main() {
     int brushes = 1,
     ObstacleType? cover,
     int targetValue = 3,
+    Future<bool> Function()? ad,
   }) async {
     tester.view.physicalSize = const Size(1200, 3000);
     tester.view.devicePixelRatio = 1.0;
@@ -91,7 +95,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [gameProvider.overrideWith((ref) => notifier)],
+        overrides: [
+          gameProvider.overrideWith((ref) => notifier),
+          if (ad != null) brushAdProvider.overrideWithValue(ad),
+        ],
         child: localizedApp(home: const GameScreen(level: roomy)),
       ),
     );
@@ -241,6 +248,81 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(storage.brushCount, 1);
+    });
+  });
+
+  group('funil de conversão', () {
+    testWidgets('sem estoque, mirar abre o convite com o alvo guardado', (
+      tester,
+    ) async {
+      await pumpGame(tester, brushes: 0);
+      await tester.tap(find.byKey(brushButtonKey));
+      await tester.pumpAndSettle();
+
+      await tapTarget(tester);
+
+      expect(find.byKey(brushOfferKey), findsOneWidget);
+      expect(notifier.state.pendingBrushTarget, target);
+      expect(
+        notifier.state.board.getTileAt(target)?.value,
+        3,
+        reason: 'nada é pintado antes de o pincel existir',
+      );
+    });
+
+    testWidgets('assistir ao anúncio pinta o alvo já destacado', (
+      tester,
+    ) async {
+      await pumpGame(tester, brushes: 0, ad: () async => true);
+      await tester.tap(find.byKey(brushButtonKey));
+      await tester.pumpAndSettle();
+      await tapTarget(tester);
+
+      await tester.tap(find.byKey(brushOfferWatchKey));
+      await tester.pumpAndSettle();
+
+      expect(notifier.state.board.getTileAt(target)?.value, 4);
+      expect(find.byKey(brushOfferKey), findsNothing);
+      expect(notifier.state.moves, 0);
+    });
+
+    testWidgets('anúncio que falha não cobra nem pinta', (tester) async {
+      await pumpGame(tester, brushes: 0, ad: () async => false);
+      await tester.tap(find.byKey(brushButtonKey));
+      await tester.pumpAndSettle();
+      await tapTarget(tester);
+
+      await tester.tap(find.byKey(brushOfferWatchKey));
+      await tester.pumpAndSettle();
+
+      expect(notifier.state.board.getTileAt(target)?.value, 3);
+      expect(notifier.state.brushCount, 0);
+    });
+
+    testWidgets('recusar o convite descarta a mira e o alvo', (tester) async {
+      await pumpGame(tester, brushes: 0);
+      await tester.tap(find.byKey(brushButtonKey));
+      await tester.pumpAndSettle();
+      await tapTarget(tester);
+
+      await tester.tap(find.byKey(brushOfferDeclineKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(brushOfferKey), findsNothing);
+      expect(notifier.state.pendingBrushTarget, isNull);
+      expect(notifier.state.isBrushTargeting, isFalse);
+    });
+
+    testWidgets('com o convite aberto, a mira sai de cena', (tester) async {
+      await pumpGame(tester, brushes: 0);
+      await tester.tap(find.byKey(brushButtonKey));
+      await tester.pumpAndSettle();
+      await tapTarget(tester);
+
+      expect(find.byKey(brushOfferKey), findsOneWidget);
+      expect(find.byKey(hammerScrimKey), findsNothing);
+      expect(find.byKey(hammerAimKey), findsNothing);
+      expect(notifier.state.pendingBrushTarget, target);
     });
   });
 }

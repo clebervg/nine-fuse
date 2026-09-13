@@ -9,6 +9,7 @@ import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/bomb_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_button.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_targeting_layer.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
@@ -18,10 +19,10 @@ import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
 
 /// A Bomba: mesma máquina de mira do Martelo, área 3x3 em vez de célula
-/// única. Agora com o mesmo Modo Fantasma do Martelo na regra
-/// (`bomb_booster_test.dart` em `test/features/game/providers/` cobre o
-/// alvo pendente e `grantBomb`); o funil de UI (anúncio/compra) ainda não
-/// existe aqui, e não é escopo deste arquivo.
+/// única. Mesmo Modo Fantasma do Martelo na regra (`bomb_booster_test.dart`
+/// em `test/features/game/providers/` cobre o alvo pendente e `grantBomb`);
+/// o grupo "funil de conversão" abaixo cobre o convite de aquisição ligado
+/// à tela.
 void main() {
   late GameNotifier notifier;
   late InMemoryGameStorage storage;
@@ -80,14 +81,21 @@ void main() {
     BombBooster.strikeFeedback = realStrike;
   });
 
-  Future<void> pumpGame(WidgetTester tester, {int bombs = 1}) async {
+  Future<void> pumpGame(
+    WidgetTester tester, {
+    int bombs = 1,
+    Future<bool> Function()? ad,
+  }) async {
     tester.view.physicalSize = const Size(1200, 3000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [gameProvider.overrideWith((ref) => notifier)],
+        overrides: [
+          gameProvider.overrideWith((ref) => notifier),
+          if (ad != null) bombAdProvider.overrideWithValue(ad),
+        ],
         child: localizedApp(home: const GameScreen(level: roomy)),
       ),
     );
@@ -270,6 +278,87 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(storage.bombCount, 1);
+    });
+  });
+
+  group('funil de conversão', () {
+    testWidgets('sem estoque, mirar abre o convite com o alvo guardado', (
+      tester,
+    ) async {
+      await pumpGame(tester, bombs: 0);
+      await tester.tap(find.byKey(bombButtonKey));
+      await tester.pumpAndSettle();
+
+      await tapTarget(tester);
+
+      expect(find.byKey(bombOfferKey), findsOneWidget);
+      expect(notifier.state.pendingBombTarget, target);
+      expect(
+        notifier.state.board.getAllTiles().where((t) => t.value == 7),
+        isNotEmpty,
+        reason: 'nada é destruído antes de a bomba existir',
+      );
+    });
+
+    testWidgets('assistir ao anúncio explode o alvo já destacado', (
+      tester,
+    ) async {
+      await pumpGame(tester, bombs: 0, ad: () async => true);
+      await tester.tap(find.byKey(bombButtonKey));
+      await tester.pumpAndSettle();
+      await tapTarget(tester);
+
+      await tester.tap(find.byKey(bombOfferWatchKey));
+      await tester.pumpAndSettle();
+
+      expect(
+        notifier.state.board.getAllTiles().where((t) => t.value == 7),
+        isEmpty,
+      );
+      expect(find.byKey(bombOfferKey), findsNothing);
+      expect(notifier.state.moves, 0);
+    });
+
+    testWidgets('anúncio que falha não cobra nem destrói', (tester) async {
+      await pumpGame(tester, bombs: 0, ad: () async => false);
+      await tester.tap(find.byKey(bombButtonKey));
+      await tester.pumpAndSettle();
+      await tapTarget(tester);
+
+      await tester.tap(find.byKey(bombOfferWatchKey));
+      await tester.pumpAndSettle();
+
+      expect(
+        notifier.state.board.getAllTiles().where((t) => t.value == 7),
+        isNotEmpty,
+      );
+      expect(notifier.state.bombCount, 0);
+    });
+
+    testWidgets('recusar o convite descarta a mira e o alvo', (tester) async {
+      await pumpGame(tester, bombs: 0);
+      await tester.tap(find.byKey(bombButtonKey));
+      await tester.pumpAndSettle();
+      await tapTarget(tester);
+
+      await tester.tap(find.byKey(bombOfferDeclineKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(bombOfferKey), findsNothing);
+      expect(notifier.state.pendingBombTarget, isNull);
+      expect(notifier.state.isBombTargeting, isFalse);
+    });
+
+    testWidgets('com o convite aberto, a mira sai de cena', (tester) async {
+      await pumpGame(tester, bombs: 0);
+      await tester.tap(find.byKey(bombButtonKey));
+      await tester.pumpAndSettle();
+      await tapTarget(tester);
+
+      expect(find.byKey(bombOfferKey), findsOneWidget);
+      expect(find.byKey(hammerScrimKey), findsNothing);
+      expect(find.byKey(hammerAimKey), findsNothing);
+      expect(notifier.state.pendingBombTarget, target);
     });
   });
 }

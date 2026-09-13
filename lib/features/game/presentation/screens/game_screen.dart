@@ -13,6 +13,8 @@ import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/apex_celebration.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/bomb_offer_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/brush_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/combo_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/continue_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_suggestion_dialog.dart';
@@ -404,9 +406,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 onCancel: notifier.cancelHammerTargeting,
               ),
             // Mesma camada, área maior: `areaRadius: 1` recorta o 3x3 em vez
-            // da célula única. A Bomba não tem Modo Fantasma, então não há
-            // `pendingBombTarget` para checar aqui.
-            if (state.isBombTargeting)
+            // da célula única. A Bomba também tem Modo Fantasma (mirar sem
+            // estoque guarda o alvo), então a mira sai de cena assim que o
+            // convite de aquisição sobe — mesma regra do Martelo.
+            if (state.isBombTargeting && state.pendingBombTarget == null)
               HammerTargetingLayer(
                 boardKey: _boardKey,
                 areaRadius: 1,
@@ -414,8 +417,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 onCancel: notifier.cancelBombTargeting,
               ),
             // O Pincel mira uma célula só, como o Martelo — `areaRadius`
-            // padrão (0) — e também não tem Modo Fantasma.
-            if (state.isBrushTargeting)
+            // padrão (0) — e tem o mesmo Modo Fantasma.
+            if (state.isBrushTargeting && state.pendingBrushTarget == null)
               HammerTargetingLayer(
                 boardKey: _boardKey,
                 onCell: notifier.usePaint,
@@ -447,12 +450,28 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   onDecline: notifier.cancelHammerTargeting,
                 ),
               ),
-            // Vem depois do funil do martelo e antes do desfecho: o jogador que
-            // está mirando já escolheu o que fazer com a jogada, e a fase
-            // encerrada não vende movimento nenhum (regra anti-churn).
+            if (state.pendingBombTarget != null && !state.isOver)
+              _OutcomeOverlay(
+                child: BombOfferDialog(
+                  onGranted: notifier.grantBomb,
+                  onDecline: notifier.cancelBombTargeting,
+                ),
+              ),
+            if (state.pendingBrushTarget != null && !state.isOver)
+              _OutcomeOverlay(
+                child: BrushOfferDialog(
+                  onGranted: notifier.grantBrush,
+                  onDecline: notifier.cancelBrushTargeting,
+                ),
+              ),
+            // Vem depois do funil dos três boosters e antes do desfecho: o
+            // jogador que está mirando já escolheu o que fazer com a jogada, e
+            // a fase encerrada não vende movimento nenhum (regra anti-churn).
             if (_movesOfferOpen &&
                 !state.isOver &&
-                state.pendingHammerTarget == null)
+                state.pendingHammerTarget == null &&
+                state.pendingBombTarget == null &&
+                state.pendingBrushTarget == null)
               _OutcomeOverlay(
                 child: MovesOfferDialog(
                   movesLeft: state.movesLeft,
