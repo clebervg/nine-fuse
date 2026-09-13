@@ -26,6 +26,10 @@ const int kHammerCoinPrice = 100;
 /// categoria "booster avulso".
 const int kBombCoinPrice = 150;
 
+/// Preço avulso do Pincel em moedas. Mesma ordem do Martelo (100): afeta uma
+/// célula só, sem a área da Bomba.
+const int kBrushCoinPrice = 100;
+
 /// O que o baú de fim de capítulo paga, uma única vez por capítulo.
 const int kChapterChestReward = 200;
 

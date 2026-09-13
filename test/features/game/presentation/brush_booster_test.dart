@@ -152,15 +152,18 @@ void main() {
       expect(notifier.state.isBrushTargeting, isFalse);
     });
 
-    testWidgets('sem estoque, o toque recusa e não entra em mira', (
+    testWidgets('sem estoque, o toque entra em mira (Modo Fantasma)', (
       tester,
     ) async {
+      // O Pincel ganhou o mesmo Modo Fantasma do Martelo/Bomba: mirar com
+      // estoque zero guarda o alvo em vez de recusar, e é isso que dá
+      // sentido ao convite de aquisição.
       await pumpGame(tester, brushes: 0);
 
       await tester.tap(find.byKey(brushButtonKey));
       await tester.pumpAndSettle();
 
-      expect(notifier.state.isBrushTargeting, isFalse);
+      expect(notifier.state.isBrushTargeting, isTrue);
     });
   });
 
