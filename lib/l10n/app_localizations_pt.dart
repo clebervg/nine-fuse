@@ -393,6 +393,38 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get continueOfferTitle => 'Sem movimentos';
+
+  @override
+  String continueOfferBody(int bonus) {
+    return 'Assista a um anúncio curto ou gaste moedas para ganhar $bonus movimentos extras e continuar.';
+  }
+
+  @override
+  String continueOfferWatch(int bonus) {
+    return 'ASSISTIR (+$bonus)';
+  }
+
+  @override
+  String continueOfferBuy(int price) {
+    return 'Comprar por $price 🪙';
+  }
+
+  @override
+  String get continueOfferDecline => 'DESISTIR';
+
+  @override
+  String get continueOfferFailed => 'Nenhum anúncio disponível agora.';
+
+  @override
+  String get continueOfferNoCoins => 'Moedas insuficientes';
+
+  @override
+  String continueOfferBalance(int coins) {
+    return 'Você tem $coins 🪙';
+  }
+
+  @override
   String get coinStoreTitle => 'Suas moedas';
 
   @override

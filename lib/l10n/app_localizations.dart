@@ -625,6 +625,54 @@ abstract class AppLocalizations {
   /// **'+{reward} 🪙 added to your balance!'**
   String hammerOfferEarnedCoins(int reward);
 
+  /// No description provided for @continueOfferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of moves'**
+  String get continueOfferTitle;
+
+  /// No description provided for @continueOfferBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch a short ad or spend coins to get {bonus} extra moves and keep going.'**
+  String continueOfferBody(int bonus);
+
+  /// No description provided for @continueOfferWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'WATCH AD (+{bonus})'**
+  String continueOfferWatch(int bonus);
+
+  /// No description provided for @continueOfferBuy.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy for {price} 🪙'**
+  String continueOfferBuy(int price);
+
+  /// No description provided for @continueOfferDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'GIVE UP'**
+  String get continueOfferDecline;
+
+  /// No description provided for @continueOfferFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'No ad available right now.'**
+  String get continueOfferFailed;
+
+  /// No description provided for @continueOfferNoCoins.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough coins'**
+  String get continueOfferNoCoins;
+
+  /// No description provided for @continueOfferBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {coins} 🪙'**
+  String continueOfferBalance(int coins);
+
   /// No description provided for @coinStoreTitle.
   ///
   /// In en, this message translates to:

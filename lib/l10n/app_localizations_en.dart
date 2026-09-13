@@ -391,6 +391,38 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get continueOfferTitle => 'Out of moves';
+
+  @override
+  String continueOfferBody(int bonus) {
+    return 'Watch a short ad or spend coins to get $bonus extra moves and keep going.';
+  }
+
+  @override
+  String continueOfferWatch(int bonus) {
+    return 'WATCH AD (+$bonus)';
+  }
+
+  @override
+  String continueOfferBuy(int price) {
+    return 'Buy for $price 🪙';
+  }
+
+  @override
+  String get continueOfferDecline => 'GIVE UP';
+
+  @override
+  String get continueOfferFailed => 'No ad available right now.';
+
+  @override
+  String get continueOfferNoCoins => 'Not enough coins';
+
+  @override
+  String continueOfferBalance(int coins) {
+    return 'You have $coins 🪙';
+  }
+
+  @override
   String get coinStoreTitle => 'Your coins';
 
   @override

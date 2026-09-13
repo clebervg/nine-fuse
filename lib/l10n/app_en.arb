@@ -277,6 +277,26 @@
     "description": "Confirmation shown after the coin rewarded ad completes.",
     "placeholders": { "reward": { "type": "int" } }
   },
+  "continueOfferTitle": "Out of moves",
+  "continueOfferBody": "Watch a short ad or spend coins to get {bonus} extra moves and keep going.",
+  "@continueOfferBody": {
+    "placeholders": { "bonus": { "type": "int" } }
+  },
+  "continueOfferWatch": "WATCH AD (+{bonus})",
+  "@continueOfferWatch": {
+    "placeholders": { "bonus": { "type": "int" } }
+  },
+  "continueOfferBuy": "Buy for {price} 🪙",
+  "@continueOfferBuy": {
+    "placeholders": { "price": { "type": "int" } }
+  },
+  "continueOfferDecline": "GIVE UP",
+  "continueOfferFailed": "No ad available right now.",
+  "continueOfferNoCoins": "Not enough coins",
+  "continueOfferBalance": "You have {coins} 🪙",
+  "@continueOfferBalance": {
+    "placeholders": { "coins": { "type": "int" } }
+  },
   "coinStoreTitle": "Your coins",
   "coinStoreClose": "CLOSE",
   "coinsBadgeSemantics": "{coins} coins",
