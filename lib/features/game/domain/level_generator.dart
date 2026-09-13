@@ -79,6 +79,36 @@ const int kMaxObstacles = 7;
 /// que são as mais curtas que o jogo já se permitiu.
 const int kMinMoveLimit = 10;
 
+/// A partir de qual fase o gerador começa a intercalar fases "hard".
+///
+/// 30 é o pedido original: as fases artesanais (1-10) e os primeiros dois
+/// blocos gerados (11-30) continuam sem variação de intensidade — o jogador
+/// ainda está aprendendo o ritmo normal da campanha gerada.
+const int kHardLevelStart = 30;
+
+/// O quanto o limite de movimentos encolhe numa fase hard, em relação ao
+/// que a fórmula normal (aperto por bloco + ritmo) já calculou para aquele
+/// número. 0,75 é o "-25%" pedido.
+///
+/// Aplicado **depois** do aperto por bloco e do ritmo senoidal, e **antes**
+/// do piso de projeto ([kMinMoveLimit]/[kHeavyDigitMoveFloor]) — a fase hard
+/// nunca fica mais curta que o piso que já vale para qualquer fase.
+const double kHardMoveMultiplier = 0.75;
+
+/// A fase [number] é uma fase "hard"?
+///
+/// Um degrau fixo por bloco (a penúltima posição, [kBlockSize] - 2) a partir
+/// de [kHardLevelStart]: dá exatamente uma fase hard a cada [kBlockSize]
+/// fases, sem precisar de um contador à parte — reaproveita a mesma
+/// aritmética de bloco/posição que [_objectiveFor] já usa. A penúltima
+/// posição, e não a última: a última já é o fecho de bloco ("limpe tudo"),
+/// que tem seu próprio arquétipo fixo e não deveria carregar as duas
+/// intensificações ao mesmo tempo.
+bool isHardLevel(int number) {
+  if (number < kHardLevelStart) return false;
+  return _positionOf(number) == kBlockSize - 2;
+}
+
 /// Piso de movimentos das fases "pesadas": mais de dois alvos de dígito
 /// alto (7, 8 ou o próprio [kMaxDigit]) na mesma fase.
 ///
@@ -525,12 +555,13 @@ int _movesFor({
   // par, não quem define a tendência de longo prazo — essa continua sendo o
   // aperto por bloco.
   final paced = base * tighteningFactor * _pacingFactor(number);
+  final hardened = isHardLevel(number) ? paced * kHardMoveMultiplier : paced;
 
   final distance = objective.type == ObjectiveType.reachDigit
       ? objective.digit! - _averageBoardTileLevel(spawnMax)
       : 0.0;
   final floor = _moveFloorFor(objective, distance: distance);
-  final result = paced.floor();
+  final result = hardened.floor();
   return result < floor ? floor : result;
 }
 

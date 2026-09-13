@@ -142,5 +142,46 @@ void main() {
         }
       });
     });
+
+    group('Fases hard', () {
+      test('isHardLevel é falso antes da fase 30', () {
+        for (var n = kHandcraftedLevels + 1; n < kHardLevelStart; n++) {
+          expect(isHardLevel(n), isFalse, reason: 'fase $n');
+        }
+      });
+
+      test('isHardLevel marca exatamente 1 fase a cada kBlockSize a partir da 30', () {
+        final hardInRange = [
+          for (var n = kHardLevelStart; n < kHardLevelStart + kBlockSize * 5; n++)
+            if (isHardLevel(n)) n,
+        ];
+        expect(hardInRange.length, 5);
+        // Espaçadas por kBlockSize.
+        for (var i = 1; i < hardInRange.length; i++) {
+          expect(hardInRange[i] - hardInRange[i - 1], kBlockSize);
+        }
+      });
+
+      test('fase hard tem limite de movimentos ~25% menor que a fase equivalente não-hard do mesmo bloco', () {
+        final hardLevel = [
+          for (var n = kHardLevelStart; n < kHardLevelStart + kBlockSize * 3; n++)
+            if (isHardLevel(n)) n,
+        ].first;
+        final hard = generateLevel(hardLevel);
+        final notHard = generateLevel(hardLevel - 1); // vizinha, mesmo bloco, não-hard
+
+        expect(hard.moveLimit, lessThan(notHard.moveLimit));
+        expect(hard.moveLimit, greaterThanOrEqualTo(kMinMoveLimit));
+      });
+
+      test('fase hard nunca cai abaixo do piso de movimentos, mesmo em blocos distantes', () {
+        for (var block = 40; block < 60; block++) {
+          final number = kHandcraftedLevels + 1 + block * kBlockSize + (kBlockSize - 2);
+          if (!isHardLevel(number)) continue;
+          final level = generateLevel(number);
+          expect(level.moveLimit, greaterThanOrEqualTo(kMinMoveLimit));
+        }
+      });
+    });
   });
 }
