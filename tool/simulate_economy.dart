@@ -772,6 +772,18 @@ void main(List<String> args) {
     );
   }
 
+  if (mode == 'hard' || mode == 'both') {
+    print('');
+    print('#' * 62);
+    print('# J) FASES HARD   (-25% movimentos + obstáculo dobrado)');
+    print('#' * 62);
+    print('# Cada fase hard contra a vizinha n-1 (não-hard) do mesmo bloco,');
+    print('# mesmo objetivo e janela — isola o efeito só da intensificação.');
+    print('#' * 62);
+
+    _reportHardLevels(games: games, sampleSize: 15);
+  }
+
   if (mode == 'spawn' || mode == 'both') {
     print('');
     print('#' * 62);
@@ -912,42 +924,7 @@ void _reportGeneratedLevels({
 
   for (final number in numbers) {
     final level = generateLevel(number);
-    var wins = 0;
-
-    for (int seed = 0; seed < games; seed++) {
-      final engine = MatchEngine(
-        random: Random(seed),
-        spawnMin: level.spawnMin,
-        spawnMax: level.spawnMax,
-      );
-
-      var board = engine.generateBoard(obstacles: level.obstacles);
-
-      // `_targetOf` e `_gainOf` já existem no arquivo e já sabem tratar os três
-      // tipos de objetivo — inclusive o alvo de "limpe todas", que sai do
-      // tabuleiro sorteado e não do pedido da fase. Reusá-los é o que mantém
-      // este modo medindo a mesma coisa que os outros.
-      final target = _targetOf(level, board);
-
-      var progress = 0;
-      var moves = 0;
-
-      while (moves < level.moveLimit && progress < target) {
-        final options = _rankMoves(engine, board);
-        if (options.isEmpty) break;
-
-        final chosen = options.first;
-        final resolution = engine.resolve(
-          engine.swap(board, chosen.from, chosen.to),
-          anchor: chosen.to,
-        );
-        board = resolution.board;
-        progress += _gainOf(level, resolution);
-        moves++;
-      }
-
-      if (progress >= target) wins++;
-    }
+    final wins = _simulateGeneratedLevel(level: level, games: games);
 
     final rate = (wins / games * 100).toStringAsFixed(0);
     print('  ${_pad('$number', 8)}'
@@ -959,4 +936,102 @@ void _reportGeneratedLevels({
 
   print('');
   print('  Piso nas fases de cobertura: o bot nunca mira a cobertura.');
+}
+
+/// Joga [games] partidas de [level] com o bot guloso e devolve quantas
+/// venceram. Extraído de `_reportGeneratedLevels` para ser reaproveitado por
+/// `_reportHardLevels`, que precisa do mesmo bot rodando em duas fases (a
+/// hard e a vizinha não-hard) em vez de uma lista solta de números.
+int _simulateGeneratedLevel({required GameLevel level, required int games}) {
+  var wins = 0;
+
+  for (int seed = 0; seed < games; seed++) {
+    final engine = MatchEngine(
+      random: Random(seed),
+      spawnMin: level.spawnMin,
+      spawnMax: level.spawnMax,
+    );
+
+    var board = engine.generateBoard(obstacles: level.obstacles);
+
+    // `_targetOf` e `_gainOf` já existem no arquivo e já sabem tratar os três
+    // tipos de objetivo — inclusive o alvo de "limpe todas", que sai do
+    // tabuleiro sorteado e não do pedido da fase. Reusá-los é o que mantém
+    // este modo medindo a mesma coisa que os outros.
+    final target = _targetOf(level, board);
+
+    var progress = 0;
+    var moves = 0;
+
+    while (moves < level.moveLimit && progress < target) {
+      final options = _rankMoves(engine, board);
+      if (options.isEmpty) break;
+
+      final chosen = options.first;
+      final resolution = engine.resolve(
+        engine.swap(board, chosen.from, chosen.to),
+        anchor: chosen.to,
+      );
+      board = resolution.board;
+      progress += _gainOf(level, resolution);
+      moves++;
+    }
+
+    if (progress >= target) wins++;
+  }
+
+  return wins;
+}
+
+/// Taxa de vitória das fases "hard" (-25% de movimentos + obstáculo dobrado,
+/// ver `kHardMoveMultiplier`/`isHardLevel` em `level_generator.dart`), contra
+/// a vizinha `n - 1` (não-hard) do mesmo bloco — mesmo objetivo, mesma
+/// janela de spawn, só a intensificação hard muda. Isolar a comparação na
+/// vizinha imediata é o que permite atribuir qualquer queda de taxa à
+/// intensificação, e não a uma diferença de arquétimo entre fases distantes.
+void _reportHardLevels({required int games, required int sampleSize}) {
+  print('');
+  print(
+    '  ${_pad('fase', 8)}${_pad('objetivo', 24)}'
+    '${_padLeft('mov hard', 10)}${_padLeft('vit hard', 10)}'
+    '${_padLeft('mov viz', 9)}${_padLeft('vit viz', 9)}',
+  );
+  print('  ${'-' * 69}');
+
+  var number = kHardLevelStart;
+  var sampled = 0;
+
+  while (sampled < sampleSize) {
+    if (isHardLevel(number)) {
+      final hardLevel = generateLevel(number);
+      final neighborLevel = generateLevel(number - 1);
+
+      final hardWins = _simulateGeneratedLevel(level: hardLevel, games: games);
+      final neighborWins = _simulateGeneratedLevel(
+        level: neighborLevel,
+        games: games,
+      );
+
+      final hardRate = (hardWins / games * 100).toStringAsFixed(0);
+      final neighborRate = (neighborWins / games * 100).toStringAsFixed(0);
+
+      print(
+        '  ${_pad('$number', 8)}'
+        '${_pad(hardLevel.objective.debugLabel, 24)}'
+        '${_padLeft('${hardLevel.moveLimit}', 10)}'
+        '${_padLeft('$hardRate%', 10)}'
+        '${_padLeft('${neighborLevel.moveLimit}', 9)}'
+        '${_padLeft('$neighborRate%', 9)}',
+      );
+
+      sampled++;
+    }
+
+    number++;
+  }
+
+  print('');
+  print('  Meta: nenhuma fase hard em 0%. Fases hard >200 são as que a');
+  print('  leitura de produto associa ao uso esperado de Bomba/Pincel —');
+  print('  sem enforcement de código, é o jogador quem decide gastar.');
 }
