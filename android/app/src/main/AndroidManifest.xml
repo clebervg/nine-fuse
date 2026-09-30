@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Sem INTERNET só os manifests de debug/profile a tinham: um release
+         não carregaria anúncio nenhum, e sem erro visível. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Advertising ID, exigido pelo AdMob em targetSdk 33+. Declarar o uso
+         também no Play Console (Conteúdo do app > ID de publicidade). -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="NineFuse"
