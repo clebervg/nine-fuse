@@ -210,9 +210,9 @@ class _CoinReward extends StatelessWidget {
       key: coinRewardKey,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.digit3.withValues(alpha: 0.12),
+        color: AppColors.uiGold.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.digit3.withValues(alpha: 0.55)),
+        border: Border.all(color: AppColors.uiGold.withValues(alpha: 0.55)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -220,7 +220,7 @@ class _CoinReward extends StatelessWidget {
           Text(
             l10n.outcomeCoins(coins),
             style: const TextStyle(
-              color: AppColors.digit3,
+              color: AppColors.uiGold,
               fontSize: 22,
               fontWeight: FontWeight.w800,
             ),
@@ -326,7 +326,7 @@ class _StarState extends State<_Star> with SingleTickerProviderStateMixin {
         widget.earned ? Icons.star_rounded : Icons.star_outline_rounded,
         size: widget.earned ? 46 : 38,
         color: widget.earned
-            ? AppColors.digit3
+            ? AppColors.uiGold
             : Colors.white.withValues(alpha: 0.22),
       ),
     );
@@ -356,7 +356,7 @@ class _ConfettiState extends State<_Confetti>
   static const List<Color> _palette = [
     AppColors.digit1,
     AppColors.digit2,
-    AppColors.digit3,
+    AppColors.uiGold,
     AppColors.digit5,
     AppColors.digit6,
     AppColors.digit7,

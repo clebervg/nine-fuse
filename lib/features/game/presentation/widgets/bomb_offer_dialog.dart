@@ -118,7 +118,7 @@ class _BombOfferDialogState extends ConsumerState<BombOfferDialog> {
           GameButton(
             key: bombOfferBuyKey,
             label: l10n.bombOfferBuy(kBombCoinPrice),
-            color: canAfford ? AppColors.digit3 : AppColors.darkSurface,
+            color: canAfford ? AppColors.uiGold : AppColors.darkSurface,
             foreground: canAfford ? Colors.black : Colors.white38,
             icon: Icons.shopping_bag_rounded,
             onPressed: canAfford ? _buy : null,

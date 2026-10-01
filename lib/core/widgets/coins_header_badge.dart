@@ -64,7 +64,7 @@ class CoinsHeaderBadge extends ConsumerWidget {
           color: const Color(0xE60E0E13),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: AppColors.digit3.withValues(alpha: 0.45),
+            color: AppColors.uiGold.withValues(alpha: 0.45),
             width: 1.5,
           ),
         ),
@@ -190,7 +190,7 @@ class _AddButton extends StatelessWidget {
           height: 18,
           alignment: Alignment.center,
           decoration: const BoxDecoration(
-            color: AppColors.digit3,
+            color: AppColors.uiGold,
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.add_rounded, size: 14, color: Colors.black),
@@ -263,7 +263,7 @@ class _CoinStoreDialogState extends ConsumerState<_CoinStoreDialog> {
         child: GameDialog(
           cardKey: coinStoreKey,
           title: l10n.coinStoreTitle,
-          accent: AppColors.digit3,
+          accent: AppColors.uiGold,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -292,7 +292,7 @@ class _CoinStoreDialogState extends ConsumerState<_CoinStoreDialog> {
               GameButton(
                 key: coinStoreWatchKey,
                 label: l10n.hammerOfferEarnCoins(kCoinsPerRewardedAd),
-                color: AppColors.digit3,
+                color: AppColors.uiGold,
                 foreground: Colors.black,
                 icon: Icons.ondemand_video_rounded,
                 onPressed: _earnCoins,

@@ -101,7 +101,7 @@ class ChapterStarProgress extends StatelessWidget {
                   const Icon(
                     Icons.star_rounded,
                     size: 15,
-                    color: AppColors.digit3,
+                    color: AppColors.uiGold,
                   ),
                 ],
               ),
@@ -151,7 +151,7 @@ class _Track extends StatelessWidget {
             // objetivo no HUD, e nenhum teste acusou.
             heightFactor: 1,
             child: const DecoratedBox(
-              decoration: BoxDecoration(color: AppColors.digit3),
+              decoration: BoxDecoration(color: AppColors.uiGold),
             ),
           ),
         ),

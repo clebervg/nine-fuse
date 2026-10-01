@@ -222,9 +222,9 @@ void main() {
         return (box.decoration as BoxDecoration?)?.border as Border?;
       }
 
-      expect(borderOf(3)?.top.color, AppColors.digit3);
-      expect(borderOf(1)?.top.color, isNot(AppColors.digit3));
-      expect(borderOf(5)?.top.color, isNot(AppColors.digit3));
+      expect(borderOf(3)?.top.color, AppColors.uiGold);
+      expect(borderOf(1)?.top.color, isNot(AppColors.uiGold));
+      expect(borderOf(5)?.top.color, isNot(AppColors.uiGold));
     });
 
     testWidgets('tocar numa fase bloqueada não faz nada', (tester) async {

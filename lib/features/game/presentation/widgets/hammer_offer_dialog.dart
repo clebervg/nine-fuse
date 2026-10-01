@@ -205,7 +205,7 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
           GameButton(
             key: hammerOfferBuyKey,
             label: l10n.hammerOfferBuy(kHammerCoinPrice),
-            color: canAfford ? AppColors.digit3 : AppColors.darkSurface,
+            color: canAfford ? AppColors.uiGold : AppColors.darkSurface,
             foreground: canAfford ? Colors.black : Colors.white38,
             icon: Icons.shopping_bag_rounded,
             // Nulo desabilita o botão, e é o que o teste de saldo curto afirma:
@@ -231,7 +231,7 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
           GameButton(
             key: hammerOfferEarnCoinsKey,
             label: l10n.hammerOfferEarnCoins(kCoinsPerRewardedAd),
-            color: AppColors.digit3,
+            color: AppColors.uiGold,
             foreground: Colors.black,
             icon: Icons.ondemand_video_rounded,
             onPressed: _earnCoins,

@@ -71,7 +71,9 @@ void main() {
     testWidgets('todo número tem contorno escuro', (tester) async {
       // É o contorno que sustenta o branco uniforme. Sem ele o amarelo fica em
       // 1,40:1 e o prateado em 1,15:1 — bem abaixo do mínimo de 3:1.
-      for (final digit in const [3, 9]) {
+      // Com a paleta do pacote de arte o claro é o azul-céu do 7 (1,9:1); o
+      // 3 virou verde-água (2,6:1) e deixou de ser o caso crítico.
+      for (final digit in const [7, 9]) {
         await tester.pumpWidget(host(digit));
         await tester.pumpAndSettle();
 
@@ -124,7 +126,9 @@ void main() {
     test('as peças claras dependem mesmo do contorno', () {
       // Fixa o motivo de o contorno existir: se alguém remover, estes dois
       // dígitos passam a ter texto branco praticamente invisível.
-      for (final digit in const [3, 9]) {
+      // Com a paleta do pacote de arte o claro é o azul-céu do 7 (1,9:1); o
+      // 3 virou verde-água (2,6:1) e deixou de ser o caso crítico.
+      for (final digit in const [7, 9]) {
         expect(
           _contrast(Colors.white, AppColors.getColorByDigit(digit)),
           lessThan(2.0),

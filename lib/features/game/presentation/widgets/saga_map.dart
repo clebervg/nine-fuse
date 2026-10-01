@@ -522,7 +522,7 @@ class _StaticPin extends StatelessWidget {
         // translúcido some.
         border: Border.all(
           color: switch ((locked, highlighted)) {
-            (_, true) => AppColors.digit3,
+            (_, true) => AppColors.uiGold,
             (true, _) => Colors.white.withValues(alpha: 0.10),
             _ => Colors.white.withValues(alpha: 0.28),
           },
@@ -538,7 +538,7 @@ class _StaticPin extends StatelessWidget {
           // escuro e ao caminho passando atrás.
           if (highlighted)
             BoxShadow(
-              color: AppColors.digit3.withValues(alpha: 0.55),
+              color: AppColors.uiGold.withValues(alpha: 0.55),
               blurRadius: 20,
               spreadRadius: 2,
             ),
@@ -681,7 +681,7 @@ class _CurrentPinState extends State<_CurrentPin>
                     height: SagaGeometry.pinSize * (1.35 + t * 0.35),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.digit3.withValues(alpha: 0.26 * (1 - t)),
+                      color: AppColors.uiGold.withValues(alpha: 0.26 * (1 - t)),
                     ),
                   ),
                 ),
@@ -726,7 +726,7 @@ class _StarRow extends StatelessWidget {
           i < stars ? Icons.star_rounded : Icons.star_outline_rounded,
           size: 18,
           color: i < stars
-              ? AppColors.digit3
+              ? AppColors.uiGold
               : Colors.white.withValues(alpha: 0.20),
         ),
     ],

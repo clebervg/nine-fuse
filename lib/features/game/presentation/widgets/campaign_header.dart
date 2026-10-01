@@ -70,7 +70,7 @@ class CampaignHeader extends StatelessWidget {
               _Stat(
                 key: totalStarsKey,
                 icon: Icons.star_rounded,
-                color: AppColors.digit3,
+                color: AppColors.uiGold,
                 label: '$totalStars/$starTotal',
                 caption: l10n.starsCaption,
                 semanticLabel: l10n.starsSemantics(totalStars, starTotal),
@@ -108,7 +108,7 @@ class CampaignHeader extends StatelessWidget {
               value: starTotal == 0 ? 0 : (totalStars / starTotal).clamp(0, 1),
               minHeight: 5,
               backgroundColor: AppColors.darkBackground,
-              valueColor: const AlwaysStoppedAnimation(AppColors.digit3),
+              valueColor: const AlwaysStoppedAnimation(AppColors.uiGold),
             ),
           ),
         ],

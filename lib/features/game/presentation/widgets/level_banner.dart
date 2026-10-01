@@ -159,7 +159,7 @@ class LevelBanner extends StatelessWidget {
                   child: GameMetricCard(
                     label: l10n.hudMoves,
                     icon: Icons.bolt,
-                    accent: AppColors.digit3,
+                    accent: AppColors.uiGold,
                     compact: true,
                     // O saldo de movimentos é o relógio da fase: é o único dos
                     // três números que **decide** o desfecho, e por isso é o
@@ -362,7 +362,7 @@ class _StarMeter extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        AppColors.digit3.withValues(alpha: 0.55),
+                        AppColors.uiGold.withValues(alpha: 0.55),
                         AppColors.digit4.withValues(alpha: 0.30),
                       ],
                     ),

@@ -302,6 +302,11 @@ class _TileWidgetState extends State<TileWidget>
     // gradual — um dígito pode ter sprite enquanto os outros nove ainda não
     // têm —, então a checagem é por valor, não um interruptor global.
     final sprite = TileSpriteManager.spriteFor(value);
+    // O sprite do 9 é uma insígnia dodecagonal com cantos transparentes, e
+    // `BoxShadow` pinta a forma da caixa inteira — inclusive por baixo dela.
+    // Com a caixa quadrada, o brilho aparecia como um quadrado dourado atrás
+    // da insígnia; redondo, ele acompanha a silhueta.
+    if (sprite != null && isTop) radius = BorderRadius.circular(side / 2);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
@@ -361,22 +366,12 @@ class _TileWidgetState extends State<TileWidget>
       ),
       child: Stack(
         fit: StackFit.expand,
+        // O sprite é alinhado pela face e transborda a célula (margem
+        // transparente e sombra da arte); recortar aqui decepava a sombra.
+        clipBehavior: Clip.none,
         children: [
           if (sprite != null)
-            // Sprite já carregado: a arte ocupa a célula inteira, recortada
-            // pela mesma silhueta da peça vetorial. `gaplessPlayback` evita
-            // um frame em branco quando o dígito muda (fusão) e o widget é
-            // reconstruído com outro `ImageProvider`.
-            ClipRRect(
-              borderRadius: radius,
-              child: Image(
-                image: sprite,
-                width: side,
-                height: side,
-                fit: BoxFit.cover,
-                gaplessPlayback: true,
-              ),
-            )
+            _faceAlignedSprite(sprite, side)
           else ...[
             // Base mais escura, como a lateral de uma tecla. Substituiu o
             // reflexo esférico de plástico, que datava o visual e achatava a
@@ -431,17 +426,9 @@ class _TileWidgetState extends State<TileWidget>
                 )
                 case final sprite?)
               // Sprite já produzido para este tipo/hp: a arte substitui o
-              // CustomPainter, recortada pela mesma silhueta da peça.
-              ClipRRect(
-                borderRadius: radius,
-                child: Image(
-                  image: sprite,
-                  width: side,
-                  height: side,
-                  fit: BoxFit.cover,
-                  gaplessPlayback: true,
-                ),
-              )
+              // CustomPainter. Mesmo canvas e mesma face da peça, então o
+              // mesmo encaixe — a cobertura assenta exatamente sobre ela.
+              _faceAlignedSprite(sprite, side)
             else
               ObstacleOverlay(
                 type: widget.tile.obstacle,
@@ -457,6 +444,24 @@ class _TileWidgetState extends State<TileWidget>
       ),
     );
   }
+}
+
+/// Sprite de peça ou de cobertura posicionado pela face, não pelo canvas.
+///
+/// A largura da face (216 de 256) vira a largura da célula; com isso a face
+/// mais a extrusão ocupam a altura dela, e a margem transparente e a sombra
+/// da arte ficam para fora. `gaplessPlayback` evita um frame em branco quando
+/// o dígito muda (fusão) e o widget é reconstruído com outro `ImageProvider`.
+Widget _faceAlignedSprite(ImageProvider image, double side) {
+  const face = TileSpriteManager.spriteFace;
+  final k = side / face.width;
+  return Positioned(
+    left: -face.left * k,
+    top: -face.top * k,
+    width: TileSpriteManager.spriteCanvas * k,
+    height: TileSpriteManager.spriteCanvas * k,
+    child: Image(image: image, fit: BoxFit.fill, gaplessPlayback: true),
+  );
 }
 
 /// Cor do contorno do número.

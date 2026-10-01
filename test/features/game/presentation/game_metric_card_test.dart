@@ -21,7 +21,7 @@ void main() {
             key: const Key('metric'),
             label: 'JOGADAS',
             icon: Icons.bolt,
-            accent: AppColors.digit3,
+            accent: AppColors.uiGold,
             value: '7',
             urgent: urgent,
             pulseSeed: pulseSeed,

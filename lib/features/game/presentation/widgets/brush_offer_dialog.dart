@@ -118,7 +118,7 @@ class _BrushOfferDialogState extends ConsumerState<BrushOfferDialog> {
           GameButton(
             key: brushOfferBuyKey,
             label: l10n.brushOfferBuy(kBrushCoinPrice),
-            color: canAfford ? AppColors.digit3 : AppColors.darkSurface,
+            color: canAfford ? AppColors.uiGold : AppColors.darkSurface,
             foreground: canAfford ? Colors.black : Colors.white38,
             icon: Icons.shopping_bag_rounded,
             onPressed: canAfford ? _buy : null,

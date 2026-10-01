@@ -69,7 +69,7 @@ class EndlessBanner extends StatelessWidget {
                   child: GameMetricCard(
                     label: l10n.endlessRecord,
                     icon: Icons.emoji_events,
-                    accent: AppColors.digit3,
+                    accent: AppColors.uiGold,
                     compact: true,
                     value:
                         '${highScore > state.score ? highScore : state.score}',

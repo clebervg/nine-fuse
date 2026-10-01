@@ -57,14 +57,14 @@ class EndlessHighlight extends StatelessWidget {
           ),
           border: Border.all(
             color: isUnlocked
-                ? AppColors.digit3.withValues(alpha: 0.75)
+                ? AppColors.uiGold.withValues(alpha: 0.75)
                 : AppColors.darkBorder,
             width: 2,
           ),
           boxShadow: isUnlocked
               ? [
                   BoxShadow(
-                    color: AppColors.digit3.withValues(alpha: 0.22),
+                    color: AppColors.uiGold.withValues(alpha: 0.22),
                     blurRadius: 22,
                     spreadRadius: 1,
                   ),
@@ -86,7 +86,7 @@ class EndlessHighlight extends StatelessWidget {
                     children: [
                       const Icon(
                         Icons.workspace_premium_rounded,
-                        color: AppColors.digit3,
+                        color: AppColors.uiGold,
                         size: 36,
                       ),
                       const SizedBox(width: 14),
@@ -114,7 +114,7 @@ class EndlessHighlight extends StatelessWidget {
                                 key: endlessRecordKey,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  color: AppColors.digit3,
+                                  color: AppColors.uiGold,
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 0.4,
@@ -151,7 +151,7 @@ class EndlessHighlight extends StatelessWidget {
                       key: endlessCallToActionKey,
                       label: l10n.endlessCta,
                       icon: Icons.play_arrow_rounded,
-                      color: AppColors.digit3,
+                      color: AppColors.uiGold,
                       fontSize: 15,
                       onPressed: _handleTap,
                     ),

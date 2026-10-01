@@ -374,7 +374,7 @@ class _BoosterShopButton extends StatelessWidget {
       GameButton(
         key: buttonKey,
         label: buyLabel,
-        color: canAfford ? AppColors.digit3 : AppColors.darkSurface,
+        color: canAfford ? AppColors.uiGold : AppColors.darkSurface,
         foreground: canAfford ? Colors.black : Colors.white38,
         fontSize: 13,
         expand: false,

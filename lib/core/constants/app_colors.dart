@@ -4,19 +4,23 @@ import 'package:flutter/material.dart';
 /// Cada dígito (0-9) possui uma cor vibrante e bem definida
 class AppColors {
   // Cores dos dígitos (0-9)
-  static const Color digit0 = Color(0xFFE53935); // Vermelho vibrante
-  static const Color digit1 = Color(0xFF1E88E5); // Azul neon
-  static const Color digit2 = Color(0xFF43A047); // Verde lima
-  static const Color digit3 = Color(0xFF8BC34A);
-  static const Color digit4 = Color(0xFFFB8C00); // Laranja
-  static const Color digit5 = Color(0xFF8E24AA); // Roxo
-  /// Rosa neon. Não é o "rosa choque" original (`0xFFD81B60`): aquele ficava a
-  /// ΔE 32 do vermelho do `0` — perto demais para peças de ~44pt num aparelho
-  /// real, onde o olho compara de relance. O novo tom sobe a distância para
-  /// ΔE 57 do `0` e mantém ΔE 47 do roxo do `5`, o vizinho seguinte.
-  static const Color digit6 = Color(0xFFFF3DA5);
-  static const Color digit7 = Color(0xFF00ACC1); // Ciano
-  static const Color digit8 = Color(0xFF3949AB); // Violeta/Índigo
+  //
+  // Iguais às dos sprites do pacote de arte (`docs/brand/asset-manifest.json`).
+  // A peça vem desenhada no PNG, mas partículas, halo e a vitrine do objetivo
+  // continuam pintados por estas constantes — se divergirem, o estilhaço sai
+  // numa cor diferente da peça que quebrou.
+  static const Color digit0 = Color(0xFFFF3B30); // Vermelho
+  static const Color digit1 = Color(0xFF007AFF); // Azul
+  static const Color digit2 = Color(0xFF34C759); // Verde
+  static const Color digit3 = Color(0xFF00B3A6); // Verde-água
+  static const Color digit4 = Color(0xFFFF9500); // Laranja
+  static const Color digit5 = Color(0xFFAF52DE); // Roxo
+  /// Rosa. A distância do vermelho do `0` é travada em
+  /// `palette_distance_test`: o "rosa choque" de uma paleta antiga ficava a
+  /// ΔE 32 dele, perto demais para peças de ~44pt comparadas de relance.
+  static const Color digit6 = Color(0xFFFF5CA8);
+  static const Color digit7 = Color(0xFF5AC8FA); // Azul-céu
+  static const Color digit8 = Color(0xFF4B3FD1); // Índigo
   /// Dígito máximo: dourado, não mais branco/prata.
   ///
   /// O prateado dava 1,15:1 de contraste com o número branco — o pior da
@@ -31,6 +35,17 @@ class AppColors {
 
   // Cores gerais
   static const Color darkBackground = Color(0xFF121212); // Dark Mode padrão
+
+  /// Dourado da interface: moedas, estrelas, botões de compra, recorde, o
+  /// card de jogadas. Token próprio porque já foi `digit3` — quando o 3 deixou
+  /// de ser amarelo, toda essa UI mudou de cor junto sem ninguém pedir.
+  /// Mesmo tom do `9`, a peça de recompensa.
+  static const Color uiGold = digit9;
+
+  /// Fundo da splash nativa e da tela de carregamento: o azul-marinho da arte
+  /// do pacote. Tem de bater com `flutter_native_splash.yaml`, senão a troca
+  /// de uma para a outra pisca.
+  static const Color splashBackground = Color(0xFF080D2A);
   static const Color darkSurface = Color(0xFF1E1E1E);
   static const Color darkBorder = Color(0xFF404040);
 

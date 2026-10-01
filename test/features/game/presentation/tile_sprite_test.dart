@@ -85,9 +85,15 @@ void main() {
     // O texto do dígito não é mais desenhado: a arte já carrega o número.
     expect(find.text('4'), findsNothing);
 
-    final image = tester.widget<Image>(find.byType(Image));
-    expect(image.width, 48);
-    expect(image.height, 48);
+    // Encaixe pela face, não pelo canvas: a face (216 de 256 px) ocupa a
+    // largura da célula de 48, e a margem transparente transborda dela.
+    const face = TileSpriteManager.spriteFace;
+    const k = 48 / 216;
+    final tileRect = tester.getRect(find.byType(TileWidget));
+    final imageRect = tester.getRect(find.byType(Image));
+    expect(imageRect.width, closeTo(TileSpriteManager.spriteCanvas * k, 0.01));
+    expect(imageRect.left + face.left * k, closeTo(tileRect.left, 0.01));
+    expect(imageRect.top + face.top * k, closeTo(tileRect.top, 0.01));
   });
 
   testWidgets('a peça com sprite continua animando o pulo de fusão', (

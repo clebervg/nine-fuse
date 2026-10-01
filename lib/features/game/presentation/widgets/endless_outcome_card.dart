@@ -22,7 +22,7 @@ class EndlessOutcomeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final accent = state.isRecord ? AppColors.digit3 : AppColors.digit1;
+    final accent = state.isRecord ? AppColors.uiGold : AppColors.digit1;
 
     return GameDialog(
       cardKey: const Key('endless_outcome'),
