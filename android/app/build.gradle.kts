@@ -52,7 +52,17 @@ android {
     }
 
     buildTypes {
+        // App ID do AdMob por tipo de build, injetado no manifest. Debug fica
+        // com o ID de TESTE do Google: um build de desenvolvimento pedindo
+        // inventário real conta como tráfego inválido e arrisca a conta.
+        // Release (e profile, que herda dele) usa o ID de produção.
+        debug {
+            manifestPlaceholders["admobAppId"] =
+                "ca-app-pub-3940256099942544~3347511713"
+        }
         release {
+            manifestPlaceholders["admobAppId"] =
+                "ca-app-pub-5525495238538539~6427370565"
             if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
             } else {

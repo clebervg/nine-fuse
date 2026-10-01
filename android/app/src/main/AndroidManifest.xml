@@ -39,18 +39,14 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- App ID do AdMob. É o ID de TESTE oficial do Google: um build de
-             desenvolvimento pedindo inventário real conta como tráfego
-             inválido, e é o caminho mais curto para a conta ser suspensa antes
-             de o jogo chegar à loja.
-
-             Trocar pelo ID de produção é a última coisa antes de publicar, e o
-             par dele fica no Info.plist do iOS (GADApplicationIdentifier).
+        <!-- App ID do AdMob, vindo de manifestPlaceholders em
+             app/build.gradle.kts: ID de TESTE no debug, ID de produção no
+             release. O par iOS fica no Info.plist (GADApplicationIdentifier).
              Sem esta meta-data o SDK derruba o app na inicialização — não é
              opcional. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="${admobAppId}" />
 
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
