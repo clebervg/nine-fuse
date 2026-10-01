@@ -6,7 +6,6 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:nine_fuse/core/ads/ad_providers.dart';
-import 'package:nine_fuse/core/assets/tile_sprite_manager.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/features/game/presentation/screens/splash_screen.dart';
@@ -28,12 +27,9 @@ void main() {
 
   AppFonts.registerLicense();
 
-  // Também não é esperado, pelo mesmo motivo do SDK de anúncio: é a produção
-  // artística chegando aos poucos, e nenhum dígito/obstáculo tem sprite
-  // ainda. Um asset ausente é engolido pelo próprio manager — não há por que
-  // segurar a abertura do jogo por isso.
-  unawaited(TileSpriteManager.preload());
-  unawaited(TileSpriteManager.preloadObstacles());
+  // Os sprites de peça e de cobertura são carregados pela `SplashScreen`, que
+  // é quem espera por eles e mostra o progresso — chamá-los aqui também os
+  // marcaria como "já tentados" e a barra não teria o que acompanhar.
 
   // Os funis só falam com o AdMob aqui. O padrão dos providers paga o
   // jogador sem rede nenhuma, e é o que mantém a suíte de widget rodando sem

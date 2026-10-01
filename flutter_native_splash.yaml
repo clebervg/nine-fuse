@@ -5,39 +5,29 @@
 # Regerar depois de trocar a arte:
 #   dart run flutter_native_splash:create
 #
-# **Mudança de fonte (2026-09-10):** `assets/images/logo_splash.png` deixou de
-# ser gerado por `tool/prepare_icons.dart` a partir de `logo.svg` — é agora
-# uma cópia direta do mestre novo do ícone (`assets/icon/app_icon.png`, o
-# brasão dourado com o "9"), o mesmo usado no `flutter_launcher_icons.yaml`.
+# **Mudança de fonte (2026-10-01), pacote de arte "candy pop":** a cor passou
+# de `#121212` (fundo do menu) para `#080D2A`, o fundo da arte. A splash
+# nativa agora é seguida pela tela de carregamento do Flutter
+# (`SplashScreen`), que é a imagem cheia do pacote sobre esse mesmo
+# azul-marinho — casar a nativa com ela é o que evita um piscar de cor entre
+# as duas. A troca para `#121212` acontece depois, na navegação para o menu.
 #
-# **Sem recorte de fundo, e é decisão explícita.** O mestre novo não tem uma
-# versão com fundo transparente (só o quadrado inteiro com o azul-marinho já
-# embutido) nem uma camada separada para extrair uma — ao contrário do selo
-# antigo, que vinha de um grupo isolável do SVG. A splash mostra o quadrado
-# inteiro, cantos retos, sentado sobre a cor de fundo do app — funcional, mas
-# sem o acabamento flutuante/arredondado que o design anterior tinha. Se uma
-# versão recortada (fundo transparente) for produzida depois, é só trocar o
-# `image:` abaixo e regerar.
+# **iOS e Android legado só com cor, sem imagem.** A Apple desencoraja
+# imagem grande na LaunchScreen, e a arte de verdade aparece um instante
+# depois, na tela de carregamento. Repetir o logo na nativa faria ele
+# "pular" de tamanho e posição na transição.
 #
-# `android_12:` usa o MESMO arquivo do bloco legado agora, pelo mesmo motivo:
-# não existe uma versão já recortada pela zona segura de 66% do ícone
-# adaptativo (o `app_icon_foreground.png` antigo ficou para trás com o design
-# anterior — ver `flutter_launcher_icons.yaml`). Usar o quadrado inteiro na
-# máscara circular do Android 12+ pode cortar os cantos do brasão; é o mesmo
-# tipo de perda já aceito no ícone adaptativo, não uma regressão nova.
+# **Android 12+ com `splash_icon.png`** (insígnia do 9, 1152 px = 288 dp em
+# xxxhdpi, já dentro da zona circular): o sistema sempre desenha um ícone
+# nessa splash — sem `image`, ele usaria o ícone do launcher.
 #
-# A cor continua sendo AppColors.darkBackground (0xFF121212, ver
-# lib/core/constants/app_colors.dart) — o scaffoldBackgroundColor real do
-# app —, não a cor de fundo do próprio mestre (#06091F): a splash precisa
-# casar com o primeiro frame de verdade (LevelSelectScreen), não com a
-# paleta do asset.
+# O `assets/images/logo_splash.png` antigo (o brasão de 2026-09-10) saiu.
 flutter_native_splash:
-  color: "#121212"
-  image: assets/images/logo_splash.png
+  color: "#080D2A"
 
   android_12:
-    color: "#121212"
-    image: assets/images/logo_splash.png
+    color: "#080D2A"
+    image: assets/icon/splash_icon.png
 
   android: true
   ios: true

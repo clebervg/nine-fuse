@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -36,7 +37,10 @@ void main() {
 
     await tester.pumpWidget(
       localizedApp(
-        home: SplashScreen(onSplashComplete: () => completed = true),
+        home: SplashScreen(
+          onSplashComplete: () => completed = true,
+          loaders: const [],
+        ),
       ),
     );
 
@@ -84,7 +88,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: localizedApp(home: const SplashScreen()),
+        child: localizedApp(home: const SplashScreen(loaders: [])),
       ),
     );
 
@@ -93,5 +97,50 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(LevelSelectScreen), findsOneWidget);
+  });
+
+  testWidgets('segura a barra enquanto o carregamento não termina',
+      (tester) async {
+    var completed = false;
+    final loading = Completer<void>();
+
+    await tester.pumpWidget(
+      localizedApp(
+        home: SplashScreen(
+          onSplashComplete: () => completed = true,
+          loaders: [() => loading.future],
+        ),
+      ),
+    );
+
+    // Bem depois do tempo mínimo: sem a etapa concluída, a barra não pode
+    // chegar ao fim — senão o tabuleiro abriria sem os sprites.
+    await tester.pump(kSplashDuration * 3);
+    expect(completed, isFalse);
+
+    loading.complete();
+    // O `forward()` retomado roda num microtask, depois dos callbacks do
+    // quadro, e o ticker só começa no quadro seguinte — contar quadros à mão
+    // aqui seria testar o agendador, não a splash.
+    await tester.pumpAndSettle();
+    expect(completed, isTrue);
+  });
+
+  testWidgets('etapa que falha não prende o jogador na abertura',
+      (tester) async {
+    var completed = false;
+
+    await tester.pumpWidget(
+      localizedApp(
+        home: SplashScreen(
+          onSplashComplete: () => completed = true,
+          loaders: [() => Future<void>.error(StateError('sem asset'))],
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(kSplashDuration + const Duration(milliseconds: 1));
+    expect(completed, isTrue);
   });
 }

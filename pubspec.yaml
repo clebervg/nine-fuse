@@ -66,7 +66,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # Gera os ícones nativos de Android, iOS e Web a partir de assets/images/logo.png.
+  # Gera os ícones nativos de Android, iOS e Web a partir dos mestres em assets/icon/.
   # Só de desenvolvimento: roda uma vez (`dart run flutter_launcher_icons`) e o
   # resultado vai versionado, não é dependência de runtime.
   flutter_launcher_icons: ^0.14.4
@@ -109,6 +109,7 @@ flutter:
     - assets/images/
     - assets/sprites/tiles/
     - assets/sprites/obstacles/
+    - assets/splash/
 
   # Nunito vem empacotada, não baixada em runtime: uma fonte que depende de
   # rede cai silenciosamente no padrão do sistema quando o aparelho está
