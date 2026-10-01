@@ -51,3 +51,9 @@ app.*.map.json
 # chegaram a ser commitados por acidente — daí a regra existir.
 test/**/failures/
 .worktrees/
+
+# Rascunhos e estado de ferramentas: existem no disco de quem os usa, mas não
+# fazem parte do app. `tool_tmp/probe124.dart` era o único aviso do analyze.
+tool_tmp/
+tool/dbg_scratch/
+.superpowers/
