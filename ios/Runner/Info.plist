@@ -69,6 +69,8 @@
 		<!-- App ID do AdMob. É o ID de TESTE oficial do Google, par do que está no
 	     AndroidManifest.xml. Trocar pelo de produção é a última coisa antes de
 	     publicar; sem esta chave o SDK derruba o app na inicialização. -->
+		<key>NSUserTrackingUsageDescription</key>
+		<string>Usamos o identificador de publicidade para mostrar anúncios mais relevantes para você. / We use the advertising identifier to show you more relevant ads.</string>
 		<key>GADApplicationIdentifier</key>
 		<string>ca-app-pub-3940256099942544~1458002511</string>
 		<!-- Rede de atribuição do próprio AdMob (SKAdNetwork). Sem ela a Apple não

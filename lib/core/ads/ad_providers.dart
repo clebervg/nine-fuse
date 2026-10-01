@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/ads/ad_ids.dart';
+import 'package:nine_fuse/core/ads/admob_consent_port.dart';
 import 'package:nine_fuse/core/ads/admob_rewarded_port.dart';
+import 'package:nine_fuse/core/ads/consent_service.dart';
 import 'package:nine_fuse/core/ads/rewarded_ad_service.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
@@ -11,7 +13,18 @@ import 'package:nine_fuse/features/game/presentation/widgets/moves_offer_dialog.
 /// Um provider próprio para a porta permite trocar o SDK inteiro num override —
 /// é por aqui que um teste de integração entraria sem precisar de rede.
 final rewardedAdPortProvider = Provider<RewardedAdPort>(
-  (ref) => const AdMobRewardedPort(),
+  (ref) => AdMobRewardedPort(consent: ref.watch(consentServiceProvider)),
+);
+
+/// Consentimento (UMP + ATT) que antecede qualquer pedido de anúncio.
+///
+/// Um só serviço para o app inteiro: o resultado é calculado uma vez e
+/// compartilhado pelos quatro funis.
+final consentServiceProvider = Provider<ConsentService>(
+  (ref) => ConsentService(
+    consent: const UmpConsentPort(),
+    tracking: const AttTrackingPort(),
+  ),
 );
 
 /// Serviço do anúncio que paga o Martelo de Fusão.

@@ -35,36 +35,43 @@ void main() {
   unawaited(TileSpriteManager.preload());
   unawaited(TileSpriteManager.preloadObstacles());
 
-  // A inicialização do SDK é assíncrona e **não é esperada**: ela leva algumas
-  // centenas de milissegundos, e segurar o `runApp` até lá trocaria a abertura
-  // do jogo por uma tela branca. Um anúncio pedido antes de ela terminar
-  // apenas falha em carregar, que é um caso que o `RewardedAdService` já trata
-  // como "sem estoque".
+  // Os funis só falam com o AdMob aqui. O padrão dos providers paga o
+  // jogador sem rede nenhuma, e é o que mantém a suíte de widget rodando sem
+  // canal de plataforma — ver `admobOverrides`.
+  final container = ProviderContainer(overrides: admobOverrides());
+
+  // A inicialização do SDK é assíncrona e **não é esperada**: segurar o
+  // `runApp` até lá trocaria a abertura do jogo por uma tela branca. Um
+  // anúncio pedido antes de o consentimento resolver apenas espera por ele
+  // (ver `AdMobRewardedPort`), e sem permissão vira "sem estoque", caso que o
+  // `RewardedAdService` já trata.
+  //
+  // O consentimento (UMP e, no iOS, ATT) vem ANTES de `initialize`: o Google
+  // recomenda inicializar o SDK só depois de `canRequestAds`.
   //
   // Só nas plataformas que têm o SDK: em desktop e web o plugin não existe, e
-  // a chamada estouraria no canal.
-  //
-  // O `catchError` também não é decorativo: se o plugin nativo não estiver
-  // registrado — o caso de adicionar a dependência e dar hot restart em vez de
-  // reinstalar o app —, a chamada estoura com `MissingPluginException` e sobe
-  // como erro não tratado no console. O jogo funciona sem anúncio; o que ele
-  // não pode é abrir cuspindo pilha.
+  // a chamada estouraria no canal. O `catchError` também não é decorativo: se
+  // o plugin nativo não estiver registrado — adicionar a dependência e dar hot
+  // restart em vez de reinstalar —, a chamada estoura com
+  // `MissingPluginException`. O jogo funciona sem anúncio; o que ele não pode é
+  // abrir cuspindo pilha.
   if (defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS) {
-    MobileAds.instance.initialize().catchError((Object error) {
-      debugPrint('SDK de anúncio não inicializou: $error');
-      return InitializationStatus(const {});
-    });
+    unawaited(
+      container
+          .read(consentServiceProvider)
+          .ensure()
+          .then((consent) async {
+            if (consent.canRequestAds) await MobileAds.instance.initialize();
+          })
+          .catchError((Object error) {
+            debugPrint('SDK de anúncio não inicializou: $error');
+          }),
+    );
   }
 
   runApp(
-    ProviderScope(
-      // Os funis só falam com o AdMob aqui. O padrão dos providers paga o
-      // jogador sem rede nenhuma, e é o que mantém a suíte de widget rodando
-      // sem canal de plataforma — ver `admobOverrides`.
-      overrides: admobOverrides(),
-      child: const NineFuseApp(),
-    ),
+    UncontrolledProviderScope(container: container, child: const NineFuseApp()),
   );
 }
 
