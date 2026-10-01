@@ -1,0 +1,125 @@
+{
+  "game": "Nine Fuse",
+  "style": "Rich Candy Glossy / Royal Toy",
+  "font": {
+    "family": "Baloo 2",
+    "weight": 800,
+    "source": "Google Fonts (OFL)"
+  },
+  "scales": {
+    "1x": "base",
+    "2x": "2x",
+    "3x": "3x"
+  },
+  "tiles": {
+    "base_px": 256,
+    "items": {
+      "tile_0": {
+        "color": "#FF3B30",
+        "glyph": "circle"
+      },
+      "tile_1": {
+        "color": "#007AFF",
+        "glyph": "diamond"
+      },
+      "tile_2": {
+        "color": "#34C759",
+        "glyph": "triangle"
+      },
+      "tile_3": {
+        "color": "#00B3A6",
+        "glyph": "square"
+      },
+      "tile_4": {
+        "color": "#FF9500",
+        "glyph": "circle"
+      },
+      "tile_5": {
+        "color": "#AF52DE",
+        "glyph": "diamond"
+      },
+      "tile_6": {
+        "color": "#FF5CA8",
+        "glyph": "triangle"
+      },
+      "tile_7": {
+        "color": "#5AC8FA",
+        "glyph": "square"
+      },
+      "tile_8": {
+        "color": "#4B3FD1",
+        "glyph": "star"
+      },
+      "tile_9": {
+        "color": "#FFD700",
+        "shape": "dodecagon badge",
+        "note": "peça ápice"
+      }
+    }
+  },
+  "obstacles": {
+    "base_px": 256,
+    "overlay": true,
+    "items": {
+      "obstacle_stone_3": {
+        "material": "stone",
+        "hp": 3
+      },
+      "obstacle_stone_2": {
+        "material": "stone",
+        "hp": 2
+      },
+      "obstacle_stone_1": {
+        "material": "stone",
+        "hp": 1
+      },
+      "obstacle_glass_2": {
+        "material": "glass",
+        "hp": 2
+      },
+      "obstacle_glass_1": {
+        "material": "glass",
+        "hp": 1
+      },
+      "obstacle_ice_1": {
+        "material": "ice",
+        "hp": 1
+      }
+    }
+  },
+  "boosters": {
+    "base_px": 128,
+    "items": [
+      "ic_hammer",
+      "ic_bomb",
+      "ic_brush",
+      "ic_coin"
+    ]
+  },
+  "splash": {
+    "background": "#080D2A",
+    "files": [
+      "splash_1290x2796.png",
+      "splash_1080x2340.png",
+      "splash_1440x3120.png"
+    ],
+    "loading_bar": {
+      "file": "loading_bar_fill.png",
+      "track_rect_in_1290x2796": {
+        "x": 331,
+        "y": 2336,
+        "w": 628,
+        "h": 32,
+        "radius": 16
+      }
+    }
+  },
+  "tile_footprint_in_256": {
+    "x": 20,
+    "y": 12,
+    "w": 216,
+    "h": 204,
+    "radius": 56,
+    "note": "face superior; extrusão até y=230; sombra até ~y=250"
+  }
+}

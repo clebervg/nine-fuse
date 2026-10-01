@@ -43,15 +43,15 @@ Organize a pasta `lib/` da seguinte forma:
 
 ## Mapeamento Inicial dos Números & Cores
 Cada dígito possui uma cor vibrante e bem definida em `lib/core/constants/app_colors.dart`:
-- `0`: Vermelho vibrante (`0xFFE53935`)
-- `1`: Azul neon (`0xFF1E88E5`)
-- `2`: Verde lima (`0xFF43A047`)
-- `3`: Amarelo/Dourado (`0xFFFDD835`)
-- `4`: Laranja (`0xFFFB8C00`)
-- `5`: Roxo (`0xFF8E24AA`)
-- `6`: Rosa neon (`0xFFFF3DA5`)
-- `7`: Ciano (`0xFF00ACC1`)
-- `8`: Violeta/Índigo (`0xFF3949AB`)
+- `0`: Vermelho (`0xFFFF3B30`)
+- `1`: Azul (`0xFF007AFF`)
+- `2`: Verde (`0xFF34C759`)
+- `3`: Verde-água (`0xFF00B3A6`)
+- `4`: Laranja (`0xFFFF9500`)
+- `5`: Roxo (`0xFFAF52DE`)
+- `6`: Rosa (`0xFFFF5CA8`)
+- `7`: Azul-céu (`0xFF5AC8FA`)
+- `8`: Índigo (`0xFF4B3FD1`)
 - `9`: **Dourado Místico Dinâmico** — Degradê `0xFFFFD700` → `0xFFFF8C00`, com animação de pulso/respiração contínua e brilho neon (`AppColors.apexGlow`).
 
 ---
@@ -1694,3 +1694,61 @@ toda fase de cobertura já registrava antes deste modo existir. Um
 jogador real com Bomba ou Pincel disponível mira a cobertura de
 propósito, o que o bot guloso nunca faz; medir esse uso exigiria simular
 o booster no bot, fora do escopo desta task.
+
+### Pacote de arte "candy pop": sprites, ícone e tela de carregamento (2026-10-01)
+
+**A arte entrou pelos caminhos que já existiam, sem código novo de
+carregamento.** `TileSpriteManager` e `SpriteIcon` já esperavam
+`assets/sprites/tiles/tile_N.png`, `assets/sprites/obstacles/obstacle_<tipo>_<hp>.png`
+e `assets/images/ic_<booster>.png` — os nomes do pacote são os mesmos. O
+mapeamento `(ObstacleType, hp) → sprite` também já existia; os pips de HP da
+pedra vêm desenhados no PNG, sem contador extra. O `manifest.json` do pacote
+fica versionado em `docs/brand/asset-manifest.json`, fonte das medidas usadas
+no código.
+
+**Só a escala 1x, e é decisão.** O manager carrega os bytes direto
+(`MemoryImage`) e ignora as variantes `2.0x/3.0x`, e 256 px já cobre uma
+célula de ~45pt em 3x. Copiar as outras escalas só engordaria o bundle.
+
+**O sprite é alinhado pela face, não pelo canvas.** A face da peça ocupa
+x=20 y=12 w=216 h=204 do canvas de 256 (`TileSpriteManager.spriteFace`);
+embaixo vêm a extrusão e a sombra. `_faceAlignedSprite` faz a largura da face
+virar a largura da célula, e a margem transparente e a sombra transbordam —
+por isso o `Stack` da peça é `Clip.none`. A cobertura usa o mesmo canvas e o
+mesmo encaixe, então assenta exatamente sobre a peça.
+
+**A paleta do código foi alinhada à dos sprites.** As cores acima (e
+`AppColors.digit0..8`) são as do manifest. A peça vem desenhada no PNG, mas
+partículas, halo e a vitrine do objetivo continuam pintados por `AppColors`:
+se as duas divergissem, o estilhaço sairia numa cor diferente da peça que
+quebrou. `palette_distance_test` segue passando com os tons novos.
+
+**Ícone adaptativo de volta no Android.** O pacote trouxe frente (fundo
+transparente, já na zona segura) e fundo separados; a limitação da troca de
+2026-09-10 acabou. `adaptive_icon_foreground_inset: 0` é obrigatório: o inset
+padrão de 16% da ferramenta encolheria a frente uma segunda vez. Conferido
+sob máscara circular de 66% — nada decepado. Sem camada `monochrome`: a
+sugerida pelo pacote era a frente colorida, que vira silhueta chapada.
+
+**Splash nativa em `#080D2A`, não mais `#121212`.** Ela agora precede a
+tela de carregamento, que é a arte cheia sobre esse azul-marinho; casar as
+duas evita o piscar de cor. iOS e Android legado só com cor; Android 12+ com
+`assets/icon/splash_icon.png` (o sistema sempre desenha um ícone ali).
+
+**A `SplashScreen` virou tela de carregamento de verdade.** Imagem
+`splash_1290x2796.png` em aspect fill e a barra preenchendo o trilho que já
+vem desenhado na arte (x=331 y=2336 w=628 h=32, raio 16), convertido pela
+mesma escala da imagem. O controller anda até um teto que só sobe conforme
+os `loaders` terminam (por padrão, o preload dos sprites — que saiu do
+`main.dart` para a barra ter o que acompanhar), com piso de
+`kSplashDuration`. Etapa que falha conta como concluída. Em tela mais larga
+que a arte (tablet), preencher cortaria o rodapé e o trilho junto; aí a arte
+cabe inteira com o fundo da splash nas laterais.
+
+**Ficou de fora, por decisão:** a fonte Baloo 2 que o pacote sugere para os
+números da UI — os números das peças já vêm no PNG, e trocar a Nunito é
+mudança de identidade com goldens a regerar, para uma rodada própria. Saíram
+`assets/images/logo.png` e `logo_splash.png` (só a splash antiga os usava);
+`tool/prepare_icons.dart` ainda os menciona, mas é o pipeline do SVG, já
+legado desde 2026-09-10.
+

@@ -57,3 +57,7 @@ test/**/failures/
 tool_tmp/
 tool/dbg_scratch/
 .superpowers/
+
+# Pacotes de arte baixados da ferramenta de design (dezenas de MB): ficam no disco
+# de quem os extraiu, mas o conteúdo útil já está nos assets versionados.
+assets/*.zip
