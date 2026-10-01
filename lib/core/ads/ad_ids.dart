@@ -30,6 +30,10 @@ abstract final class AdIds {
   static const String _androidHammerRewardedProd =
       'ca-app-pub-5525495238538539/6498774327';
 
+  /// Unidade de PRODUÇÃO da roleta diária (giro extra) no Android.
+  static const String _androidSpinRewardedProd =
+      'ca-app-pub-5525495238538539/1562142419';
+
   /// Unidade do anúncio que paga o Martelo de Fusão.
   ///
   /// Separada da do reforço de saldo mesmo apontando hoje para o mesmo ID de
@@ -51,7 +55,8 @@ abstract final class AdIds {
   ///
   /// Separada das outras três pela mesma razão de sempre: é por unidade que a
   /// rede reporta receita, e cada funil precisa ser distinguível.
-  static String get spinRewarded => _rewarded;
+  static String get spinRewarded =>
+      _unit(androidProd: _androidSpinRewardedProd);
 
   /// Escolhe a unidade do funil: a de produção só em build **release** e só
   /// se o funil já tem uma (`androidProd` não nulo); em qualquer outro caso, o
