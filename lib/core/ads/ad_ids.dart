@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kReleaseMode;
+
 /// Identificadores do AdMob.
 ///
 /// **Todos são os IDs de teste oficiais do Google.** São eles que devem rodar
@@ -23,12 +25,18 @@ abstract final class AdIds {
   static const String _iosTestRewarded =
       'ca-app-pub-3940256099942544/1712485313';
 
+  /// Unidade de PRODUÇÃO do martelo no Android. Só é usada em release (ver
+  /// [_unit]); debug e profile seguem no ID de teste.
+  static const String _androidHammerRewardedProd =
+      'ca-app-pub-5525495238538539/6498774327';
+
   /// Unidade do anúncio que paga o Martelo de Fusão.
   ///
   /// Separada da do reforço de saldo mesmo apontando hoje para o mesmo ID de
   /// teste: é por unidade que a rede reporta receita, e uma só impediria de
   /// saber qual dos dois funis paga.
-  static String get hammerRewarded => _rewarded;
+  static String get hammerRewarded =>
+      _unit(androidProd: _androidHammerRewardedProd);
 
   /// Unidade do anúncio que paga o reforço de saldo (gatilho pre-churn).
   static String get movesRewarded => _rewarded;
@@ -44,6 +52,17 @@ abstract final class AdIds {
   /// Separada das outras três pela mesma razão de sempre: é por unidade que a
   /// rede reporta receita, e cada funil precisa ser distinguível.
   static String get spinRewarded => _rewarded;
+
+  /// Escolhe a unidade do funil: a de produção só em build **release** e só
+  /// se o funil já tem uma (`androidProd` não nulo); em qualquer outro caso, o
+  /// ID de teste. Funis sem unidade de produção ainda caem no teste mesmo em
+  /// release, o que é seguro (anúncio de teste), nunca o contrário.
+  static String _unit({String? androidProd}) {
+    if (kReleaseMode && Platform.isAndroid && androidProd != null) {
+      return androidProd;
+    }
+    return _rewarded;
+  }
 
   /// Fora de Android e iOS não há SDK de anúncio, e a string vazia é o que faz
   /// a carga falhar de forma limpa em vez de estourar no canal de plataforma.
