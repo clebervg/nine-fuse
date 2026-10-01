@@ -37,9 +37,9 @@ Origem: auditoria técnica de 2026-09-30. Branch de trabalho:
 - [ ] **Política de privacidade:** não existe arquivo nem link no app.
 - [ ] **Play Console:** declarar o uso do ID de publicidade (por causa de
   `AD_ID`); ativar o Play App Signing.
-- [ ] **Confirmar os identificadores**, que não mudam depois de publicar:
-  Android `com.game.nine_fuse`; iOS `com.game.nineFuse` (o "F" maiúsculo
-  difere do Android; confirmar se é intencional).
+- [x] **Identificadores** (não mudam depois de publicar): Android e iOS agora
+  usam `com.game.ninefuse` (antes `com.game.nine_fuse` e `com.game.nineFuse`).
+  Falta só confirmar que o ID está livre ao criar o app no Play Console.
 
 ## Pendente: depois de publicar
 

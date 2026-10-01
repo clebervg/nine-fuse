@@ -1,4 +1,4 @@
-package com.game.nine_fuse
+package com.game.ninefuse
 
 import io.flutter.embedding.android.FlutterActivity
 
