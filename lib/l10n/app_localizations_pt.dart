@@ -620,4 +620,23 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get storeKeywords =>
       'match 3 numeros,quebra cabeca numeros,jogo de fusao,puzzle numerico,merge numeros,jogo 2048 match 3,puzzle offline,jogo de logica';
+
+  @override
+  String get privacyTitle => 'Privacidade';
+
+  @override
+  String get privacyBody =>
+      'O NineFuse guarda seu progresso só neste aparelho. Os anúncios são do Google AdMob.';
+
+  @override
+  String get privacyPolicyLink => 'Política de Privacidade';
+
+  @override
+  String get privacyAdOptions => 'Opções de privacidade dos anúncios';
+
+  @override
+  String get privacyClose => 'FECHAR';
+
+  @override
+  String get privacyTooltip => 'Privacidade';
 }

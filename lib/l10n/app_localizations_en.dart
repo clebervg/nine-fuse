@@ -617,4 +617,23 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storeKeywords =>
       'number match 3,number puzzle,merge numbers,fusion puzzle,numeric puzzle,2048 match 3,offline puzzle,logic game';
+
+  @override
+  String get privacyTitle => 'Privacy';
+
+  @override
+  String get privacyBody =>
+      'NineFuse keeps your progress on this device only. Ads are provided by Google AdMob.';
+
+  @override
+  String get privacyPolicyLink => 'Privacy Policy';
+
+  @override
+  String get privacyAdOptions => 'Ad privacy options';
+
+  @override
+  String get privacyClose => 'CLOSE';
+
+  @override
+  String get privacyTooltip => 'Privacy';
 }

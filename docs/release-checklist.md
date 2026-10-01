@@ -33,10 +33,13 @@ IDs de produção já criados no AdMob (Android), para passar no build:
 - [ ] **iOS:** cadastrar o app iOS no AdMob (outro App ID + unidades) e trocar
   `GADApplicationIdentifier` em `ios/Runner/Info.plist:72-73` e as unidades
   iOS. Hoje tudo é ID de teste.
-- [ ] **Consentimento:** UMP (`ConsentInformation`) antes do primeiro
-  `preload`; ATT no iOS (`NSUserTrackingUsageDescription` +
-  `app_tracking_transparency`) ou só anúncios não personalizados.
-- [ ] **Política de privacidade:** não existe arquivo nem link no app.
+- [x] **Consentimento no código** (1.5): UMP + ATT antes de qualquer anúncio.
+- [ ] **Publicar a mensagem do GDPR no AdMob** (Privacidade e mensagens) com os
+  textos de `docs/consent-messages.md`; sem isso o formulário nunca abre.
+- [ ] **Testar o formulário em aparelho** com `ConsentDebugSettings` (região UE).
+- [ ] **Política de privacidade:** textos prontos (`docs/privacy_policy*.md` e
+  `docs/privacy/*.html`). Falta preencher os campos entre colchetes, hospedar
+  em URL público e passar `--dart-define=PRIVACY_POLICY_URL=...` no build.
 - [ ] **Play Console:** declarar o uso do ID de publicidade (por causa de
   `AD_ID`); ativar o Play App Signing.
 - [x] **Identificadores** (não mudam depois de publicar): Android e iOS agora

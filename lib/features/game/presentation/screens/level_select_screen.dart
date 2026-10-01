@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/ads/ad_providers.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/widgets/coins_header_badge.dart';
+import 'package:nine_fuse/core/widgets/privacy_dialog.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/domain/level_generator.dart';
@@ -37,6 +38,9 @@ const Duration kPathRevealDuration = Duration(milliseconds: 900);
 /// renderizam), e registrado como dívida no `CLAUDE.md` — deixa de ser
 /// aceitável na casa dos milhares.
 const int kLookahead = 8;
+
+/// Chave do ícone de privacidade, na AppBar.
+const levelSelectPrivacyIconKey = Key('level_select_privacy_icon');
 
 /// Chave do ícone de atalho da roleta diária, na AppBar.
 const Key levelSelectDailySpinIconKey = Key('level_select_daily_spin_icon');
@@ -99,7 +103,9 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
         // Falha de disco na leitura de elegibilidade não pode travar o
         // primeiro quadro do mapa: trata como "não elegível" e segue sem
         // abrir a roleta sozinha.
-        debugPrint('Falha ao ler elegibilidade da roleta diária: $error\n$stack');
+        debugPrint(
+          'Falha ao ler elegibilidade da roleta diária: $error\n$stack',
+        );
         eligible = false;
       }
       if (!mounted || !eligible) return;
@@ -220,6 +226,12 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
             key: levelSelectDailySpinIconKey,
             icon: const Icon(Icons.casino, color: Colors.white),
             onPressed: _openDailySpin,
+          ),
+          IconButton(
+            key: levelSelectPrivacyIconKey,
+            tooltip: AppLocalizations.of(context).privacyTooltip,
+            icon: const Icon(Icons.privacy_tip_outlined, color: Colors.white),
+            onPressed: () => showPrivacyDialog(context),
           ),
           const SizedBox(width: 4),
         ],

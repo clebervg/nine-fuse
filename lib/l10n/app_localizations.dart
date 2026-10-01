@@ -984,6 +984,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'number match 3,number puzzle,merge numbers,fusion puzzle,numeric puzzle,2048 match 3,offline puzzle,logic game'**
   String get storeKeywords;
+
+  /// No description provided for @privacyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get privacyTitle;
+
+  /// No description provided for @privacyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'NineFuse keeps your progress on this device only. Ads are provided by Google AdMob.'**
+  String get privacyBody;
+
+  /// No description provided for @privacyPolicyLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicyLink;
+
+  /// No description provided for @privacyAdOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Ad privacy options'**
+  String get privacyAdOptions;
+
+  /// No description provided for @privacyClose.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get privacyClose;
+
+  /// No description provided for @privacyTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get privacyTooltip;
 }
 
 class _AppLocalizationsDelegate

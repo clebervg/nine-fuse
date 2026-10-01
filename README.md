@@ -106,3 +106,26 @@ O SDK lê o **App ID** do manifesto nativo, não do Dart:
 
 ### Debug e profile
 Sem as variáveis, debug e profile usam os IDs de **teste** do Google. Nunca use unidades de produção em build de desenvolvimento: conta como tráfego inválido.
+
+---
+
+## 🔒 Política de privacidade
+
+O texto-base está em `docs/privacy_policy.md` (PT) e `docs/privacy_policy.en.md` (EN), e as versões web prontas para hospedar em `docs/privacy/index.html` e `docs/privacy/en.html`. **Preencha os campos entre colchetes** (nome, e-mail de contato, data) antes de publicar, e revise com um advogado se o app crescer: o texto descreve o app como está hoje (somente AdMob).
+
+A Play Store exige uma **página web pública com HTTPS** (não PDF, sem login), e o mesmo link dentro do app.
+
+### Onde hospedar
+- **GitHub Pages** (recomendado): repositório **público** de uma organização do estúdio, `ORG.github.io`, uma pasta por app (`/ninefuse/privacy/`). Mantém histórico e aceita domínio próprio depois.
+- **Google Sites** / **Notion** (publicar na web): sem código, porém cada atualização é manual.
+
+O URL não deve mudar depois de publicado: ele fica gravado no Play Console, na App Store e no app.
+
+### Ligar o link no app
+O endereço entra no build, junto com os IDs de anúncio:
+```bash
+--dart-define=PRIVACY_POLICY_URL=https://ORG.github.io/ninefuse/privacy/
+```
+Sem a variável, o item "Política de Privacidade" não aparece na caixa de privacidade (ícone na barra do mapa), e o release **não é publicável**.
+
+Os textos de consentimento (UMP/ATT) e as declarações do Play Console estão em `docs/consent-messages.md`.
