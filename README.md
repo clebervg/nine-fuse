@@ -70,3 +70,39 @@ lib/
 │       ├── presentation/  # Widgets de UI, tabuleiros, overlays e dialogs
 │       └── providers/     # StateNotifiers (GameNotifier, EndlessNotifier, Wallet)
 └── l10n/                  # Arquivos de internacionalização (ARBs PT/EN)
+
+---
+
+## 🚀 Build de release (Android)
+
+### Pré-requisitos
+1. **Keystore de upload** e `android/key.properties` preenchido (modelo em `android/key.properties.example`). Sem ele o release cai na chave de **debug**, que a Play Store recusa.
+2. **IDs das unidades de anúncio de produção**, uma por funil, criados no AdMob (tipo *Premiado*).
+
+### Comando
+```bash
+flutter build appbundle --release \
+  --dart-define=ADMOB_HAMMER_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
+  --dart-define=ADMOB_MOVES_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
+  --dart-define=ADMOB_COINS_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
+  --dart-define=ADMOB_SPIN_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN
+```
+O build de iOS usa os mesmos nomes de variável, com as unidades da app iOS.
+
+> **Esquecer uma variável não quebra o build**: o funil correspondente fica sem anúncio (ID vazio) no release. Por isso rode o guard abaixo e confira a assinatura antes de enviar.
+
+### Antes de enviar
+```bash
+tool/check_admob_ids.sh            # falha se houver ID de teste onde não deve
+tool/check_admob_ids.sh --strict   # também falha com pendências (ex.: iOS em teste)
+keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab
+```
+O `Owner` da assinatura não pode ser `CN=Android Debug`.
+
+### App ID (não passa por `--dart-define`)
+O SDK lê o **App ID** do manifesto nativo, não do Dart:
+- **Android:** `manifestPlaceholders["admobAppId"]` em `android/app/build.gradle.kts` (debug = ID de teste, release = ID de produção).
+- **iOS:** `GADApplicationIdentifier` em `ios/Runner/Info.plist` (hoje ainda é o ID de teste).
+
+### Debug e profile
+Sem as variáveis, debug e profile usam os IDs de **teste** do Google. Nunca use unidades de produção em build de desenvolvimento: conta como tráfego inválido.

@@ -12,8 +12,14 @@ Origem: auditoria técnica de 2026-09-30. Branch de trabalho:
   `android/key.properties` (template em `key.properties.example`).
 - [x] **1.3 parcial, App ID Android** (`c802343`): `manifestPlaceholders` por
   build. Debug = ID de teste; release = `ca-app-pub-5525495238538539~6427370565`.
-- [x] **1.3 parcial, unidades Android** (`bf657d7`, `b14567a`): produção só em
-  release para **martelo** (`.../6498774327`) e **roleta** (`.../1562142419`).
+- [x] **1.4 IDs por `--dart-define`**: as unidades de produção saíram do código;
+  `ad_ids.dart` lê `ADMOB_{HAMMER,MOVES,COINS,SPIN}_REWARDED`. Sem a variável:
+  teste em debug/profile e vazio (sem anúncio) em release. Comando no README.
+- [x] **1.4 Guard** `tool/check_admob_ids.sh` (`--strict` antes de enviar o iOS).
+
+IDs de produção já criados no AdMob (Android), para passar no build:
+- Martelo: `ca-app-pub-5525495238538539/6498774327`
+- Roleta: `ca-app-pub-5525495238538539/1562142419`
 
 ## Pendente: bloqueia a publicação
 
@@ -22,12 +28,8 @@ Origem: auditoria técnica de 2026-09-30. Branch de trabalho:
   Sem ela o release cai na chave de debug, que a Play Store recusa.
 - [ ] **Unidades de produção que faltam (Android):** *movimentos extras* e
   *moedas*. Criar em AdMob > NineFuse (Android) > Unidades de anúncio >
-  Premiado, e preencher `movesRewarded` e `coinsRewarded` em
-  `lib/core/ads/ad_ids.dart` (mesmo padrão `_unit(androidProd: ...)`).
-  Enquanto faltarem, o release mostra anúncio de **teste** nesses dois funis.
-- [ ] **Guard contra ID de teste em release** (parte 3 do Bloco 1.3): falhar o
-  build/CI de release se restar o prefixo `3940256099942544`, nas unidades e
-  no manifest mesclado.
+  Premiado e passar em `ADMOB_MOVES_REWARDED` / `ADMOB_COINS_REWARDED`.
+  Sem elas, o release fica **sem anúncio** nesses dois funis.
 - [ ] **iOS:** cadastrar o app iOS no AdMob (outro App ID + unidades) e trocar
   `GADApplicationIdentifier` em `ios/Runner/Info.plist:72-73` e as unidades
   iOS. Hoje tudo é ID de teste.
