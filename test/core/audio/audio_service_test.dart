@@ -188,6 +188,36 @@ void main() {
       await service.resume();
       expect(port.music, [menu, menu]);
     });
+
+    test('anúncio de tela cheia cala a música e a devolve ao fechar', () async {
+      final service = serviceWith(const {menu});
+      await service.playMusic(MusicTrack.menu);
+
+      await service.pauseForAd();
+      expect(port.stops, 1);
+      expect(service.playingTrack, isNull);
+
+      await service.resumeAfterAd();
+      expect(port.music, [menu, menu]);
+    });
+
+    test(
+      'voltar do segundo plano com o anúncio aberto não religa a música',
+      () async {
+        // No Android o anúncio é outra activity: o app passa por "oculto →
+        // visível" enquanto ele ainda está na tela.
+        final service = serviceWith(const {menu});
+        await service.playMusic(MusicTrack.menu);
+
+        await service.pauseForAd();
+        await service.suspend();
+        await service.resume();
+        expect(port.music, [menu]);
+
+        await service.resumeAfterAd();
+        expect(port.music, [menu, menu]);
+      },
+    );
   });
 
   group('GameAudio', () {

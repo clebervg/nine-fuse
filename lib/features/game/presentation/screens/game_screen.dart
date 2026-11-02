@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/ads/ad_providers.dart';
+import 'package:nine_fuse/core/ads/interstitial_ad_service.dart';
 import 'package:nine_fuse/core/audio/audio_service.dart';
 import 'package:nine_fuse/core/audio/sound_event.dart';
 import 'package:nine_fuse/core/theme/nf_tokens.dart';
@@ -166,6 +167,19 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   /// é o que separa "bateu numa célula" de "tocou fora e desistiu".
   final GlobalKey _boardKey = GlobalKey();
 
+  /// Relógio de **jogo** para o intervalo do intersticial: corre só com a
+  /// partida em andamento (cartão de início fechado, fase não encerrada) e o
+  /// app na tela. Ver `kInterstitialMinPlayTime`.
+  final Stopwatch _playClock = Stopwatch();
+
+  /// App visível? Em segundo plano o relógio de jogo para.
+  bool _appVisible = true;
+  late final AppLifecycleListener _lifecycle;
+
+  /// Guardado no `initState`: o relógio é descarregado também no `dispose`,
+  /// quando o `ref` já não pode ser usado.
+  late final InterstitialAdService _interstitial;
+
   /// O `Stack` da tela inteira: o tutorial procura o HUD e o dock dentro dele.
   final GlobalKey _screenKey = GlobalKey();
 
@@ -193,6 +207,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   void initState() {
     super.initState();
+    _interstitial = ref.read(interstitialAdServiceProvider);
+    _lifecycle = AppLifecycleListener(
+      onHide: () => setState(() => _appVisible = false),
+      onShow: () => setState(() => _appVisible = true),
+    );
     GameAudio.music(MusicTrack.game);
     // O tabuleiro depende da fase, então só pode ser criado depois do primeiro
     // frame, quando o ref já está disponível.
@@ -201,11 +220,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       // Preload no início do nível: quando o convite abrir, o anúncio já está
       // em estoque e o jogador não espera a rede entre "quero" e "assisti".
       preloadRewardedAds(ref);
+      // O intersticial também: ele só sai ao fim da fase, e sem estoque o
+      // serviço pula a oportunidade em vez de segurar a navegação.
+      _interstitial.preload();
     });
   }
 
   @override
   void dispose() {
+    _flushPlayClock();
+    _lifecycle.dispose();
     // A fase sempre volta a uma tela de fora da partida (mapa ou menu).
     GameAudio.music(MusicTrack.menu);
     super.dispose();
@@ -492,10 +516,38 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
+  /// Liga ou para o relógio de jogo conforme a partida está de fato rolando.
+  void _syncPlayClock(GameState state) {
+    final playing = _ready && !state.isOver && _appVisible;
+    if (playing && !_playClock.isRunning) {
+      _playClock.start();
+    } else if (!playing && _playClock.isRunning) {
+      _flushPlayClock();
+    }
+  }
+
+  /// Entrega ao serviço o tempo jogado desde a última entrega.
+  void _flushPlayClock() {
+    _playClock.stop();
+    _interstitial.addPlayTime(_playClock.elapsed);
+    _playClock.reset();
+  }
+
+  /// "Próxima fase" do cartão de vitória: é ali que o intersticial pós-vitória
+  /// cabe — depois de o jogador ver o prêmio, antes da fase seguinte começar.
+  Future<void> _nextAfterVictory(VoidCallback next) async {
+    _flushPlayClock();
+    await maybeShowInterstitial(ref, InterstitialMoment.afterVictory);
+    if (mounted) next();
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(gameProvider);
     final notifier = ref.read(gameProvider.notifier);
+    // Parar e ligar um `Stopwatch` não reconstrói nada: é seguro no `build`,
+    // que já é chamado a cada mudança de `_ready`, de status e de visibilidade.
+    _syncPlayClock(state);
 
     // Observar o mapa é o que faz a barra reagir quando a leitura do disco
     // chega depois da abertura da tela. O total sai do próprio valor
@@ -623,306 +675,326 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     // O céu fica por trás do `Scaffold` inteiro — inclusive da `AppBar`
     // transparente —, para o topo não virar uma faixa de outra cor.
-    return NfBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: playfieldAppBar(
-          title: AppLocalizations.of(
-            context,
-          ).levelTitle(state.level.number).toUpperCase(),
-        ),
-        body: SafeArea(
-          // O desfecho é sobreposto, não empilhado abaixo do tabuleiro: numa
-          // tela de celular os botões cairiam fora da dobra e a ação principal
-          // depois de vencer ficaria inalcançável sem rolar.
-          child: Stack(
-            key: _screenKey,
-            children: [
-              PlayfieldLayout(
-                hud: LevelBanner(state: state),
-                // O dock some com a fase encerrada — um booster oferecido
-                // sobre o cartão de derrota promete o que já não pode cumprir.
-                // O espaço dele fica (ver `PlayfieldLayout`).
-                dock: state.isOver
-                    ? null
-                    : HammerBar(
-                        buttonKey: hammerButtonKey,
-                        targeting: state.isHammerTargeting,
-                        count: state.hammerCount,
-                        onPressed: notifier.toggleHammerTargeting,
-                        bombButtonKey: bombButtonKey,
-                        bombTargeting: state.isBombTargeting,
-                        bombCount: state.bombCount,
-                        onBombPressed: notifier.toggleBombTargeting,
-                        brushButtonKey: brushButtonKey,
-                        brushTargeting: state.isBrushTargeting,
-                        brushCount: state.brushCount,
-                        onBrushPressed: notifier.toggleBrushTargeting,
-                      ),
-                // Os efeitos ficam sobre o tabuleiro e compartilham a mesma
-                // geometria, para a pontuação nascer na célula certa.
-                //
-                // O tranco do martelo sacode o tabuleiro **com** os efeitos e
-                // a moldura, e não a tela: quem quebrou foi uma peça, e um
-                // estilhaço que ficasse parado enquanto o tabuleiro anda
-                // denunciaria as duas camadas.
-                // A Bomba treme mais forte que o Martelo/dígito máximo — nove
-                // células de uma vez pesam mais que uma —, e por isso vive num
-                // `StrikeShake` **fora** do outro em vez de somar ao mesmo
-                // `shakeSerial`: um tranco maior por cima de um menor ainda lê
-                // como um tranco só, mas dois contadores independentes no
-                // mesmo widget se cancelariam. A Nova treme mais forte ainda
-                // (2.0x): é o clímax mais raro do jogo, e por isso vive na
-                // camada mais externa das três.
-                board: StrikeShake(
-                  serial: state.novaStrikes,
-                  amplitude: kStrikeShakeAmplitude * 2.0,
-                  child: StrikeShake(
-                    serial: state.bombStrikes,
-                    amplitude: kStrikeShakeAmplitude * 1.8,
+    //
+    // O `PopScope` não bloqueia nada: ele existe para descarregar o relógio
+    // de jogo **no instante** da saída. O mapa decide o intersticial de saída
+    // assim que a rota fecha, e o `dispose` desta tela só roda depois da
+    // animação — tarde demais para o tempo da última partida contar.
+    return PopScope(
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) _flushPlayClock();
+      },
+      child: NfBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: playfieldAppBar(
+            title: AppLocalizations.of(
+              context,
+            ).levelTitle(state.level.number).toUpperCase(),
+          ),
+          body: SafeArea(
+            // O desfecho é sobreposto, não empilhado abaixo do tabuleiro: numa
+            // tela de celular os botões cairiam fora da dobra e a ação principal
+            // depois de vencer ficaria inalcançável sem rolar.
+            child: Stack(
+              key: _screenKey,
+              children: [
+                PlayfieldLayout(
+                  hud: LevelBanner(state: state),
+                  // O dock some com a fase encerrada — um booster oferecido
+                  // sobre o cartão de derrota promete o que já não pode cumprir.
+                  // O espaço dele fica (ver `PlayfieldLayout`).
+                  dock: state.isOver
+                      ? null
+                      : HammerBar(
+                          buttonKey: hammerButtonKey,
+                          targeting: state.isHammerTargeting,
+                          count: state.hammerCount,
+                          onPressed: notifier.toggleHammerTargeting,
+                          bombButtonKey: bombButtonKey,
+                          bombTargeting: state.isBombTargeting,
+                          bombCount: state.bombCount,
+                          onBombPressed: notifier.toggleBombTargeting,
+                          brushButtonKey: brushButtonKey,
+                          brushTargeting: state.isBrushTargeting,
+                          brushCount: state.brushCount,
+                          onBrushPressed: notifier.toggleBrushTargeting,
+                        ),
+                  // Os efeitos ficam sobre o tabuleiro e compartilham a mesma
+                  // geometria, para a pontuação nascer na célula certa.
+                  //
+                  // O tranco do martelo sacode o tabuleiro **com** os efeitos e
+                  // a moldura, e não a tela: quem quebrou foi uma peça, e um
+                  // estilhaço que ficasse parado enquanto o tabuleiro anda
+                  // denunciaria as duas camadas.
+                  // A Bomba treme mais forte que o Martelo/dígito máximo — nove
+                  // células de uma vez pesam mais que uma —, e por isso vive num
+                  // `StrikeShake` **fora** do outro em vez de somar ao mesmo
+                  // `shakeSerial`: um tranco maior por cima de um menor ainda lê
+                  // como um tranco só, mas dois contadores independentes no
+                  // mesmo widget se cancelariam. A Nova treme mais forte ainda
+                  // (2.0x): é o clímax mais raro do jogo, e por isso vive na
+                  // camada mais externa das três.
+                  board: StrikeShake(
+                    serial: state.novaStrikes,
+                    amplitude: kStrikeShakeAmplitude * 2.0,
                     child: StrikeShake(
-                      serial: state.shakeSerial,
-                      // A moldura fica **fora** do `Stack` com a chave do
-                      // tabuleiro: a camada de mira mede o tabuleiro por essa
-                      // chave, e o aro de ouro não é célula.
-                      child: BoardFrame(
-                        child: Stack(
-                          key: _boardKey,
-                          children: [
-                            // Enquanto o cartão de início está aberto o
-                            // tabuleiro não aceita toque: um dedo que
-                            // encostasse fora do cartão gastaria movimento
-                            // antes de o jogador ter lido o objetivo.
-                            IgnorePointer(
-                              ignoring: !_ready,
-                              child: BoardGridWidget(
-                                board: state.board,
-                                selectedTile: state.selectedTile,
-                                rejectedSwap: state.rejectedSwap,
-                                hint: state.hint,
-                                bigFusionTileIds: state.bigFusionTileIds,
-                                // A dica só começa a contar depois do
-                                // "JOGAR": senão o relógio de ociosidade
-                                // corre enquanto o jogador lê o cartão e a
-                                // dica acende junto com o tabuleiro. Fase
-                                // acabada também não sugere jogada. A dica
-                                // não sugere troca durante a mira: o toque do
-                                // jogador tem outro destino agora, e um par
-                                // aceso apontaria para a ação errada.
-                                hintEnabled:
-                                    _ready &&
-                                    !state.isOver &&
-                                    !state.isHammerTargeting &&
-                                    !state.isBombTargeting &&
-                                    !state.isBrushTargeting &&
-                                    // A mão do tutorial já aponta uma jogada;
-                                    // um segundo par aceso seria outra.
-                                    _tutorialStep != TutorialStep.firstSwap,
-                                // Durante a mira o toque não chega aqui: a
-                                // camada de mira o intercepta antes, para
-                                // poder distinguir "bateu na célula" de
-                                // "tocou fora e desistiu".
-                                onTileTap: _onTileTap,
-                                onTileSwipe: _onTileSwipe,
+                      serial: state.bombStrikes,
+                      amplitude: kStrikeShakeAmplitude * 1.8,
+                      child: StrikeShake(
+                        serial: state.shakeSerial,
+                        // A moldura fica **fora** do `Stack` com a chave do
+                        // tabuleiro: a camada de mira mede o tabuleiro por essa
+                        // chave, e o aro de ouro não é célula.
+                        child: BoardFrame(
+                          child: Stack(
+                            key: _boardKey,
+                            children: [
+                              // Enquanto o cartão de início está aberto o
+                              // tabuleiro não aceita toque: um dedo que
+                              // encostasse fora do cartão gastaria movimento
+                              // antes de o jogador ter lido o objetivo.
+                              IgnorePointer(
+                                ignoring: !_ready,
+                                child: BoardGridWidget(
+                                  board: state.board,
+                                  selectedTile: state.selectedTile,
+                                  rejectedSwap: state.rejectedSwap,
+                                  hint: state.hint,
+                                  bigFusionTileIds: state.bigFusionTileIds,
+                                  // A dica só começa a contar depois do
+                                  // "JOGAR": senão o relógio de ociosidade
+                                  // corre enquanto o jogador lê o cartão e a
+                                  // dica acende junto com o tabuleiro. Fase
+                                  // acabada também não sugere jogada. A dica
+                                  // não sugere troca durante a mira: o toque do
+                                  // jogador tem outro destino agora, e um par
+                                  // aceso apontaria para a ação errada.
+                                  hintEnabled:
+                                      _ready &&
+                                      !state.isOver &&
+                                      !state.isHammerTargeting &&
+                                      !state.isBombTargeting &&
+                                      !state.isBrushTargeting &&
+                                      // A mão do tutorial já aponta uma jogada;
+                                      // um segundo par aceso seria outra.
+                                      _tutorialStep != TutorialStep.firstSwap,
+                                  // Durante a mira o toque não chega aqui: a
+                                  // camada de mira o intercepta antes, para
+                                  // poder distinguir "bateu na célula" de
+                                  // "tocou fora e desistiu".
+                                  onTileTap: _onTileTap,
+                                  onTileSwipe: _onTileSwipe,
+                                ),
                               ),
-                            ),
-                            Positioned.fill(
-                              child: JuiceOverlay(
-                                step: state.activeStep,
-                                comboCount: state.comboCount,
-                                hammerStrike: state.hammerStrike,
-                                strikeSerial: state.hammerStrikes,
-                                bombStrike: state.bombStrike,
-                                bombStrikeSerial: state.bombStrikes,
-                                showSupernova: state.pendingSupernova,
+                              Positioned.fill(
+                                child: JuiceOverlay(
+                                  step: state.activeStep,
+                                  comboCount: state.comboCount,
+                                  hammerStrike: state.hammerStrike,
+                                  strikeSerial: state.hammerStrikes,
+                                  bombStrike: state.bombStrike,
+                                  bombStrikeSerial: state.bombStrikes,
+                                  showSupernova: state.pendingSupernova,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              // Acima do conteúdo, e é isso que a faz funcionar: a área vazia da
-              // tela pertence à rolagem, que consome o toque sem repassá-lo — uma
-              // camada por baixo nunca veria o toque de cancelamento.
-              // **A mira sai de cena quando o convite de aquisição sobe.** O alvo
-              // continua guardado no estado (é o que o Modo Fantasma promete), mas
-              // o recorte do véu deixava a célula mirada sem desfoque e com o aro
-              // neon aceso atrás do modal: dois focos de atenção competindo, e o
-              // que o jogador tem a decidir naquele instante é o botão do
-              // anúncio. Com a camada fora, sobra o véu homogêneo do próprio
-              // modal.
-              if (state.isHammerTargeting && state.pendingHammerTarget == null)
-                HammerTargetingLayer(
-                  boardKey: _boardKey,
-                  onCell: notifier.useHammer,
-                  onCancel: notifier.cancelHammerTargeting,
-                ),
-              // Mesma camada, área maior: `areaRadius: 1` recorta o 3x3 em vez
-              // da célula única. A Bomba também tem Modo Fantasma (mirar sem
-              // estoque guarda o alvo), então a mira sai de cena assim que o
-              // convite de aquisição sobe — mesma regra do Martelo.
-              if (state.isBombTargeting && state.pendingBombTarget == null)
-                HammerTargetingLayer(
-                  boardKey: _boardKey,
-                  areaRadius: 1,
-                  onCell: notifier.useBomb,
-                  onCancel: notifier.cancelBombTargeting,
-                ),
-              // O Pincel mira uma célula só, como o Martelo — `areaRadius`
-              // padrão (0) — e tem o mesmo Modo Fantasma.
-              if (state.isBrushTargeting && state.pendingBrushTarget == null)
-                HammerTargetingLayer(
-                  boardKey: _boardKey,
-                  onCell: notifier.usePaint,
-                  onCancel: notifier.cancelBrushTargeting,
-                ),
-              // A dica de mira vem **depois** das camadas de mira: o véu desfoca
-              // tudo menos o tabuleiro, e é esta a frase que o jogador precisa
-              // ler naquele instante. Some junto com a camada quando o convite
-              // de aquisição sobe.
-              if ((state.isHammerTargeting &&
-                      state.pendingHammerTarget == null) ||
-                  (state.isBombTargeting && state.pendingBombTarget == null) ||
-                  (state.isBrushTargeting && state.pendingBrushTarget == null))
-                const BoosterAimHint(),
-              ComboBanner(step: state.activeStep, comboCount: state.comboCount),
-              // A chave amarrada à partida faz a comemoração renascer a cada
-              // fase iniciada: o `runId` é o único sinal de "uma partida
-              // começou" — recomeçar a fase atual é `playing → playing`.
-              if (state.apexCelebrated && !state.isOver)
-                Positioned.fill(
-                  child: ApexCelebration(key: ValueKey('apex_${state.runId}')),
-                ),
-              // Abaixo de todo convite e cartão: um balão de tutorial nunca
-              // disputa espaço com uma decisão. Sai de cena na mira (o toque tem
-              // outro destino) e com o convite de movimentos aberto.
-              if (_tutorialStep != null &&
-                  _ready &&
-                  !state.isOver &&
-                  !_movesOfferOpen &&
-                  !state.isHammerTargeting &&
-                  !state.isBombTargeting &&
-                  !state.isBrushTargeting)
-                _tutorialLayer(context, state, _tutorialStep!),
-              // O cartão de início some assim que a fase acaba: perder no
-              // primeiro movimento não pode deixar dois cartões na tela.
-              if (!_ready && !state.isOver)
-                _OutcomeOverlay(
-                  child: LevelStartDialog(
-                    level: state.level,
-                    onPlay: () => setState(() => _ready = true),
-                    onClose: () => Navigator.of(context).pop(),
-                    onBuyHammer: notifier.grantHammer,
-                    onBuyBomb: notifier.grantBomb,
-                    onBuyBrush: notifier.grantBrush,
+                // Acima do conteúdo, e é isso que a faz funcionar: a área vazia da
+                // tela pertence à rolagem, que consome o toque sem repassá-lo — uma
+                // camada por baixo nunca veria o toque de cancelamento.
+                // **A mira sai de cena quando o convite de aquisição sobe.** O alvo
+                // continua guardado no estado (é o que o Modo Fantasma promete), mas
+                // o recorte do véu deixava a célula mirada sem desfoque e com o aro
+                // neon aceso atrás do modal: dois focos de atenção competindo, e o
+                // que o jogador tem a decidir naquele instante é o botão do
+                // anúncio. Com a camada fora, sobra o véu homogêneo do próprio
+                // modal.
+                if (state.isHammerTargeting &&
+                    state.pendingHammerTarget == null)
+                  HammerTargetingLayer(
+                    boardKey: _boardKey,
+                    onCell: notifier.useHammer,
+                    onCancel: notifier.cancelHammerTargeting,
                   ),
-                ),
-              // O convite de aquisição vem antes do cartão de desfecho na ordem
-              // de leitura, mas nunca convivem: mirar exige fase em andamento.
-              if (state.pendingHammerTarget != null && !state.isOver)
-                _OutcomeOverlay(
-                  child: HammerOfferDialog(
-                    onGranted: notifier.grantHammer,
-                    onDecline: notifier.cancelHammerTargeting,
+                // Mesma camada, área maior: `areaRadius: 1` recorta o 3x3 em vez
+                // da célula única. A Bomba também tem Modo Fantasma (mirar sem
+                // estoque guarda o alvo), então a mira sai de cena assim que o
+                // convite de aquisição sobe — mesma regra do Martelo.
+                if (state.isBombTargeting && state.pendingBombTarget == null)
+                  HammerTargetingLayer(
+                    boardKey: _boardKey,
+                    areaRadius: 1,
+                    onCell: notifier.useBomb,
+                    onCancel: notifier.cancelBombTargeting,
                   ),
-                ),
-              if (state.pendingBombTarget != null && !state.isOver)
-                _OutcomeOverlay(
-                  child: BombOfferDialog(
-                    onGranted: notifier.grantBomb,
-                    onDecline: notifier.cancelBombTargeting,
+                // O Pincel mira uma célula só, como o Martelo — `areaRadius`
+                // padrão (0) — e tem o mesmo Modo Fantasma.
+                if (state.isBrushTargeting && state.pendingBrushTarget == null)
+                  HammerTargetingLayer(
+                    boardKey: _boardKey,
+                    onCell: notifier.usePaint,
+                    onCancel: notifier.cancelBrushTargeting,
                   ),
+                // A dica de mira vem **depois** das camadas de mira: o véu desfoca
+                // tudo menos o tabuleiro, e é esta a frase que o jogador precisa
+                // ler naquele instante. Some junto com a camada quando o convite
+                // de aquisição sobe.
+                if ((state.isHammerTargeting &&
+                        state.pendingHammerTarget == null) ||
+                    (state.isBombTargeting &&
+                        state.pendingBombTarget == null) ||
+                    (state.isBrushTargeting &&
+                        state.pendingBrushTarget == null))
+                  const BoosterAimHint(),
+                ComboBanner(
+                  step: state.activeStep,
+                  comboCount: state.comboCount,
                 ),
-              if (state.pendingBrushTarget != null && !state.isOver)
-                _OutcomeOverlay(
-                  child: BrushOfferDialog(
-                    onGranted: notifier.grantBrush,
-                    onDecline: notifier.cancelBrushTargeting,
+                // A chave amarrada à partida faz a comemoração renascer a cada
+                // fase iniciada: o `runId` é o único sinal de "uma partida
+                // começou" — recomeçar a fase atual é `playing → playing`.
+                if (state.apexCelebrated && !state.isOver)
+                  Positioned.fill(
+                    child: ApexCelebration(
+                      key: ValueKey('apex_${state.runId}'),
+                    ),
                   ),
-                ),
-              // Vem depois do funil dos três boosters e antes do desfecho: o
-              // jogador que está mirando já escolheu o que fazer com a jogada, e
-              // a fase encerrada não vende movimento nenhum (regra anti-churn).
-              if (_movesOfferOpen &&
-                  !state.isOver &&
-                  state.pendingHammerTarget == null &&
-                  state.pendingBombTarget == null &&
-                  state.pendingBrushTarget == null)
-                _OutcomeOverlay(
-                  child: MovesOfferDialog(
-                    movesLeft: state.movesLeft,
-                    reward: state.rewardedMoves,
-                    onGranted: () {
-                      ref.read(gameProvider.notifier).grantBonusMoves();
-                      setState(() => _movesOfferOpen = false);
-                    },
-                    onDecline: () => setState(() => _movesOfferOpen = false),
+                // Abaixo de todo convite e cartão: um balão de tutorial nunca
+                // disputa espaço com uma decisão. Sai de cena na mira (o toque tem
+                // outro destino) e com o convite de movimentos aberto.
+                if (_tutorialStep != null &&
+                    _ready &&
+                    !state.isOver &&
+                    !_movesOfferOpen &&
+                    !state.isHammerTargeting &&
+                    !state.isBombTargeting &&
+                    !state.isBrushTargeting)
+                  _tutorialLayer(context, state, _tutorialStep!),
+                // O cartão de início some assim que a fase acaba: perder no
+                // primeiro movimento não pode deixar dois cartões na tela.
+                if (!_ready && !state.isOver)
+                  _OutcomeOverlay(
+                    child: LevelStartDialog(
+                      level: state.level,
+                      onPlay: () => setState(() => _ready = true),
+                      onClose: () => Navigator.of(context).pop(),
+                      onBuyHammer: notifier.grantHammer,
+                      onBuyBomb: notifier.grantBomb,
+                      onBuyBrush: notifier.grantBrush,
+                    ),
                   ),
-                ),
-              if (state.isOver)
-                _OutcomeOverlay(
-                  backdrop: state.status == GameStatus.won
-                      ? _Backdrop.sky
-                      : _Backdrop.skyDim,
-                  fit: (height) => LevelOutcomeCard(
-                    availableHeight: height,
-                    state: state,
-                    onRetry: notifier.restartLevel,
-                    onNext: notifier.nextLevel,
-                    onBack: () => Navigator.of(context).maybePop(),
-                    starsInChapter: chapterStars,
-                    starsGained: _chapterStarsGained,
+                // O convite de aquisição vem antes do cartão de desfecho na ordem
+                // de leitura, mas nunca convivem: mirar exige fase em andamento.
+                if (state.pendingHammerTarget != null && !state.isOver)
+                  _OutcomeOverlay(
+                    child: HammerOfferDialog(
+                      onGranted: notifier.grantHammer,
+                      onDecline: notifier.cancelHammerTargeting,
+                    ),
                   ),
-                ),
-              // Sobe **sobre** o cartão de derrota: recusar revela o mesmo
-              // cartão, com o botão de tentar de novo intacto. Aceitar revive a
-              // fase e `state.isOver` vira falso no mesmo estado.
-              if (_continueOfferOpen && state.isOver)
-                _OutcomeOverlay(
-                  backdrop: _Backdrop.skyDim,
-                  fit: (height) => ContinueOfferDialog(
-                    availableHeight: height,
-                    state: state,
-                    onGranted: () {
-                      ref.read(gameProvider.notifier).grantContinueMoves();
-                      setState(() => _continueOfferOpen = false);
-                    },
-                    onDecline: () {
-                      ref.read(gameProvider.notifier).markContinueOfferShown();
-                      setState(() => _continueOfferOpen = false);
-                    },
+                if (state.pendingBombTarget != null && !state.isOver)
+                  _OutcomeOverlay(
+                    child: BombOfferDialog(
+                      onGranted: notifier.grantBomb,
+                      onDecline: notifier.cancelBombTargeting,
+                    ),
                   ),
-                ),
-              // Sobe **sobre** o cartão de desfecho: recusar revela o mesmo
-              // cartão, com o botão de tentar de novo intacto.
-              if (_endlessSuggestionOpen && state.isOver)
-                _OutcomeOverlay(
-                  child: EndlessSuggestionDialog(
-                    onGoToEndless: () {
-                      setState(() => _endlessSuggestionOpen = false);
-                      Navigator.of(context)
-                          .push(
-                            MaterialPageRoute(
-                              builder: (_) => const EndlessScreen(),
-                            ),
-                          )
-                          .then((_) {
-                            if (mounted) {
-                              ref
-                                  .read(endlessHighScoreProvider.notifier)
-                                  .refresh();
-                              ref.read(walletProvider.notifier).refresh();
-                            }
-                          });
-                    },
-                    onDecline: () =>
-                        setState(() => _endlessSuggestionOpen = false),
+                if (state.pendingBrushTarget != null && !state.isOver)
+                  _OutcomeOverlay(
+                    child: BrushOfferDialog(
+                      onGranted: notifier.grantBrush,
+                      onDecline: notifier.cancelBrushTargeting,
+                    ),
                   ),
-                ),
-            ],
+                // Vem depois do funil dos três boosters e antes do desfecho: o
+                // jogador que está mirando já escolheu o que fazer com a jogada, e
+                // a fase encerrada não vende movimento nenhum (regra anti-churn).
+                if (_movesOfferOpen &&
+                    !state.isOver &&
+                    state.pendingHammerTarget == null &&
+                    state.pendingBombTarget == null &&
+                    state.pendingBrushTarget == null)
+                  _OutcomeOverlay(
+                    child: MovesOfferDialog(
+                      movesLeft: state.movesLeft,
+                      reward: state.rewardedMoves,
+                      onGranted: () {
+                        ref.read(gameProvider.notifier).grantBonusMoves();
+                        setState(() => _movesOfferOpen = false);
+                      },
+                      onDecline: () => setState(() => _movesOfferOpen = false),
+                    ),
+                  ),
+                if (state.isOver)
+                  _OutcomeOverlay(
+                    backdrop: state.status == GameStatus.won
+                        ? _Backdrop.sky
+                        : _Backdrop.skyDim,
+                    fit: (height) => LevelOutcomeCard(
+                      availableHeight: height,
+                      state: state,
+                      onRetry: notifier.restartLevel,
+                      onNext: () => _nextAfterVictory(notifier.nextLevel),
+                      onBack: () => Navigator.of(context).maybePop(),
+                      starsInChapter: chapterStars,
+                      starsGained: _chapterStarsGained,
+                    ),
+                  ),
+                // Sobe **sobre** o cartão de derrota: recusar revela o mesmo
+                // cartão, com o botão de tentar de novo intacto. Aceitar revive a
+                // fase e `state.isOver` vira falso no mesmo estado.
+                if (_continueOfferOpen && state.isOver)
+                  _OutcomeOverlay(
+                    backdrop: _Backdrop.skyDim,
+                    fit: (height) => ContinueOfferDialog(
+                      availableHeight: height,
+                      state: state,
+                      onGranted: () {
+                        ref.read(gameProvider.notifier).grantContinueMoves();
+                        setState(() => _continueOfferOpen = false);
+                      },
+                      onDecline: () {
+                        ref
+                            .read(gameProvider.notifier)
+                            .markContinueOfferShown();
+                        setState(() => _continueOfferOpen = false);
+                      },
+                    ),
+                  ),
+                // Sobe **sobre** o cartão de desfecho: recusar revela o mesmo
+                // cartão, com o botão de tentar de novo intacto.
+                if (_endlessSuggestionOpen && state.isOver)
+                  _OutcomeOverlay(
+                    child: EndlessSuggestionDialog(
+                      onGoToEndless: () {
+                        setState(() => _endlessSuggestionOpen = false);
+                        Navigator.of(context)
+                            .push(
+                              MaterialPageRoute(
+                                builder: (_) => const EndlessScreen(),
+                              ),
+                            )
+                            .then((_) {
+                              if (mounted) {
+                                ref
+                                    .read(endlessHighScoreProvider.notifier)
+                                    .refresh();
+                                ref.read(walletProvider.notifier).refresh();
+                              }
+                            });
+                      },
+                      onDecline: () =>
+                          setState(() => _endlessSuggestionOpen = false),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

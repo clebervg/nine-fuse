@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/ads/ad_providers.dart';
+import 'package:nine_fuse/core/ads/interstitial_ad_service.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
@@ -31,6 +32,7 @@ import 'package:nine_fuse/features/game/presentation/widgets/saga_map.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
+import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
@@ -42,15 +44,30 @@ const Duration kPathRevealDuration = Duration(milliseconds: 900);
 /// Mais de uma tela de pins, para a trilha nunca terminar dentro do campo de
 /// visão: o jogador precisa ver que há continuação sem precisar rolar para
 /// descobrir.
-///
-/// **Atenção — isto não é uma janela deslizante, é um prefixo que cresce.** A
-/// lista vai sempre da fase 1 até `progress + kLookahead`, então na fase 500 o
-/// `build` monta 508 pins. É consequência direta de `_currentIndex` depender de
-/// a janela **começar** na fase 1; fazê-la deslizar de verdade exige mudar essa
-/// conta para um início móvel. Aceitável hoje (centenas de pins ainda
-/// renderizam), e registrado como dívida no `CLAUDE.md` — deixa de ser
-/// aceitável na casa dos milhares.
 const int kLookahead = 8;
+
+/// Quantas fases vencidas a trilha mostra **atrás** da fase da vez.
+///
+/// A trilha é uma janela que desliza com o progresso, e não um prefixo desde a
+/// fase 1: na fase 500 o prefixo montava 508 pins, e o custo crescia com o
+/// tempo de jogo em vez de com o que cabe na tela. Trinta é bem mais de uma
+/// tela de rolagem para trás — dá para rever as estrelas do capítulo atual e
+/// do anterior — e o resto vira o marcador "Fases 1–N concluídas".
+const int kLookbehind = 30;
+
+/// A janela de fases que a trilha monta para o progresso [progress]: da
+/// primeira à última, inclusive.
+///
+/// O fim nunca fica antes da última fase artesanal (com progresso zero o mapa
+/// já mostra as dez), e o início fica [kLookbehind] fases atrás da fase da
+/// vez, nunca antes da 1.
+({int first, int last}) mapWindowFor(int progress) {
+  final current = progress + 1;
+  final wanted = progress + kLookahead;
+  final last = wanted < kHandcraftedLevels ? kHandcraftedLevels : wanted;
+  final first = current - kLookbehind < 1 ? 1 : current - kLookbehind;
+  return (first: first, last: last);
+}
 
 /// Chave do ícone de privacidade, na AppBar.
 const levelSelectPrivacyIconKey = Key('level_select_privacy_icon');
@@ -174,16 +191,19 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
 
   /// Quantas fases a trilha mostra agora.
   int _visibleCount(int progress) {
-    final wanted = progress + kLookahead;
-    return wanted < kHandcraftedLevels ? kHandcraftedLevels : wanted;
+    final window = mapWindowFor(progress);
+    return window.last - window.first + 1;
   }
 
   /// Índice da primeira fase ainda não vencida, dentro da janela visível.
   ///
-  /// A janela sempre começa na fase 1, então índice e número diferem por um —
-  /// não há mais busca a fazer.
+  /// O índice conta a partir do **início móvel** da janela: a fase da vez
+  /// (`progress + 1`) menos a primeira fase montada.
   int _currentIndex(int progress) =>
-      progress.clamp(0, _visibleCount(progress) - 1);
+      (progress + 1 - mapWindowFor(progress).first).clamp(
+        0,
+        _visibleCount(progress) - 1,
+      );
 
   /// Toca a animação de liberação do trecho que leva à fase recém-aberta.
   void _playReveal(int progress) {
@@ -222,8 +242,9 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
       });
     }
 
+    final window = mapWindowFor(progress);
     final visible = [
-      for (int n = 1; n <= _visibleCount(progress); n++) levelAt(n),
+      for (int n = window.first; n <= window.last; n++) levelAt(n),
     ];
     final current = levelAt(progress + 1);
     final chapter = chapterOf(current.number);
@@ -484,6 +505,14 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
           _centerOnCurrentLevel();
           // A fase pode ter gasto martelo e ganho moeda por estrela nova.
           ref.read(walletProvider.notifier).refresh();
+          // A saída da fase para o mapa é o outro momento do intersticial.
+          // O desfecho da última partida decide: derrota nunca mostra.
+          final moment = switch (ref.read(gameProvider).status) {
+            GameStatus.won => InterstitialMoment.afterVictory,
+            GameStatus.lost => InterstitialMoment.afterDefeat,
+            _ => InterstitialMoment.exitToMap,
+          };
+          maybeShowInterstitial(ref, moment);
         });
   }
 }

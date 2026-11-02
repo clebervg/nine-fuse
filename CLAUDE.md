@@ -2019,3 +2019,107 @@ voltam rejogando essas fases.
 informativos fecham sozinhos em 6s (`kTutorialAutoClose`) — um
 `pumpAndSettle` atravessa esse tempo, então os testes que olham o balão usam
 `pump`.
+
+
+### Intersticial, cap do martelo por vídeo, unidades próprias e mapa deslizante (2026-11-01)
+
+**Intersticial: a regra mora no serviço, a tela só diz onde está.**
+`InterstitialAdService` (Dart puro, mesma arquitetura do premiado: porta
+`InterstitialAdPort` + adaptador `AdMobInterstitialPort` fino e sem teste)
+recebe um `InterstitialMoment` — `afterVictory`, `exitToMap` ou
+`afterDefeat` — e decide. `afterDefeat` existe só para a proibição ficar
+escrita e testada: quem chama não precisa lembrar que derrota nunca mostra
+anúncio, basta dizer de onde está saindo. Os dois pontos de chamada são o
+"Próxima fase" do cartão de vitória (`_nextAfterVictory`, que espera o
+anúncio fechar antes de começar a fase seguinte) e o retorno da fase ao mapa
+(`_openLevel(...).then`), que lê o status da última partida para escolher o
+momento. Nunca no meio de uma partida: nenhum dos dois pontos existe com o
+tabuleiro em jogo.
+
+**Os 45 s são de jogo, não de relógio.** Relógio de parede passa sozinho com o
+jogador parado no mapa, na loja ou com o app em segundo plano, e um anúncio a
+cada saída de fase rápida seria o que ele lembra do jogo. O `GameScreen` tem um
+`Stopwatch` que corre só com o cartão de início fechado, a fase não encerrada e
+o app visível, e entrega o tempo ao serviço (`addPlayTime`). O relógio zera na
+**exibição**, não na oportunidade perdida por falta de estoque — pular por rede
+vazia não pode custar mais 45 s ao jogo. O primeiro anúncio da sessão também
+espera 45 s.
+
+**O `PopScope` da fase não bloqueia nada: descarrega o relógio na hora da
+saída.** O mapa decide o intersticial assim que a rota fecha, e o `dispose` da
+fase só roda depois da animação de saída — tarde demais para o tempo da última
+partida contar. `onPopInvokedWithResult` roda no próprio `pop`.
+
+**Onboarding protegido por progresso, não por sessão.** "Nunca na primeira
+sessão antes de vencer a fase 3" virou `campaignProgress <
+kInterstitialOnboardingLevels` (3): medir "sessão" pediria persistir mais
+estado, e quem ainda não venceu a fase 3 está no onboarding em qualquer
+sessão.
+
+**Sem estoque, pula — não carrega na hora.** O premiado carrega sob demanda
+porque o jogador pediu; o intersticial ninguém pediu, e segurar a navegação
+esperando a rede seria cobrar espera por um anúncio indesejado. Preload no
+`initState` da fase, como o premiado.
+
+**O padrão do provider é nenhum anúncio** (`NoInterstitialAdPort`), não
+"paga sem rede" como o premiado: um intersticial não paga nada, então o
+neutro em teste é não existir. Quem liga o AdMob é `admobOverrides()`. O
+Endless fica de fora de propósito: o fim de corrida é derrota.
+
+**No-Ads Pass: `adsRemovedProvider`, hoje sempre `false`.** É o único ponto a
+trocar quando houver billing. Remove só o intersticial — o premiado é opt-in.
+
+**Música pausa durante qualquer anúncio de tela cheia** (premiado e
+intersticial), com flag própria no `AudioService` (`pauseForAd` /
+`resumeAfterAd`), separada da suspensão do ciclo de vida: no Android o anúncio
+é outra activity e o app passa por oculto → visível ainda com ele aberto; com
+uma flag só, o `resume` do ciclo de vida religaria a música por baixo do
+anúncio. Os ganchos (`onShowStart`/`onShowEnd`) envolvem só a exibição, não a
+carga — uma rede sem estoque pausaria e religaria a faixa do zero sem anúncio
+nenhum na tela.
+
+**`check_admob_ids.sh` ganhou duas checagens:** toda unidade lida em
+`ad_ids.dart` tem de aparecer no comando de build do README, e
+`--defines "<flags>"` confere as flags de um build de verdade. Esquecer um
+`--dart-define` não quebra nada — só deixa o funil sem anúncio no release —,
+e é exatamente por isso que precisa de guarda.
+
+**Teto de 3 Martelos por vídeo ao dia (`HammerAdCap`).** O contador guarda o
+**dia local** junto do número (`DailyAdCount`, persistido em `GameStorage`), e
+não um contador zerado à meia-noite: com o app fechado não há quem zere, e um
+número sem data não sabe se é de hoje. Lido noutro dia, vale zero — inclusive
+com o app aberto atravessando a meia-noite, porque `reachedToday` é calculado
+na hora contra o relógio, nunca guardado. Local, e não UTC: "volte amanhã" é o
+amanhã do jogador. Falha de leitura vale **zero** — travar o vídeo por disco
+ilegível tiraria o caminho principal do item. Só o vídeo do convite conta; a
+compra com moeda continua livre, e no teto o botão de vídeo fica na caixa,
+apagado, dizendo "Volte amanhã para mais vídeos" (sumir com ele faria o
+jogador procurar o vídeo que usou ontem). O teto é contado **antes** do
+`onGranted`, que costuma fechar a caixa.
+
+**Bomba e Pincel ganharam unidade, serviço e preload próprios**
+(`ADMOB_BOMB_REWARDED`, `ADMOB_BRUSH_REWARDED`). O achado foi pior do que
+"usam a unidade de outro funil": `bombAdProvider` e `brushAdProvider` **nunca
+entravam em `admobOverrides()`**, então o padrão de teste — pagar sem anúncio —
+valia também no release, e os dois boosters saíam de graça pelo botão de
+vídeo. Há teste travando que, com o AdMob ligado, cada um pede a própria
+unidade. **Ainda fora, e é o mesmo defeito:** `continueAdProvider` (resgate de
+derrota) também não está em `admobOverrides()` e paga sem anúncio no release;
+não foi tocado por estar fora do escopo desta rodada.
+
+**O mapa virou janela deslizante de verdade — a dívida registrada na Fase 15
+está fechada.** `mapWindowFor(progress)` devolve `(first, last)`:
+`kLookbehind` (30) fases atrás da fase da vez e `kLookahead` (8) à frente,
+nunca antes da fase 1 nem terminando antes das dez artesanais. Na fase 500 a
+trilha monta 38 pins, não 508. `_currentIndex` passou a contar a partir do
+início móvel (`progress + 1 - first`), e é a mesma conta que alimenta a
+rolagem, o preenchimento animado do caminho e a geometria — os três continuam
+concordando porque nenhum deles soube que a janela mudou de lugar: o
+`SagaMapWidget` sempre trabalhou com índices na lista que recebe. O que ele
+**não** fazia era achar baú fora do começo: a busca partia do capítulo 1 e
+parava no primeiro capítulo cujo fim não estivesse na lista — com a janela
+deslizada, nenhum baú aparecia. Agora parte do capítulo da primeira fase
+montada. O pé da trilha ganhou o marcador "Fases 1–N concluídas"
+(`collapsedLevelsKey`): sem ele, uma trilha que começa na 470 terminaria num
+corte seco que lê como o começo do jogo. O golden `saga_map.png` não mudou
+(progresso 3: a janela ainda começa na 1).

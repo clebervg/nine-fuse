@@ -7,6 +7,7 @@ import 'package:nine_fuse/core/widgets/sprite_icon.dart';
 import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/coin_sources_card.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
+import 'package:nine_fuse/features/game/providers/hammer_ad_cap.dart';
 import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
@@ -90,6 +91,9 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
 
   Future<void> _watch() async {
     if (_waiting) return;
+    // O botão já nasce desligado no teto; a guarda aqui cobre o toque que
+    // chegou antes do rebuild.
+    if (ref.read(hammerAdCapProvider.notifier).reachedToday) return;
     setState(() {
       _waiting = true;
       _failed = false;
@@ -99,6 +103,9 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
     if (!mounted) return;
 
     if (granted) {
+      // Conta antes de entregar: `onGranted` costuma fechar a caixa, e o teto
+      // tem de valer para o próximo convite.
+      ref.read(hammerAdCapProvider.notifier).recordGrant();
       widget.onGranted();
       return;
     }
@@ -175,6 +182,10 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
     final l10n = AppLocalizations.of(context);
     final wallet = ref.watch(walletProvider);
     final canAfford = wallet.canAfford(kHammerCoinPrice);
+    // Observado para o botão reagir ao crédito e à leitura do disco; a conta
+    // do dia é do notifier, que sabe que dia é hoje.
+    ref.watch(hammerAdCapProvider);
+    final adCapped = ref.read(hammerAdCapProvider.notifier).reachedToday;
 
     return GameDialog(
       cardKey: hammerOfferKey,
@@ -211,12 +222,19 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
             ),
           ],
           const SizedBox(height: 18),
+          // No teto do dia o botão fica, apagado e dizendo quando volta: sumir
+          // com ele faria o jogador procurar o vídeo que usou ontem. A compra
+          // com moeda logo abaixo continua valendo.
           GameButton(
             key: hammerOfferWatchKey,
-            label: l10n.hammerOfferWatch,
-            color: NfColors.gem,
-            icon: Icons.play_circle_fill_rounded,
-            onPressed: _watch,
+            label: adCapped
+                ? l10n.hammerOfferAdCapReached
+                : l10n.hammerOfferWatch,
+            color: adCapped ? AppColors.darkSurface : NfColors.gem,
+            icon: adCapped
+                ? Icons.schedule_rounded
+                : Icons.play_circle_fill_rounded,
+            onPressed: adCapped ? null : _watch,
           ),
           const SizedBox(height: 10),
           GameButton(

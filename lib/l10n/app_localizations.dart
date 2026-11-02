@@ -601,6 +601,12 @@ abstract class AppLocalizations {
   /// **'Watch a short ad and smash the cell you picked.'**
   String get hammerOfferBody;
 
+  /// No description provided for @hammerOfferAdCapReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back tomorrow for more videos'**
+  String get hammerOfferAdCapReached;
+
   /// No description provided for @hammerOfferWatch.
   ///
   /// In en, this message translates to:
@@ -1080,6 +1086,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'YOU ARE HERE'**
   String get mapYouAreHere;
+
+  /// No description provided for @mapLevelsCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Levels 1–{last} cleared'**
+  String mapLevelsCleared(int last);
 
   /// No description provided for @mapPlayLevel.
   ///

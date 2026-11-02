@@ -375,6 +375,9 @@ class AppLocalizationsPt extends AppLocalizations {
       'Assista a um anúncio curto e quebre a célula que você escolheu.';
 
   @override
+  String get hammerOfferAdCapReached => 'Volte amanhã para mais vídeos';
+
+  @override
   String get hammerOfferWatch => 'ASSISTIR AD';
 
   @override
@@ -686,6 +689,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get mapYouAreHere => 'VOCÊ ESTÁ AQUI';
+
+  @override
+  String mapLevelsCleared(int last) {
+    return 'Fases 1–$last concluídas';
+  }
 
   @override
   String mapPlayLevel(int number) {

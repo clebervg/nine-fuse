@@ -113,3 +113,12 @@ BoosterCredit capBoosterReward({required int current, required int amount}) {
     overflowCoins: (amount - room) * kCoinsPerOverflowBooster,
   );
 }
+
+/// Quantos Martelos o jogador pode ganhar **por vídeo** num mesmo dia (data
+/// local).
+///
+/// Regra de monetização: sem teto, o anúncio premiado vira a fonte infinita do
+/// item e esvazia a economia interna — a moeda e a roleta deixam de importar.
+/// A compra com moeda não passa por aqui: quem paga com o que juntou jogando
+/// não está drenando nada.
+const int kMaxHammerAdsPerDay = 3;

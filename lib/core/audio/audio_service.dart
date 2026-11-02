@@ -75,6 +75,16 @@ class AudioService {
   /// App em segundo plano: a música para, mesmo ligada.
   bool _suspended = false;
 
+  /// Um anúncio de tela cheia está no ar: a música para, mesmo ligada.
+  ///
+  /// Flag própria, e não o [_suspended] do ciclo de vida: no Android o
+  /// anúncio é outra activity e o app passa por "oculto → visível" ao
+  /// fechá-lo, mas no iOS ele é um view controller por cima e o ciclo de
+  /// vida não muda. Com uma flag só, o `resume` do ciclo de vida religaria a
+  /// música por baixo de um anúncio ainda aberto (ou o fim do anúncio a
+  /// religaria com o app em segundo plano).
+  bool _adShowing = false;
+
   /// A faixa que a tela atual pediu — lembrada para voltar quando a música é
   /// religada ou o app volta ao primeiro plano.
   MusicTrack? _wantedTrack;
@@ -139,8 +149,23 @@ class AudioService {
     return _syncMusic();
   }
 
+  /// Um anúncio de tela cheia vai ao ar: a música do jogo competiria com o
+  /// áudio dele.
+  Future<void> pauseForAd() {
+    _adShowing = true;
+    return _syncMusic();
+  }
+
+  /// O anúncio fechou: a faixa que a tela pediu volta (se nada mais a cala).
+  Future<void> resumeAfterAd() {
+    _adShowing = false;
+    return _syncMusic();
+  }
+
   Future<void> _syncMusic() async {
-    final desired = _musicOn && !_suspended ? _wantedTrack : null;
+    final desired = _musicOn && !_suspended && !_adShowing
+        ? _wantedTrack
+        : null;
     if (desired == _playingTrack) return;
 
     if (desired == null) {

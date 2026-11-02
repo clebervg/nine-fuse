@@ -255,6 +255,7 @@
 
   "hammerOfferTitle": "Out of hammers",
   "hammerOfferBody": "Watch a short ad and smash the cell you picked.",
+  "hammerOfferAdCapReached": "Come back tomorrow for more videos",
   "hammerOfferWatch": "WATCH AD",
   "hammerOfferDecline": "NOT NOW",
   "hammerOfferFailed": "No ad available right now.",
@@ -428,6 +429,10 @@
     "placeholders": { "number": { "type": "int" }, "earned": { "type": "int" }, "total": { "type": "int" } }
   },
   "mapYouAreHere": "YOU ARE HERE",
+  "mapLevelsCleared": "Levels 1–{last} cleared",
+  "@mapLevelsCleared": {
+    "placeholders": { "last": { "type": "int" } }
+  },
   "mapPlayLevel": "PLAY LEVEL {number}",
   "@mapPlayLevel": {
     "placeholders": { "number": { "type": "int" } }

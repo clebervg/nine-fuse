@@ -34,6 +34,10 @@ const Key youAreHereKey = Key('map_you_are_here');
 /// Chave do tile 9 que marca a fase da vez, acima dela.
 const Key currentMarkerKey = Key('map_current_marker');
 
+/// Chave do marcador "Fases 1–N concluídas", no pé de uma trilha que não
+/// começa na fase 1.
+const Key collapsedLevelsKey = Key('map_collapsed_levels');
+
 /// Distância fixa entre a borda de baixo do círculo e o número de uma fase
 /// bloqueada.
 ///
@@ -230,6 +234,18 @@ class SagaMapWidget extends StatelessWidget {
               for (int i = levels.length; i <= geometry.lastIndex; i++)
                 _positionedPin(geometry, i, child: const _FuturePin()),
               if (onTapChest != null) ..._chests(geometry),
+              // A janela deslizante não monta as fases antigas: o pé da
+              // trilha diz o que ficou para trás, em vez de terminar num
+              // corte seco que pareceria o começo do jogo.
+              if (levels.isNotEmpty && levels.first.number > 1)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: geometry.centerOf(0).dy + SagaGeometry.pinSize / 2 + 12,
+                  child: Center(
+                    child: _CollapsedLevels(upTo: levels.first.number - 1),
+                  ),
+                ),
             ],
           ),
         );
@@ -257,9 +273,13 @@ class SagaMapWidget extends StatelessWidget {
   /// e da coroa de estrelas, que vivem colados nos pins.
   List<Widget> _chests(SagaGeometry geometry) {
     final chests = <Widget>[];
-    var chapter = chapterOf(1);
+    if (levels.isEmpty) return chests;
+    // Começa no capítulo da primeira fase **montada**: a trilha é uma janela
+    // deslizante, e partir do capítulo 1 pararia no primeiro baú fora dela.
+    var chapter = chapterOf(levels.first.number);
     while (chapterHasChest(chapter)) {
       final index = levels.indexWhere((l) => l.number == chapter.lastLevel);
+      // Fim do capítulo depois da janela: daqui em diante nada mais cabe.
       if (index < 0) break;
 
       final a = geometry.centerOf(index);
@@ -690,6 +710,51 @@ class _LockedPin extends StatelessWidget {
 /// Menor, translúcido e sem número: não promete uma fase específica, só que a
 /// trilha continua. Não é tocável e não tem semântica de botão — anunciá-lo a
 /// um leitor de tela como fase daria a entender que existe algo para abrir.
+/// "Fases 1–N concluídas": fecha o pé de uma trilha que não começa na 1.
+class _CollapsedLevels extends StatelessWidget {
+  const _CollapsedLevels({required this.upTo});
+
+  final int upTo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: collapsedLevelsKey,
+      height: 30,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        color: NfColors.night1.withValues(alpha: 0.85),
+        border: Border.all(
+          color: NfColors.gold.withValues(alpha: 0.45),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.check_circle_rounded,
+            size: 16,
+            color: NfColors.gold,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            AppLocalizations.of(context).mapLevelsCleared(upTo),
+            style: const TextStyle(
+              fontFamily: AppFonts.number,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              height: 1,
+              color: NfColors.goldPale,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _FuturePin extends StatelessWidget {
   const _FuturePin();
 

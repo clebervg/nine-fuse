@@ -36,7 +36,12 @@ abstract class RewardedAdPort {
 /// Um anúncio de cada vez, e não uma fila: o jogo só exibe um por vez, e um
 /// estoque maior seria memória parada — a rede também expira o que fica velho.
 class RewardedAdService {
-  RewardedAdService({required this.port, required this.unitId});
+  RewardedAdService({
+    required this.port,
+    required this.unitId,
+    this.onShowStart,
+    this.onShowEnd,
+  });
 
   /// De onde os anúncios vêm. Público porque é a costura de injeção: é o que um
   /// teste troca por uma rede de mentira sem tocar em mais nada.
@@ -46,6 +51,12 @@ class RewardedAdService {
   /// reforço de saldo), porque é por unidade que a rede reporta receita — uma
   /// só impediria de saber qual funil paga.
   final String unitId;
+
+  /// Chamados só em volta da exibição de verdade (não da carga): é por onde a
+  /// música do jogo pausa. Em volta da carga, uma rede sem estoque pausaria e
+  /// religaria a faixa do zero sem anúncio nenhum na tela.
+  final VoidCallback? onShowStart;
+  final VoidCallback? onShowEnd;
 
   RewardedAdHandle? _ready;
 
@@ -73,7 +84,9 @@ class RewardedAdService {
       // Rede indisponível vale como estoque vazio. Ficar sem anúncio é ruim;
       // derrubar a fase por causa disso é pior — a mesma régua que o
       // `GameStorage` usa para falha de leitura.
-      debugPrint('Falha ao carregar o anúncio premiado $unitId: $error\n$stack');
+      debugPrint(
+        'Falha ao carregar o anúncio premiado $unitId: $error\n$stack',
+      );
       _ready = null;
     } finally {
       _loading = null;
@@ -95,10 +108,12 @@ class RewardedAdService {
     // vez, e mantê-lo aqui daria um segundo prêmio de graça na próxima chamada.
     _ready = null;
 
+    onShowStart?.call();
     try {
       return await ad.show();
     } finally {
       ad.dispose();
+      onShowEnd?.call();
       // Repõe o estoque para o próximo convite. Sem `await`: o jogador está
       // olhando o resultado do anúncio que acabou, não esperando o seguinte.
       unawaited(preload());

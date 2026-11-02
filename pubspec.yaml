@@ -1,5 +1,5 @@
 name: nine_fuse
-description: "A new Flutter project."
+description: "NineFuse: a logic match-3 puzzle with digits 0-9. Match three equal numbers to fuse them into the next one, evolve up to 9 and unleash shockwaves."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
