@@ -689,6 +689,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapYouAreHere => 'YOU ARE HERE';
 
   @override
+  String mapLevelsCleared(int last) {
+    return 'Levels 1–$last cleared';
+  }
+
+  @override
   String mapPlayLevel(int number) {
     return 'PLAY LEVEL $number';
   }

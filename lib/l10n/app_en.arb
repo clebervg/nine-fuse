@@ -429,6 +429,10 @@
     "placeholders": { "number": { "type": "int" }, "earned": { "type": "int" }, "total": { "type": "int" } }
   },
   "mapYouAreHere": "YOU ARE HERE",
+  "mapLevelsCleared": "Levels 1–{last} cleared",
+  "@mapLevelsCleared": {
+    "placeholders": { "last": { "type": "int" } }
+  },
   "mapPlayLevel": "PLAY LEVEL {number}",
   "@mapPlayLevel": {
     "placeholders": { "number": { "type": "int" } }

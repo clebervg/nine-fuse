@@ -6,10 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/level_generator.dart';
 import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/core/notifications/notification_port.dart';
 import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/campaign_header.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/chapter_chest.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_highlight.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/saga_map.dart';
@@ -574,6 +576,101 @@ void main() {
         tester.getSemantics(find.byKey(levelCardKey(5))).label,
         contains('bloqueada'),
       );
+    });
+  });
+
+  group('janela deslizante', () {
+    test('a janela vai de kLookbehind atrás a kLookahead à frente', () {
+      final window = mapWindowFor(499);
+      expect(window.first, 500 - kLookbehind);
+      expect(window.last, 499 + kLookahead);
+      // Sem progresso a janela não começa antes da 1 nem termina antes das
+      // dez artesanais.
+      expect(mapWindowFor(0), (first: 1, last: kHandcraftedLevels));
+    });
+
+    // O prefixo antigo montava 508 pins na fase 500.
+    testWidgets('na fase 500 monta no máximo ~40 pins', (tester) async {
+      storage.campaignProgress = 499;
+      await pumpMap(tester, size: const Size(750, 1334), pixelRatio: 2.0);
+
+      final pins = find.byWidgetPredicate((widget) {
+        final key = widget.key;
+        return key is ValueKey<String> &&
+            RegExp(r'^level_\d+$').hasMatch(key.value);
+      });
+      expect(pins.evaluate().length, lessThanOrEqualTo(40));
+      expect(find.byKey(levelCardKey(1)), findsNothing);
+      expect(find.byKey(levelCardKey(500 - kLookbehind)), findsOneWidget);
+    });
+
+    testWidgets('a fase da vez continua visível e centralizada', (
+      tester,
+    ) async {
+      storage.campaignProgress = 499;
+      await pumpMap(tester, size: const Size(750, 1334), pixelRatio: 2.0);
+
+      final viewport = tester.getRect(
+        find.ancestor(
+          of: find.byType(SagaMapWidget),
+          matching: find.byType(SingleChildScrollView),
+        ),
+      );
+      final pin = tester.getRect(find.byKey(levelCardKey(500)));
+
+      expect(pin.top, greaterThanOrEqualTo(viewport.top));
+      expect(pin.bottom, lessThanOrEqualTo(viewport.bottom));
+      expect(
+        pin.center.dy,
+        closeTo(viewport.center.dy, SagaGeometry.step),
+        reason: 'a rolagem tem de contar a partir do início móvel da janela',
+      );
+    });
+
+    testWidgets('o pé da trilha fecha com "Fases 1–N concluídas"', (
+      tester,
+    ) async {
+      storage.campaignProgress = 499;
+      await pumpMap(tester);
+
+      expect(find.byKey(collapsedLevelsKey), findsOneWidget);
+      expect(
+        find.text(l10nFor().mapLevelsCleared(500 - kLookbehind - 1)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('trilha que começa na fase 1 não tem marcador', (tester) async {
+      storage.campaignProgress = 3;
+      await pumpMap(tester);
+
+      expect(find.byKey(collapsedLevelsKey), findsNothing);
+    });
+
+    testWidgets('o baú de um capítulo dentro da janela aparece', (
+      tester,
+    ) async {
+      // Janela 31–68: começa depois do capítulo 1, que é onde a busca antiga
+      // pelos baús começava (e parava).
+      storage.campaignProgress = 60;
+      await pumpMap(tester);
+
+      final window = mapWindowFor(60);
+      expect(window.first, greaterThan(1));
+      final expected = <int>{};
+      for (var n = window.first; n <= window.last; n++) {
+        final chapter = chapterOf(n);
+        if (chapter.lastLevel == n && chapterHasChest(chapter)) {
+          expected.add(chapter.number);
+        }
+      }
+      expect(expected, isNotEmpty);
+
+      final shown = tester
+          .widgetList<ChapterChestNode>(find.byType(ChapterChestNode))
+          .map((node) => node.chapter)
+          .toSet();
+      expect(shown, expected);
     });
   });
 }

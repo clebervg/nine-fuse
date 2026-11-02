@@ -2058,3 +2058,20 @@ vídeo. Há teste travando que, com o AdMob ligado, cada um pede a própria
 unidade. **Ainda fora, e é o mesmo defeito:** `continueAdProvider` (resgate de
 derrota) também não está em `admobOverrides()` e paga sem anúncio no release;
 não foi tocado por estar fora do escopo desta rodada.
+
+**O mapa virou janela deslizante de verdade — a dívida registrada na Fase 15
+está fechada.** `mapWindowFor(progress)` devolve `(first, last)`:
+`kLookbehind` (30) fases atrás da fase da vez e `kLookahead` (8) à frente,
+nunca antes da fase 1 nem terminando antes das dez artesanais. Na fase 500 a
+trilha monta 38 pins, não 508. `_currentIndex` passou a contar a partir do
+início móvel (`progress + 1 - first`), e é a mesma conta que alimenta a
+rolagem, o preenchimento animado do caminho e a geometria — os três continuam
+concordando porque nenhum deles soube que a janela mudou de lugar: o
+`SagaMapWidget` sempre trabalhou com índices na lista que recebe. O que ele
+**não** fazia era achar baú fora do começo: a busca partia do capítulo 1 e
+parava no primeiro capítulo cujo fim não estivesse na lista — com a janela
+deslizada, nenhum baú aparecia. Agora parte do capítulo da primeira fase
+montada. O pé da trilha ganhou o marcador "Fases 1–N concluídas"
+(`collapsedLevelsKey`): sem ele, uma trilha que começa na 470 terminaria num
+corte seco que lê como o começo do jogo. O golden `saga_map.png` não mudou
+(progresso 3: a janela ainda começa na 1).

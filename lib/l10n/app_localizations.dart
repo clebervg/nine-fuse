@@ -1087,6 +1087,12 @@ abstract class AppLocalizations {
   /// **'YOU ARE HERE'**
   String get mapYouAreHere;
 
+  /// No description provided for @mapLevelsCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Levels 1–{last} cleared'**
+  String mapLevelsCleared(int last);
+
   /// No description provided for @mapPlayLevel.
   ///
   /// In en, this message translates to:
