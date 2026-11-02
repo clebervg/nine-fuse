@@ -1,8 +1,10 @@
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
+import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/economy.dart';
@@ -15,6 +17,7 @@ import 'package:nine_fuse/features/game/providers/brush_booster.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
+import 'package:nine_fuse/features/game/providers/step_sounds.dart';
 
 /// Modo Endless: sem objetivo e sem limite de movimentos. A corrida dura até o
 /// tabuleiro não ter mais nenhuma troca que forme combinação.
@@ -262,6 +265,7 @@ class EndlessNotifier extends StateNotifier<EndlessState>
       selectedTile: tile.copyWith(isSelected: true),
       clearRejectedSwap: true,
     );
+    GameAudio.play(SoundEvent.select);
   }
 
   void deselectTile() {
@@ -282,8 +286,10 @@ class EndlessNotifier extends StateNotifier<EndlessState>
           clearSelectedTile: true,
           rejectedSwap: (from, to),
         );
+        GameAudio.play(SoundEvent.invalidSwap);
 
       case MoveSuperNineActivated(:final board, :final convertedFrom):
+        GameAudio.play(SoundEvent.superNine);
         _applySuperNineActivation(engine, board, convertedFrom);
 
       case MoveResolved(:final resolution):
@@ -352,6 +358,10 @@ class EndlessNotifier extends StateNotifier<EndlessState>
       // `_finishMove` porque a batida tem de coincidir com o clarão. O Bloco 9
       // aprimorado (o que cria o dígito máximo) ainda merece a mesma ênfase.
       if (step.fusions.any((f) => f.value == kMaxDigit)) explosionFeedback();
+      // Mesmo critério de som da campanha (ver `stepSound`).
+      final sound = stepSound(step);
+      if (sound != null) GameAudio.play(sound);
+      if (stepBreaksObstacle(step)) GameAudio.play(SoundEvent.obstacleBreak);
 
       state = state.copyWith(
         board: step.boardAfterFusion,
@@ -371,6 +381,7 @@ class EndlessNotifier extends StateNotifier<EndlessState>
         await _delay(JuiceTimings.novaHitstop);
         if (!mounted) return;
         explosionFeedback();
+        GameAudio.play(SoundEvent.nova);
 
         final coinsGained = step.novaEvents
             .map((nova) => novaCoinsForTier(nova.tier))
@@ -415,7 +426,7 @@ class EndlessNotifier extends StateNotifier<EndlessState>
   /// Injetável porque é a única coisa aqui que fala com a plataforma: nos
   /// testes vira um contador, e a suíte não depende de canal nativo.
   @visibleForTesting
-  static void Function() explosionFeedback = HapticFeedback.heavyImpact;
+  static void Function() explosionFeedback = Haptics.heavy;
 
   void _finishMove(
     MatchEngine engine,

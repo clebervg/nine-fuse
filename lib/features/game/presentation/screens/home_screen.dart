@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/ads/ad_providers.dart';
 import 'package:nine_fuse/core/assets/tile_sprite_manager.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/core/theme/nf_tokens.dart';
@@ -13,10 +15,10 @@ import 'package:nine_fuse/core/widgets/nf_background.dart';
 import 'package:nine_fuse/core/widgets/nf_modal.dart';
 import 'package:nine_fuse/core/widgets/nf_square_button.dart';
 import 'package:nine_fuse/core/widgets/nf_text.dart';
-import 'package:nine_fuse/core/widgets/privacy_dialog.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
+import 'package:nine_fuse/features/game/presentation/screens/settings_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/shop_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
@@ -43,8 +45,9 @@ const Key homeMapKey = Key('home_map');
 /// Chave da pílula de estrelas da campanha.
 const Key homeStarsKey = Key('home_stars');
 
-/// Chave do botão de privacidade do topo.
-const Key homePrivacyKey = Key('home_privacy');
+/// Chave da engrenagem do topo, que abre as Configurações. (Era o botão de
+/// privacidade; a política agora mora dentro das Configurações.)
+const Key homeSettingsKey = Key('home_settings');
 
 /// Duração da entrada do herói. Finita de propósito: uma órbita em repetição
 /// deixaria `pumpAndSettle` sem fim e derrubaria a suíte de widget.
@@ -72,6 +75,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.initState();
     _entrance = AnimationController(vsync: this, duration: kHomeHeroEntrance)
       ..forward();
+    GameAudio.music(MusicTrack.menu);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -164,16 +168,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         const SizedBox(width: 6),
                         _StarsPill(stars: stars),
                         const Spacer(),
-                        // Não há tela de ajustes: o botão do topo leva à única
-                        // configuração que existe fora da partida, a política
-                        // de privacidade — com o ícone dela, para não
-                        // prometer ajustes que não vêm.
+                        // As Configurações; a política de privacidade mora
+                        // dentro delas, junto do consentimento de anúncios.
                         NfSquareButton(
-                          key: homePrivacyKey,
-                          icon: Icons.privacy_tip_outlined,
-                          tooltip: l10n.privacyTooltip,
+                          key: homeSettingsKey,
+                          icon: Icons.settings_rounded,
+                          tooltip: l10n.settingsTooltip,
                           size: 46,
-                          onPressed: () => showPrivacyDialog(context),
+                          onPressed: () => openSettings(context),
                         ),
                       ],
                     ),

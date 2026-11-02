@@ -2,8 +2,10 @@ import 'dart:math' as math;
 import 'dart:ui' show PointMode;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/core/widgets/nf_text.dart';
@@ -576,11 +578,10 @@ class _LevelPin extends StatelessWidget {
   };
 
   void _handleTap() {
-    // Som curto de toque do próprio sistema. Escolhido em vez de um pacote de
-    // áudio de propósito: não acrescenta dependência nem arquivo de som ao
-    // pacote, e respeita o ajuste de som do aparelho sem código nosso.
-    SystemSound.play(SystemSoundType.click);
-    HapticFeedback.selectionClick();
+    // O toque de botão do jogo quando o arquivo existir; até lá, o clique
+    // curto do próprio sistema, que já respeitava o ajuste de som do aparelho.
+    GameAudio.play(SoundEvent.buttonTap, fallback: Haptics.click);
+    Haptics.selection();
     onTap();
   }
 }

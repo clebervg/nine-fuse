@@ -1224,6 +1224,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Chapter {chapter} chest, already opened.'**
   String semanticsChestOpened(int chapter);
+
+  /// No description provided for @settingsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTooltip;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SETTINGS'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsSectionAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'SOUND & TOUCH'**
+  String get settingsSectionAudio;
+
+  /// No description provided for @settingsSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound effects'**
+  String get settingsSound;
+
+  /// No description provided for @settingsVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Effects volume'**
+  String get settingsVolume;
+
+  /// No description provided for @settingsMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get settingsMusic;
+
+  /// No description provided for @settingsVibration.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration'**
+  String get settingsVibration;
+
+  /// No description provided for @settingsSectionLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'LANGUAGE'**
+  String get settingsSectionLanguage;
+
+  /// No description provided for @settingsLanguageSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Device default'**
+  String get settingsLanguageSystem;
+
+  /// No description provided for @settingsLanguagePt.
+  ///
+  /// In en, this message translates to:
+  /// **'Português'**
+  String get settingsLanguagePt;
+
+  /// No description provided for @settingsLanguageEn.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get settingsLanguageEn;
+
+  /// No description provided for @settingsSectionPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'PRIVACY'**
+  String get settingsSectionPrivacy;
+
+  /// No description provided for @settingsPrivacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get settingsPrivacyPolicy;
+
+  /// No description provided for @settingsConsent.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage ad consent'**
+  String get settingsConsent;
+
+  /// No description provided for @settingsSectionAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'ABOUT'**
+  String get settingsSectionAbout;
+
+  /// No description provided for @settingsCredits.
+  ///
+  /// In en, this message translates to:
+  /// **'Credits'**
+  String get settingsCredits;
+
+  /// No description provided for @settingsLicenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Open source licenses'**
+  String get settingsLicenses;
+
+  /// No description provided for @creditsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Credits'**
+  String get creditsTitle;
+
+  /// No description provided for @creditsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nunito, Lilita One and Baloo 2 fonts under the SIL Open Font License (OFL).\nTiles, obstacles and icons: NineFuse \"candy pop\" art pack.\nMade with Flutter.'**
+  String get creditsBody;
+
+  /// No description provided for @creditsClose.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get creditsClose;
 }
 
 class _AppLocalizationsDelegate

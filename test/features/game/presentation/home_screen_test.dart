@@ -9,6 +9,7 @@ import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/home_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
+import 'package:nine_fuse/features/game/presentation/screens/settings_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/shop_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
@@ -96,6 +97,17 @@ void main() {
     // O mapa fica por baixo: é para ele que o "voltar às fases" do fim de
     // partida leva.
     expect(find.byType(LevelSelectScreen, skipOffstage: false), findsOneWidget);
+  });
+
+  testWidgets('a engrenagem do topo abre as Configurações', (tester) async {
+    await pumpHome(tester);
+
+    await tester.tap(find.byKey(homeSettingsKey));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(settingsScreenKey), findsOneWidget);
+    // A política de privacidade, que era o botão do canto, mora lá dentro.
+    expect(find.byKey(settingsPrivacyPolicyKey), findsOneWidget);
   });
 
   testWidgets('a pílula mostra capítulo e fase, e abre o mapa sem jogar', (

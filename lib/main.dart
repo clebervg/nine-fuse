@@ -6,9 +6,12 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:nine_fuse/core/ads/ad_providers.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/audioplayers_port.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/features/game/presentation/screens/splash_screen.dart';
+import 'package:nine_fuse/features/game/providers/settings.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 void main() {
@@ -35,6 +38,34 @@ void main() {
   // jogador sem rede nenhuma, e é o que mantém a suíte de widget rodando sem
   // canal de plataforma — ver `admobOverrides`.
   final container = ProviderContainer(overrides: admobOverrides());
+
+  // Áudio: mesmo desenho dos anúncios — o padrão (`GameAudio.service`) é mudo
+  // e é o que a suíte usa; só aqui o plugin de verdade entra. Desktop e web
+  // ficam no mudo pelo mesmo motivo do SDK de anúncio.
+  if (defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS) {
+    GameAudio.service = AudioService(
+      port: AudioplayersPort(),
+      loadAssets: bundledAudioAssets,
+      extensions: platformAudioExtensions(),
+    );
+    // Música para quando o app sai da tela: tocar no bolso é a primeira
+    // coisa que faz o jogador desligar o som de vez. Não precisa ser guardado:
+    // o listener se registra no binding ao nascer e vive enquanto o app vive.
+    AppLifecycleListener(
+      onHide: () => unawaited(GameAudio.service.suspend()),
+      onShow: () => unawaited(GameAudio.service.resume()),
+    );
+  }
+
+  // As Configurações valem para o jogo inteiro, inclusive para quem não tem
+  // `ref` (os ganchos táteis estáticos dos boosters): espelhadas nos pontos
+  // globais na abertura e a cada mudança.
+  container.listen(
+    settingsProvider,
+    (_, next) => applyFeedbackSettings(next),
+    fireImmediately: true,
+  );
 
   // A inicialização do SDK é assíncrona e **não é esperada**: segurar o
   // `runApp` até lá trocaria a abertura do jogo por uma tela branca. Um
@@ -71,11 +102,18 @@ void main() {
   );
 }
 
-class NineFuseApp extends StatelessWidget {
+class NineFuseApp extends ConsumerWidget {
   const NineFuseApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Nulo = idioma do aparelho, resolvido pelo algoritmo padrão (ver
+    // `supportedLocales`). Observado só o idioma: mexer no volume não pode
+    // reconstruir o app inteiro.
+    final languageCode = ref.watch(
+      settingsProvider.select((settings) => settings.language.code),
+    );
+
     // Some no primeiro frame renderizado, não antes: remover no `build` em si
     // tiraria a splash antes de haver algo do app para mostrar no lugar dela.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -95,6 +133,7 @@ class NineFuseApp extends StatelessWidget {
       // desconhecido para o primeiro da lista. É o que dispensa um
       // `localeResolutionCallback` só para dizer o óbvio.
       supportedLocales: AppLocalizations.supportedLocales,
+      locale: languageCode == null ? null : Locale(languageCode),
       debugShowCheckedModeBanner: false,
       theme: base.copyWith(
         // O céu do observatório. As telas pintam `NfBackground` (gradiente +

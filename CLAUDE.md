@@ -1884,3 +1884,90 @@ no canto com as jogadas restantes (3, 2, 1). Ao nascer, o aro dá **um** pulso
 (anel que se expande e apaga, alfa de cor dentro do pintor — nada de
 `Opacity`/`FadeTransition` na peça). O número do selo é texto sem sombra,
 porque vive dentro das transformações animadas da peça.
+
+### Configurações e serviço de áudio (silencioso até haver arquivos) (2026-11-01)
+
+**O áudio entrou mudo, e isso é o estado correto, não um meio-termo.** Não
+há nenhum arquivo de som no projeto. `AudioService` (`core/audio/`) lê o
+AssetManifest no primeiro som pedido e só toca o que foi empacotado em
+`assets/audio/sfx/` e `assets/audio/music/` — quem soltar um arquivo com o
+nome certo (lista exata em `assets/audio/README.md`, derivada de
+`SoundEvent.fileName`) ouve o som sem mexer em código. Arquivo que falta é
+silêncio: sem exceção e sem log por jogada (falha do plugin é avisada uma
+vez). As duas pastas existem só com `.gitkeep` porque o Flutter reclama de
+diretório de asset declarado e inexistente no build.
+
+**Mesma régua dos anúncios: porta fina sem teste, decisão em Dart puro.**
+`AudioPort`/`AudioplayersPort` falam com o plugin; o serviço decide
+(arquivo existe? som ligado? faixa já tocando?). O padrão
+`GameAudio.service` é `AudioService.silent()`, e só o `main` liga o plugin —
+a suíte nunca abre canal de áudio. **É estático, e não provider**, porque
+quem dispara som são os ganchos táteis estáticos dos boosters e dos
+notifiers (mixins sem `ref`); passar provider até eles mudaria a assinatura
+de dois notifiers por um som.
+
+**`audioplayers` PINADO em `6.8.1`**, pelo histórico do `google_mobile_ads`.
+`flutter build ios --debug --simulator` e `flutter build apk --debug`
+compilaram com ele. Os players nativos são `late`: enquanto não houver
+arquivo, o jogo não abre player nenhum. Contexto de áudio de **jogo**
+(iOS `ambient`, Android `game` sem foco): respeita a chave de silencioso e
+**mistura** com a música do jogador em vez de pausá-la.
+`AudioContextConfig(respectSilence: true)` não serve — no Android ele troca
+o uso para toque de chamada.
+
+**O iOS não toca `.ogg`.** O AVPlayer não tem Vorbis, então a lista de
+extensões é por plataforma (`platformAudioExtensions`): no iOS o `.ogg` nem
+é considerado, e um `fusion.ogg` sozinho vira silêncio em vez de erro a cada
+fusão. O README recomenda `.mp3` para tudo.
+
+**Um som por passo de cascata, o mais forte vence** (`stepSound`, função
+pura compartilhada por campanha e Recorde): Super 9 > 9 nascendo > combo >
+fusão. A Nova soa no fim do hitstop, junto do payoff, e não no quadro em que
+os 9s se alinham. Cobertura só soa quando **quebra** — a mesma régua de
+`countCleared`.
+
+**O som de sistema virou reserva, não camada.** `GameAudio.play(...,
+fallback:)` roda o clique/alerta do sistema só quando o efeito próprio não
+tocou. Sem isso, no dia em que `select.mp3` chegar, o jogador ouviria os
+dois empilhados.
+
+**Vitória e derrota soam na transição de status (`ref.listen` da tela), não
+no cartão.** O cartão é `StatelessWidget` reconstruído a cada quadro das
+animações dele; som em `build` tocaria em loop. O tilintar das moedas mora
+em `WalletNotifier.creditCoins` (cinco torneiras, um som), com
+`chime: false` no estorno de compra que falhou — devolver moeda não é ganhar.
+
+**Configurações persistidas em `GameStorage`** (`settings_*`), cada campo
+com leitura tolerante **isolada**: um volume corrompido não pode religar a
+vibração que o jogador desligou. Idioma "do aparelho" apaga a chave em vez
+de gravar `system`. `SettingsNotifier` descarta a leitura do disco que
+chega depois de um toque local, o mesmo remédio da carteira.
+
+**A vibração passa por um ponto só (`Haptics`, `core/feedback/`).** Todo
+`HapticFeedback` e `SystemSound` do jogo saiu de boosters, notifiers,
+roleta, mapa, baú e `GameButton` para lá; o `main` espelha as Configurações
+nele (`applyFeedbackSettings`, via `container.listen`). Fica fora do
+notifier de propósito: uma suíte que cria dez notifiers não sai mexendo em
+estado global. Os ganchos injetáveis (`strikeFeedback`,
+`explosionFeedback`...) continuam existindo e sendo dublados como antes.
+"Som desligado" também cala o clique e o alerta do sistema — um interruptor
+de som que deixa o clique do mapa tocando mente.
+
+**Idioma:** `NineFuseApp` virou `ConsumerWidget` e lê só
+`settings.language.code` (`select`): mexer no volume não reconstrói o app.
+
+**Tela de Configurações é rota, não caixa** (quatro seções não cabem num
+modal no iPhone SE). Tudo vale na hora, sem "salvar". O item de
+consentimento só aparece quando `privacyOptionsRequired` diz que é exigido,
+perguntado uma vez no `initState` (um `FutureBuilder` com a chamada no
+`build` voltaria ao UMP a cada interruptor). "Política de privacidade"
+reabre a mesma caixa que o botão do menu abria. **A engrenagem substituiu o
+botão de privacidade do Menu** (`homePrivacyKey` → `homeSettingsKey`;
+nenhum teste usava a chave antiga).
+
+**Ficou de fora, por decisão:** número de versão nos Créditos (não há
+`package_info_plus`, e um plugin nativo a mais só para "1.0.0" não se
+paga); os próprios arquivos de áudio; e a música parar ao abrir um anúncio
+premiado (o SDK do AdMob já pede foco de áudio, e sem arquivo de música não
+há o que medir). **Não validado em aparelho:** o caminho nativo do
+`audioplayers` só foi compilado, não ouvido — não há arquivo para tocar.

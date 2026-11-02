@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
+import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
@@ -153,9 +155,9 @@ class EndlessHighlight extends StatelessWidget {
   }
 
   void _handleTap() {
-    // Som do próprio sistema: nenhum pacote de áudio, nenhum arquivo no bundle,
-    // e o ajuste de som do aparelho é respeitado sem código nosso.
-    SystemSound.play(SystemSoundType.click);
+    // Mesmo toque do mapa: o efeito do jogo se o arquivo existir, o clique
+    // do sistema enquanto não existe.
+    GameAudio.play(SoundEvent.buttonTap, fallback: Haptics.click);
     onTap();
   }
 }

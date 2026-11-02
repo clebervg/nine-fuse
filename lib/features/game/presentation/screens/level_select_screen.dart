@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/ads/ad_providers.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/core/widgets/coins_header_badge.dart';
@@ -10,8 +10,8 @@ import 'package:nine_fuse/core/widgets/nf_back_button.dart';
 import 'package:nine_fuse/core/widgets/nf_background.dart';
 import 'package:nine_fuse/core/widgets/nf_modal.dart';
 import 'package:nine_fuse/core/widgets/nf_square_button.dart';
-import 'package:nine_fuse/core/widgets/sprite_icon.dart';
 import 'package:nine_fuse/core/widgets/privacy_dialog.dart';
+import 'package:nine_fuse/core/widgets/sprite_icon.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/level_catalog.dart';
@@ -454,7 +454,7 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
         // sendo a trava de "uma vez só", inclusive contra toque duplo.
         await wallet.refresh();
         if (!mounted || !wallet.claimChapterChest(chapter.number)) return;
-        HapticFeedback.mediumImpact();
+        Haptics.medium();
         await showNfModal<void>(
           context,
           elastic: true,

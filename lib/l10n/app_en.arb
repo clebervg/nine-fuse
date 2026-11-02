@@ -483,5 +483,25 @@
   "semanticsChestOpened": "Chapter {chapter} chest, already opened.",
   "@semanticsChestOpened": {
     "placeholders": { "chapter": { "type": "int" } }
-  }
+  },
+  "settingsTooltip": "Settings",
+  "settingsTitle": "SETTINGS",
+  "settingsSectionAudio": "SOUND & TOUCH",
+  "settingsSound": "Sound effects",
+  "settingsVolume": "Effects volume",
+  "settingsMusic": "Music",
+  "settingsVibration": "Vibration",
+  "settingsSectionLanguage": "LANGUAGE",
+  "settingsLanguageSystem": "Device default",
+  "settingsLanguagePt": "Português",
+  "settingsLanguageEn": "English",
+  "settingsSectionPrivacy": "PRIVACY",
+  "settingsPrivacyPolicy": "Privacy policy",
+  "settingsConsent": "Manage ad consent",
+  "settingsSectionAbout": "ABOUT",
+  "settingsCredits": "Credits",
+  "settingsLicenses": "Open source licenses",
+  "creditsTitle": "Credits",
+  "creditsBody": "Nunito, Lilita One and Baloo 2 fonts under the SIL Open Font License (OFL).\nTiles, obstacles and icons: NineFuse \"candy pop\" art pack.\nMade with Flutter.",
+  "creditsClose": "CLOSE"
 }

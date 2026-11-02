@@ -785,4 +785,65 @@ class AppLocalizationsPt extends AppLocalizations {
   String semanticsChestOpened(int chapter) {
     return 'Baú do capítulo $chapter, já aberto.';
   }
+
+  @override
+  String get settingsTooltip => 'Configurações';
+
+  @override
+  String get settingsTitle => 'AJUSTES';
+
+  @override
+  String get settingsSectionAudio => 'SOM E TOQUE';
+
+  @override
+  String get settingsSound => 'Efeitos sonoros';
+
+  @override
+  String get settingsVolume => 'Volume dos efeitos';
+
+  @override
+  String get settingsMusic => 'Música';
+
+  @override
+  String get settingsVibration => 'Vibração';
+
+  @override
+  String get settingsSectionLanguage => 'IDIOMA';
+
+  @override
+  String get settingsLanguageSystem => 'Do aparelho';
+
+  @override
+  String get settingsLanguagePt => 'Português';
+
+  @override
+  String get settingsLanguageEn => 'English';
+
+  @override
+  String get settingsSectionPrivacy => 'PRIVACIDADE';
+
+  @override
+  String get settingsPrivacyPolicy => 'Política de privacidade';
+
+  @override
+  String get settingsConsent => 'Gerenciar consentimento de anúncios';
+
+  @override
+  String get settingsSectionAbout => 'SOBRE';
+
+  @override
+  String get settingsCredits => 'Créditos';
+
+  @override
+  String get settingsLicenses => 'Licenças de código aberto';
+
+  @override
+  String get creditsTitle => 'Créditos';
+
+  @override
+  String get creditsBody =>
+      'Fontes Nunito, Lilita One e Baloo 2 sob a SIL Open Font License (OFL).\nPeças, coberturas e ícones: pacote de arte \"candy pop\" do NineFuse.\nFeito com Flutter.';
+
+  @override
+  String get creditsClose => 'FECHAR';
 }

@@ -3,7 +3,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nine_fuse/core/notifications/notification_port.dart';
+import 'package:nine_fuse/core/widgets/nf_square_button.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/game_settings.dart';
+import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
@@ -11,9 +15,6 @@ import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.d
 import 'package:nine_fuse/features/game/presentation/widgets/endless_highlight.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/saga_map.dart';
-import 'package:nine_fuse/core/notifications/notification_port.dart';
-import 'package:nine_fuse/core/widgets/nf_square_button.dart';
-import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
@@ -82,6 +83,11 @@ class _BrokenStorage implements GameStorage {
       throw StateError('sem disco');
   @override
   Future<void> writeLastSpinTimestamp(DateTime value) async =>
+      throw StateError('sem disco');
+  @override
+  Future<GameSettings> readSettings() async => throw StateError('sem disco');
+  @override
+  Future<void> writeSettings(GameSettings settings) async =>
       throw StateError('sem disco');
 }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/core/theme/nf_tokens.dart';
 
@@ -387,7 +389,8 @@ class _GameButtonState extends State<GameButton> {
             ? () {
                 // Batida leve: confirma o toque sem competir com o
                 // `heavyImpact` das destruições no tabuleiro.
-                HapticFeedback.lightImpact();
+                Haptics.light();
+                GameAudio.play(SoundEvent.buttonTap);
                 widget.onPressed!();
               }
             : null,

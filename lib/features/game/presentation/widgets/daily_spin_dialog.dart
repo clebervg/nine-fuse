@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/core/notifications/local_notifications_port.dart';
 import 'package:nine_fuse/core/notifications/notification_port.dart';
 import 'package:nine_fuse/core/notifications/notification_service.dart';
@@ -230,7 +232,10 @@ class _DailySpinDialogState extends ConsumerState<DailySpinDialog>
     final elapsed = NfDurations.wheel * _spinController.value;
     if (elapsed - _lastTickAt < _tickGap) return;
     _lastTickAt = elapsed;
-    HapticFeedback.selectionClick();
+    // O tique sonoro segue a mesma régua do tátil (`_tickGap`): sem ela, o
+    // começo do giro viraria uma metralhadora de cliques.
+    Haptics.selection();
+    GameAudio.play(SoundEvent.spinTick);
   }
 
   void _refreshCountdown() {
@@ -280,7 +285,8 @@ class _DailySpinDialogState extends ConsumerState<DailySpinDialog>
     await _spinController.forward(from: 0);
     _restTurns = target;
 
-    HapticFeedback.mediumImpact();
+    Haptics.medium();
+    GameAudio.play(SoundEvent.spinPrize);
     final kick = _kickController.forward(from: 0);
 
     final storage = ref.read(dailySpinStorageProvider);

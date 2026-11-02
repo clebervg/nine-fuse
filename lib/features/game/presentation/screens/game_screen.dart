@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:nine_fuse/core/ads/ad_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nine_fuse/core/ads/ad_providers.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
 import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/core/widgets/nf_background.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
@@ -8,9 +10,6 @@ import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/star_rating.dart';
 import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart';
-import 'package:nine_fuse/features/game/providers/campaign_records.dart';
-import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
-import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/apex_celebration.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_frame.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
@@ -21,16 +20,19 @@ import 'package:nine_fuse/features/game/presentation/widgets/continue_offer_dial
 import 'package:nine_fuse/features/game/presentation/widgets/endless_suggestion_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_button.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
-import 'package:nine_fuse/features/game/presentation/widgets/moves_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_targeting_layer.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/juice_overlay.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_outcome_card.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/moves_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/playfield_layout.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/strike_shake.dart';
+import 'package:nine_fuse/features/game/providers/campaign_records.dart';
+import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
+import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 /// Tela de uma fase: objetivo, movimentos restantes, tabuleiro e desfecho.
@@ -159,6 +161,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   void initState() {
     super.initState();
+    GameAudio.music(MusicTrack.game);
     // O tabuleiro depende da fase, então só pode ser criado depois do primeiro
     // frame, quando o ref já está disponível.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -167,6 +170,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       // em estoque e o jogador não espera a rede entre "quero" e "assisti".
       preloadRewardedAds(ref);
     });
+  }
+
+  @override
+  void dispose() {
+    // A fase sempre volta a uma tela de fora da partida (mapa ou menu).
+    GameAudio.music(MusicTrack.menu);
+    super.dispose();
   }
 
   @override
@@ -185,6 +195,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
 
     ref.listen(gameProvider, (previous, next) {
+      // O som do desfecho sai com o cartão, na transição — e não no cartão,
+      // que é reconstruído a cada quadro das animações dele.
+      if (previous != null && previous.status != next.status) {
+        if (next.status == GameStatus.won) GameAudio.play(SoundEvent.victory);
+        if (next.status == GameStatus.lost) GameAudio.play(SoundEvent.defeat);
+      }
+
       // Vencer a fase libera a seguinte e registra como foi.
       if (next.status == GameStatus.won && previous?.status != GameStatus.won) {
         ref.read(campaignProgressProvider.notifier).complete(next.level.number);

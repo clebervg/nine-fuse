@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
 import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 
@@ -135,10 +137,17 @@ class WalletNotifier extends StateNotifier<Wallet> {
     }
   }
 
-  void creditCoins(int amount) {
+  /// Soma [amount] moedas e grava.
+  ///
+  /// O tilintar mora aqui, e não em cada tela que credita, porque são cinco
+  /// torneiras (vídeo na loja, no convite, no header, estrela, Nova) e o som é
+  /// o mesmo para todas. [chime] falso é só para o estorno de uma compra que
+  /// falhou: devolver moeda não é ganhar moeda.
+  void creditCoins(int amount, {bool chime = true}) {
     if (amount <= 0) return;
     state = state.copyWith(coins: state.coins + amount);
     _persistCoins();
+    if (chime) GameAudio.play(SoundEvent.coins);
   }
 
   /// Debita [price] se houver saldo. Devolve se a compra aconteceu.
@@ -196,7 +205,7 @@ class WalletNotifier extends StateNotifier<Wallet> {
     } catch (error, stack) {
       // O item não foi entregue: devolve a moeda, em vez de cobrar por nada.
       debugPrint('Falha ao gravar o estoque de ${kind.name}: $error\n$stack');
-      if (mounted) creditCoins(kind.coinPrice);
+      if (mounted) creditCoins(kind.coinPrice, chime: false);
       return false;
     }
     if (!mounted) return true;

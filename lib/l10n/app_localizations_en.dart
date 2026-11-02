@@ -783,4 +783,65 @@ class AppLocalizationsEn extends AppLocalizations {
   String semanticsChestOpened(int chapter) {
     return 'Chapter $chapter chest, already opened.';
   }
+
+  @override
+  String get settingsTooltip => 'Settings';
+
+  @override
+  String get settingsTitle => 'SETTINGS';
+
+  @override
+  String get settingsSectionAudio => 'SOUND & TOUCH';
+
+  @override
+  String get settingsSound => 'Sound effects';
+
+  @override
+  String get settingsVolume => 'Effects volume';
+
+  @override
+  String get settingsMusic => 'Music';
+
+  @override
+  String get settingsVibration => 'Vibration';
+
+  @override
+  String get settingsSectionLanguage => 'LANGUAGE';
+
+  @override
+  String get settingsLanguageSystem => 'Device default';
+
+  @override
+  String get settingsLanguagePt => 'Português';
+
+  @override
+  String get settingsLanguageEn => 'English';
+
+  @override
+  String get settingsSectionPrivacy => 'PRIVACY';
+
+  @override
+  String get settingsPrivacyPolicy => 'Privacy policy';
+
+  @override
+  String get settingsConsent => 'Manage ad consent';
+
+  @override
+  String get settingsSectionAbout => 'ABOUT';
+
+  @override
+  String get settingsCredits => 'Credits';
+
+  @override
+  String get settingsLicenses => 'Open source licenses';
+
+  @override
+  String get creditsTitle => 'Credits';
+
+  @override
+  String get creditsBody =>
+      'Nunito, Lilita One and Baloo 2 fonts under the SIL Open Font License (OFL).\nTiles, obstacles and icons: NineFuse \"candy pop\" art pack.\nMade with Flutter.';
+
+  @override
+  String get creditsClose => 'CLOSE';
 }

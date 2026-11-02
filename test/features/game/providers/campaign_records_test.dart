@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/game_settings.dart';
 import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
@@ -62,6 +63,11 @@ class _BrokenStorage implements GameStorage {
       throw StateError('sem disco');
   @override
   Future<void> writeLastSpinTimestamp(DateTime value) async =>
+      throw StateError('sem disco');
+  @override
+  Future<GameSettings> readSettings() async => throw StateError('sem disco');
+  @override
+  Future<void> writeSettings(GameSettings settings) async =>
       throw StateError('sem disco');
 }
 

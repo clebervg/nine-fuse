@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:nine_fuse/core/ads/ad_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nine_fuse/core/ads/ad_providers.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
 import 'package:nine_fuse/core/widgets/nf_background.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/apex_celebration.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_frame.dart';
@@ -8,12 +10,12 @@ import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.d
 import 'package:nine_fuse/features/game/presentation/widgets/bomb_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/brush_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/combo_banner.dart';
-import 'package:nine_fuse/features/game/presentation/widgets/juice_overlay.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_outcome_card.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_button.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_targeting_layer.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/juice_overlay.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/playfield_layout.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/strike_shake.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
@@ -37,6 +39,7 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
   @override
   void initState() {
     super.initState();
+    GameAudio.music(MusicTrack.game);
     // `start` é assíncrono porque lê o recorde salvo em disco.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(endlessProvider.notifier).start();
@@ -44,6 +47,12 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
       // não pode ser a primeira vez que o jogo pede um anúncio à rede.
       preloadRewardedAds(ref);
     });
+  }
+
+  @override
+  void dispose() {
+    GameAudio.music(MusicTrack.menu);
+    super.dispose();
   }
 
   @override
@@ -55,6 +64,12 @@ class _EndlessScreenState extends ConsumerState<EndlessScreen> {
     // campanha (`GameScreen`): o notifier só acumula o total em
     // `novaCoinsGranted`, e é a tela quem credita o delta na carteira.
     ref.listen(endlessProvider, (previous, next) {
+      // Corrida encerrada (tabuleiro travado): o mesmo som da derrota.
+      if (previous != null &&
+          previous.status != next.status &&
+          next.status == EndlessStatus.stuck) {
+        GameAudio.play(SoundEvent.defeat);
+      }
       if (previous != null &&
           next.novaCoinsGranted > previous.novaCoinsGranted) {
         ref

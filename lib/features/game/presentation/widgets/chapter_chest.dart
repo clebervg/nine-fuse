@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/core/widgets/nf_text.dart';
@@ -92,7 +92,7 @@ class ChapterChestNode extends StatelessWidget {
         key: chestNodeKey(chapter),
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          HapticFeedback.selectionClick();
+          Haptics.selection();
           onTap();
         },
         child: ExcludeSemantics(

@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
+import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
@@ -19,7 +21,11 @@ import 'package:nine_fuse/features/game/providers/game_storage.dart';
 /// própria (obstáculo não é afetado) nem tranco de tela a sincronizar.
 @immutable
 class BrushState {
-  const BrushState({this.count = 0, this.isTargeting = false, this.pendingTarget});
+  const BrushState({
+    this.count = 0,
+    this.isTargeting = false,
+    this.pendingTarget,
+  });
 
   /// Pincéis em estoque. Inventário do jogador, como os outros dois.
   final int count;
@@ -74,16 +80,19 @@ class BrushState {
 mixin BrushBooster<S> on StateNotifier<S> {
   /// Mesmos dois avisos dos outros boosters: engajar a mira e errar a mira.
   static void Function() targetingFeedback = () {
-    HapticFeedback.selectionClick();
-    SystemSound.play(SystemSoundType.click);
+    Haptics.selection();
+    GameAudio.play(SoundEvent.select, fallback: Haptics.click);
   };
 
   static void Function() rejectionFeedback = () =>
-      SystemSound.play(SystemSoundType.alert);
+      GameAudio.play(SoundEvent.invalidSwap, fallback: Haptics.alert);
 
   /// Pintar não é destruir — o toque leve de seleção é o suficiente, ao
   /// contrário do `heavyImpact` do Martelo/Bomba.
-  static void Function() paintFeedback = HapticFeedback.selectionClick;
+  static void Function() paintFeedback = () {
+    Haptics.selection();
+    GameAudio.play(SoundEvent.brush);
+  };
 
   // --- o que cada notifier fornece -------------------------------------------
 
