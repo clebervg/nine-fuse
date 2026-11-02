@@ -7,6 +7,7 @@ import 'package:nine_fuse/features/game/domain/game_settings.dart';
 import 'package:nine_fuse/features/game/presentation/screens/settings_screen.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import 'package:nine_fuse/features/game/providers/settings.dart';
+import 'package:nine_fuse/features/game/providers/tutorial.dart';
 import 'package:nine_fuse/main.dart';
 
 import '../../../support/localized.dart';
@@ -37,12 +38,16 @@ void main() {
     WidgetTester tester, {
     bool consentRequired = false,
     GameSettings saved = const GameSettings(),
+    Set<String> tutorialSeen = const {},
   }) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
 
-    storage = InMemoryGameStorage(settings: saved);
+    storage = InMemoryGameStorage(
+      settings: saved,
+      tutorialSeen: {...tutorialSeen},
+    );
     consent = _Consent(optionsRequired: consentRequired);
     await tester.pumpWidget(
       ProviderScope(
@@ -50,6 +55,7 @@ void main() {
           settingsProvider.overrideWith(
             (ref) => SettingsNotifier(storage: storage),
           ),
+          tutorialStorageProvider.overrideWithValue(storage),
           consentServiceProvider.overrideWithValue(
             ConsentService(consent: consent, tracking: _Tracking()),
           ),
@@ -194,5 +200,19 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('SETTINGS'), findsOneWidget);
     });
+  });
+
+  testWidgets('"Rever tutorial" zera os passos vistos', (tester) async {
+    await pumpSettings(tester, tutorialSeen: {'firstSwap', 'fusion'});
+
+    await tester.ensureVisible(find.byKey(settingsReplayTutorialKey));
+    await tester.tap(find.byKey(settingsReplayTutorialKey));
+    await tester.pumpAndSettle();
+
+    expect(storage.tutorialSeen, isEmpty);
+    expect(
+      find.text('O tutorial vai aparecer de novo nas próximas fases.'),
+      findsOneWidget,
+    );
   });
 }

@@ -12,6 +12,7 @@ import 'package:nine_fuse/core/widgets/privacy_dialog.dart';
 import 'package:nine_fuse/features/game/domain/game_settings.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/features/game/providers/settings.dart';
+import 'package:nine_fuse/features/game/providers/tutorial.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 /// Chaves para os testes endereçarem cada controle.
@@ -24,6 +25,7 @@ const Key settingsPrivacyPolicyKey = Key('settings_privacy_policy');
 const Key settingsConsentKey = Key('settings_consent');
 const Key settingsCreditsKey = Key('settings_credits');
 const Key settingsLicensesKey = Key('settings_licenses');
+const Key settingsReplayTutorialKey = Key('settings_replay_tutorial');
 Key settingsLanguageKey(AppLanguage language) =>
     Key('settings_language_${language.name}');
 
@@ -183,6 +185,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   _SectionLabel(l10n.settingsSectionAbout),
                   _Panel(
                     children: [
+                      // Zera os passos vistos. Os balões das fases 1-3 só
+                      // voltam rejogando essas fases; os de estreia de
+                      // cobertura e do dock voltam onde couberem.
+                      _LinkRow(
+                        key: settingsReplayTutorialKey,
+                        icon: Icons.school_rounded,
+                        label: l10n.settingsReplayTutorial,
+                        onTap: () {
+                          ref.read(tutorialProvider.notifier).reset();
+                          ScaffoldMessenger.of(context)
+                            ..hideCurrentSnackBar()
+                            ..showSnackBar(
+                              SnackBar(
+                                backgroundColor: NfColors.night2,
+                                content: Text(
+                                  l10n.settingsReplayTutorialDone,
+                                  style: const TextStyle(
+                                    fontFamily: AppFonts.display,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            );
+                        },
+                      ),
                       _LinkRow(
                         key: settingsCreditsKey,
                         icon: Icons.auto_awesome_rounded,

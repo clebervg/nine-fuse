@@ -11,7 +11,9 @@ import 'package:nine_fuse/core/audio/audioplayers_port.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/features/game/presentation/screens/splash_screen.dart';
+import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import 'package:nine_fuse/features/game/providers/settings.dart';
+import 'package:nine_fuse/features/game/providers/tutorial.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 void main() {
@@ -37,7 +39,15 @@ void main() {
   // Os funis só falam com o AdMob aqui. O padrão dos providers paga o
   // jogador sem rede nenhuma, e é o que mantém a suíte de widget rodando sem
   // canal de plataforma — ver `admobOverrides`.
-  final container = ProviderContainer(overrides: admobOverrides());
+  //
+  // O tutorial segue o mesmo desenho: desligado por padrão (a suíte monta as
+  // fases 1-3 sem balão no caminho) e ligado aqui, com o disco de verdade.
+  final container = ProviderContainer(
+    overrides: [
+      ...admobOverrides(),
+      tutorialStorageProvider.overrideWithValue(const PrefsGameStorage()),
+    ],
+  );
 
   // Áudio: mesmo desenho dos anúncios — o padrão (`GameAudio.service`) é mudo
   // e é o que a suíte usa; só aqui o plugin de verdade entra. Desktop e web

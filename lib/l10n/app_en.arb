@@ -503,5 +503,33 @@
   "settingsLicenses": "Open source licenses",
   "creditsTitle": "Credits",
   "creditsBody": "Nunito, Lilita One and Baloo 2 fonts under the SIL Open Font License (OFL).\nTiles, obstacles and icons: NineFuse \"candy pop\" art pack.\nMade with Flutter.",
-  "creditsClose": "CLOSE"
+  "creditsClose": "CLOSE",
+
+  "tutorialFirstSwap": "Swap these two pieces to line up three of a kind.",
+  "tutorialFusion": "The piece you touched evolves: {amount} {from}s become a {to}!",
+  "tutorialAmount": "{size, select, three{three} four{four} five{five} other{several}}",
+  "@tutorialAmount": {
+    "placeholders": { "size": { "type": "String" } }
+  },
+  "@tutorialFusion": {
+    "placeholders": {
+      "amount": { "type": "String" },
+      "from": { "type": "int" },
+      "to": { "type": "int" }
+    }
+  },
+  "tutorialObjective": "{objective} to win.",
+  "@tutorialObjective": {
+    "placeholders": { "objective": { "type": "String" } }
+  },
+  "tutorialMovesMedallion": "These are your moves. Every swap that makes a match spends one.",
+  "tutorialFreeMiss": "A swap without a match costs no move: the pieces just slide back.",
+  "tutorialBoosterDock": "Stuck? The Hammer smashes the piece you tap, without spending a move.",
+  "tutorialObstacleIce": "Ice traps the piece. One fusion next to it breaks it.",
+  "tutorialObstacleGlass": "Glass takes two fusions next to it before it breaks.",
+  "tutorialObstacleStone": "Stone takes three fusions next to it, or gives way at once to a 9 born beside it.",
+  "tutorialGotIt": "GOT IT",
+  "tutorialSkip": "Skip tutorial",
+  "settingsReplayTutorial": "Replay tutorial",
+  "settingsReplayTutorialDone": "The tutorial will show up again in your next levels."
 }

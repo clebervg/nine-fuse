@@ -298,5 +298,20 @@
   "settingsLicenses": "Licenças de código aberto",
   "creditsTitle": "Créditos",
   "creditsBody": "Fontes Nunito, Lilita One e Baloo 2 sob a SIL Open Font License (OFL).\nPeças, coberturas e ícones: pacote de arte \"candy pop\" do NineFuse.\nFeito com Flutter.",
-  "creditsClose": "FECHAR"
+  "creditsClose": "FECHAR",
+
+  "tutorialFirstSwap": "Troque estas duas peças para alinhar três iguais.",
+  "tutorialFusion": "A peça do seu toque evolui: {amount} {from} viram um {to}!",
+  "tutorialAmount": "{size, select, three{três} four{quatro} five{cinco} other{várias}}",
+  "tutorialObjective": "{objective} para vencer.",
+  "tutorialMovesMedallion": "Estas são suas jogadas. Cada troca que forma trio gasta uma.",
+  "tutorialFreeMiss": "Troca sem trio não gasta jogada: as peças só voltam ao lugar.",
+  "tutorialBoosterDock": "Travou? O Martelo quebra a peça que você tocar, sem gastar jogada.",
+  "tutorialObstacleIce": "Gelo prende a peça. Uma fusão encostada nele o quebra.",
+  "tutorialObstacleGlass": "Vidro aguenta duas fusões encostadas antes de quebrar.",
+  "tutorialObstacleStone": "Pedra aguenta três fusões encostadas, ou cede de vez a um 9 nascido ao lado.",
+  "tutorialGotIt": "ENTENDI",
+  "tutorialSkip": "Pular tutorial",
+  "settingsReplayTutorial": "Rever tutorial",
+  "settingsReplayTutorialDone": "O tutorial vai aparecer de novo nas próximas fases."
 }

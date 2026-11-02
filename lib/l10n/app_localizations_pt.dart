@@ -846,4 +846,66 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get creditsClose => 'FECHAR';
+
+  @override
+  String get tutorialFirstSwap =>
+      'Troque estas duas peças para alinhar três iguais.';
+
+  @override
+  String tutorialFusion(String amount, int from, int to) {
+    return 'A peça do seu toque evolui: $amount $from viram um $to!';
+  }
+
+  @override
+  String tutorialAmount(String size) {
+    String _temp0 = intl.Intl.selectLogic(size, {
+      'three': 'três',
+      'four': 'quatro',
+      'five': 'cinco',
+      'other': 'várias',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String tutorialObjective(String objective) {
+    return '$objective para vencer.';
+  }
+
+  @override
+  String get tutorialMovesMedallion =>
+      'Estas são suas jogadas. Cada troca que forma trio gasta uma.';
+
+  @override
+  String get tutorialFreeMiss =>
+      'Troca sem trio não gasta jogada: as peças só voltam ao lugar.';
+
+  @override
+  String get tutorialBoosterDock =>
+      'Travou? O Martelo quebra a peça que você tocar, sem gastar jogada.';
+
+  @override
+  String get tutorialObstacleIce =>
+      'Gelo prende a peça. Uma fusão encostada nele o quebra.';
+
+  @override
+  String get tutorialObstacleGlass =>
+      'Vidro aguenta duas fusões encostadas antes de quebrar.';
+
+  @override
+  String get tutorialObstacleStone =>
+      'Pedra aguenta três fusões encostadas, ou cede de vez a um 9 nascido ao lado.';
+
+  @override
+  String get tutorialGotIt => 'ENTENDI';
+
+  @override
+  String get tutorialSkip => 'Pular tutorial';
+
+  @override
+  String get settingsReplayTutorial => 'Rever tutorial';
+
+  @override
+  String get settingsReplayTutorialDone =>
+      'O tutorial vai aparecer de novo nas próximas fases.';
 }

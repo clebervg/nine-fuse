@@ -89,6 +89,12 @@ class _BrokenStorage implements GameStorage {
   @override
   Future<void> writeSettings(GameSettings settings) async =>
       throw StateError('sem disco');
+  @override
+  Future<Set<String>> readTutorialSeen() async =>
+      throw StateError('sem disco');
+  @override
+  Future<void> writeTutorialSeen(Set<String> steps) async =>
+      throw StateError('sem disco');
 }
 
 /// Porta de notificações que não faz nada, para testes que não medem

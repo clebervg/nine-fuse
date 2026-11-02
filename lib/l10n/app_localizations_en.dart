@@ -844,4 +844,66 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creditsClose => 'CLOSE';
+
+  @override
+  String get tutorialFirstSwap =>
+      'Swap these two pieces to line up three of a kind.';
+
+  @override
+  String tutorialFusion(String amount, int from, int to) {
+    return 'The piece you touched evolves: $amount ${from}s become a $to!';
+  }
+
+  @override
+  String tutorialAmount(String size) {
+    String _temp0 = intl.Intl.selectLogic(size, {
+      'three': 'three',
+      'four': 'four',
+      'five': 'five',
+      'other': 'several',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String tutorialObjective(String objective) {
+    return '$objective to win.';
+  }
+
+  @override
+  String get tutorialMovesMedallion =>
+      'These are your moves. Every swap that makes a match spends one.';
+
+  @override
+  String get tutorialFreeMiss =>
+      'A swap without a match costs no move: the pieces just slide back.';
+
+  @override
+  String get tutorialBoosterDock =>
+      'Stuck? The Hammer smashes the piece you tap, without spending a move.';
+
+  @override
+  String get tutorialObstacleIce =>
+      'Ice traps the piece. One fusion next to it breaks it.';
+
+  @override
+  String get tutorialObstacleGlass =>
+      'Glass takes two fusions next to it before it breaks.';
+
+  @override
+  String get tutorialObstacleStone =>
+      'Stone takes three fusions next to it, or gives way at once to a 9 born beside it.';
+
+  @override
+  String get tutorialGotIt => 'GOT IT';
+
+  @override
+  String get tutorialSkip => 'Skip tutorial';
+
+  @override
+  String get settingsReplayTutorial => 'Replay tutorial';
+
+  @override
+  String get settingsReplayTutorialDone =>
+      'The tutorial will show up again in your next levels.';
 }

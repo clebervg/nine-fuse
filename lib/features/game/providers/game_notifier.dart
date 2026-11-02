@@ -14,6 +14,7 @@ import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/nova_event.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/special_tile.dart';
+import 'package:nine_fuse/features/game/domain/tutorial.dart';
 import 'package:nine_fuse/features/game/providers/bomb_booster.dart';
 import 'package:nine_fuse/features/game/providers/brush_booster.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
@@ -195,6 +196,28 @@ class GameNotifier extends StateNotifier<GameState>
   /// combinação, em vez de depender do sorteio.
   @visibleForTesting
   MatchEngine? get engine => _engine;
+
+  /// A troca que a mão do tutorial mostra no tabuleiro atual (ver
+  /// `tutorialSwap`). Nula antes de a fase começar ou com o tabuleiro travado.
+  ///
+  /// Passa pelo notifier porque o motor é dele: a tela pergunta, não opera.
+  (Position, Position)? tutorialSwapSuggestion({int? avoidResult}) {
+    final engine = _engine;
+    if (engine == null) return null;
+    return tutorialSwap(engine, state.board, avoidResult: avoidResult);
+  }
+
+  /// O que a troca [a] → [b] fundiria sobre [board] (ver
+  /// `describeSwapFusion`). Não resolve nada nem consome o sorteio.
+  ({int count, int from, int to, Position anchor})? describeFusion(
+    Board board,
+    Position a,
+    Position b,
+  ) {
+    final engine = _engine;
+    if (engine == null) return null;
+    return describeSwapFusion(engine, board, a, b);
+  }
 
   /// Começa a fase [level] com um tabuleiro novo.
   void startLevel(GameLevel level) {

@@ -1971,3 +1971,51 @@ paga); os próprios arquivos de áudio; e a música parar ao abrir um anúncio
 premiado (o SDK do AdMob já pede foco de áudio, e sem arquivo de música não
 há o que medir). **Não validado em aparelho:** o caminho nativo do
 `audioplayers` só foi compilado, não ouvido — não há arquivo para tocar.
+
+### Tutorial interativo das fases 1-3 e estreias de cobertura (2026-11-01)
+
+**Desligado por padrão, ligado no `main`.** `tutorialStorageProvider` nasce
+nulo (tutorial off) e o `main` o aponta para `PrefsGameStorage` — o mesmo
+desenho do anúncio e do áudio. É o que deixa a suíte antiga montar as fases
+1-3 sem balão nenhum no caminho; os testes do tutorial ligam com
+`InMemoryGameStorage`. Os passos vistos vão em `GameStorage`
+(`tutorial_seen_steps`), pelo **nome** do enum: renomear um `TutorialStep`
+faz o passo reaparecer. Leitura que falha = nada visto; o que for marcado
+antes de o disco responder só é gravado depois, **somado** ao que estava lá
+(gravar antes apagaria os passos do disco — um teste pegou isso).
+
+**O passo é marcado como visto quando sobe, não quando fecha.** "Uma vez só"
+vale mesmo se o app fechar com o balão na tela.
+
+**Qualquer troca válida é aceita durante a mão.** Prender a primeira jogada à
+troca indicada ensinaria a obedecer, não a enxergar trios; véu, aros e mão
+ignoram o toque (só o balão o recebe), e a mão some quando o jogador joga. A
+troca da mão sai de `candidateSwaps` do tabuleiro real (`tutorialSwap`),
+**orientada** para a fusão nascer na segunda ponta (onde `tryMove` faz a peça
+nascer) e evitando o dígito que venceria a fase na hora — senão o balão da
+fusão e o lembrete do objetivo sumiriam sob o cartão de vitória.
+
+**Os números do balão da fusão vêm da jogada de verdade, sem perguntar ao
+motor.** A tela anota a troca tentada e o tabuleiro de antes
+(`_onTileTap`/`_onTileSwipe`), e `describeSwapFusion` calcula `swap` +
+`detectMatches` + `fusionRule`. Rodar `tryMove` de novo consumiria o sorteio
+das peças novas e mudaria o tabuleiro seguinte. Como a primeira fusão da fase
+1 ainda pode vencê-la (cascata), o balão da fusão também vale na fase 2.
+
+**A tela acha o HUD e o dock pelas `Key`s que já existiam**
+(`hudObjectiveKey`, `movesLeftKey`, `boosterDockKey`), percorrendo a árvore
+só enquanto há balão no ar. Trocá-las por `GlobalKey` mexeria em widgets de
+outra frente só para o tutorial medir.
+
+**Regras de cada passo** (`idleTutorialStep`, testada sem tela): fase 1 mão →
+fusão → objetivo; fase 2 medalhão; troca recusada da fase 2 em diante; estreia
+de cobertura na **primeira vez que o tipo aparece no tabuleiro** (não pelo
+número da fase); dock na fase 3 mesmo vazio, depois só com estoque — e mirar
+qualquer booster marca o passo, que é como "nunca usou" é cumprido.
+"Rever tutorial" (Configurações) zera tudo, mas os balões das fases 1-3 só
+voltam rejogando essas fases.
+
+**Animações finitas:** a mão faz o gesto três vezes e descansa; os balões
+informativos fecham sozinhos em 6s (`kTutorialAutoClose`) — um
+`pumpAndSettle` atravessa esse tempo, então os testes que olham o balão usam
+`pump`.

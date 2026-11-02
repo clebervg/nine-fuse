@@ -5,13 +5,19 @@ import 'package:nine_fuse/core/audio/audio_service.dart';
 import 'package:nine_fuse/core/audio/sound_event.dart';
 import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/core/widgets/nf_background.dart';
+import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/obstacle.dart';
+import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/star_rating.dart';
+import 'package:nine_fuse/features/game/domain/tutorial.dart';
+import 'package:nine_fuse/features/game/presentation/l10n_labels.dart';
 import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/apex_celebration.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_frame.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/board_geometry.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/bomb_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/brush_offer_dialog.dart';
@@ -28,10 +34,12 @@ import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.
 import 'package:nine_fuse/features/game/presentation/widgets/moves_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/playfield_layout.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/strike_shake.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/tutorial_layer.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
+import 'package:nine_fuse/features/game/providers/tutorial.dart';
 import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
@@ -158,6 +166,30 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   /// é o que separa "bateu numa célula" de "tocou fora e desistiu".
   final GlobalKey _boardKey = GlobalKey();
 
+  /// O `Stack` da tela inteira: o tutorial procura o HUD e o dock dentro dele.
+  final GlobalKey _screenKey = GlobalKey();
+
+  /// O balão do tutorial no ar agora, se algum.
+  ///
+  /// Estado de apresentação, como [_ready]: o motor não muda de regra por
+  /// causa do tutorial — nenhuma troca é recusada por não ser a da mão.
+  TutorialStep? _tutorialStep;
+
+  /// A troca que a mão mostra na primeira jogada.
+  (Position, Position)? _tutorialSwap;
+
+  /// A fusão que o balão descreve, com os valores da jogada de verdade.
+  ({int count, int from, int to, Position anchor})? _tutorialFusion;
+
+  /// A última troca tentada e o tabuleiro de antes dela.
+  ///
+  /// O motor não conta o que fundiu quando a encenação é instantânea, e
+  /// perguntar a ele de novo (`tryMove`) gastaria o sorteio das peças novas.
+  /// Guardar o par e o tabuleiro deixa o balão calcular a fusão sem tocar no
+  /// motor (`describeSwapFusion`).
+  (Position, Position)? _attemptedSwap;
+  Board? _boardBeforeSwap;
+
   @override
   void initState() {
     super.initState();
@@ -177,6 +209,287 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     // A fase sempre volta a uma tela de fora da partida (mapa ou menu).
     GameAudio.music(MusicTrack.menu);
     super.dispose();
+  }
+
+  /// Toque numa peça. Repassa ao notifier, anotando antes a troca que o toque
+  /// vai disparar (segunda peça, vizinha da selecionada) para o tutorial.
+  void _onTileTap(Position position) {
+    final state = ref.read(gameProvider);
+    final selected = state.selectedTile?.position;
+    if (selected != null &&
+        selected != position &&
+        selected.isAdjacentTo(position)) {
+      _attemptedSwap = (selected, position);
+      _boardBeforeSwap = state.board;
+    }
+    ref.read(gameProvider.notifier).selectTile(position);
+  }
+
+  void _onTileSwipe(Position from, Position to) {
+    _attemptedSwap = (from, to);
+    _boardBeforeSwap = ref.read(gameProvider).board;
+    ref.read(gameProvider.notifier).swapTiles(from, to);
+  }
+
+  /// Passos disparados por acontecimento: a jogada feita, a troca recusada, o
+  /// booster usado.
+  void _tutorialOnChange(GameState? previous, GameState next) {
+    final tutorial = ref.read(tutorialProvider);
+    if (!tutorial.enabled || previous == null) return;
+    final tutorialNotifier = ref.read(tutorialProvider.notifier);
+
+    // Partida nova: o balão era da anterior.
+    if (next.runId != previous.runId) {
+      setState(() => _tutorialStep = null);
+      return;
+    }
+
+    // Quem já mirou um booster sabe que o dock existe — "nunca usou" é a
+    // condição do balão, e marcá-lo aqui é o que a cumpre.
+    if (next.isHammerTargeting ||
+        next.isBombTargeting ||
+        next.isBrushTargeting) {
+      tutorialNotifier.markSeen(TutorialStep.boosterDock);
+      if (_tutorialStep == TutorialStep.boosterDock) {
+        setState(() => _tutorialStep = null);
+      }
+    }
+
+    // A mão some no instante em que o jogador joga — qualquer troca, não só a
+    // dela. Na encenação animada isso é o começo da resolução.
+    if (_tutorialStep == TutorialStep.firstSwap &&
+        (next.isResolving || next.moves > previous.moves)) {
+      setState(() => _tutorialStep = null);
+    }
+
+    if (next.moves > previous.moves) {
+      final swap = _attemptedSwap;
+      final before = _boardBeforeSwap;
+      _attemptedSwap = null;
+      _boardBeforeSwap = null;
+      // Fase 1 (e a 2, de segunda chance: a primeira fusão da fase 1 pode já
+      // vencê-la, e aí o balão some sob o cartão de vitória). Com a fase
+      // encerrada o balão não sobe — o cartão já conta o que aconteceu.
+      if (next.level.number <= 2 &&
+          !next.isOver &&
+          tutorial.isPending(TutorialStep.fusion) &&
+          swap != null &&
+          before != null) {
+        final fusion = ref
+            .read(gameProvider.notifier)
+            .describeFusion(before, swap.$1, swap.$2);
+        if (fusion != null) {
+          tutorialNotifier.markSeen(TutorialStep.fusion);
+          setState(() {
+            _tutorialFusion = fusion;
+            _tutorialStep = TutorialStep.fusion;
+          });
+        }
+      }
+    }
+
+    // A troca recusada é o momento exato de dizer que ela não custou nada.
+    // Da fase 2 em diante: na fase 1 a mão ainda está ensinando a acertar.
+    if (next.rejectedSwap != null &&
+        previous.rejectedSwap == null &&
+        next.level.number >= 2 &&
+        tutorial.isPending(TutorialStep.freeMiss)) {
+      tutorialNotifier.markSeen(TutorialStep.freeMiss);
+      setState(() => _tutorialStep = TutorialStep.freeMiss);
+    }
+  }
+
+  /// Mostra o próximo passo "de repouso", se a fase está parada esperando o
+  /// jogador e há algum por mostrar.
+  void _maybeShowIdleTutorial() {
+    if (!mounted || _tutorialStep != null || !_ready || _movesOfferOpen) {
+      return;
+    }
+    final tutorial = ref.read(tutorialProvider);
+    if (!tutorial.enabled || !tutorial.loaded) return;
+
+    final state = ref.read(gameProvider);
+    if (state.status != GameStatus.playing ||
+        state.isResolving ||
+        state.isHammerTargeting ||
+        state.isBombTargeting ||
+        state.isBrushTargeting) {
+      return;
+    }
+
+    final step = idleTutorialStep(
+      levelNumber: state.level.number,
+      movesMade: state.moves,
+      pending: tutorial.isPending,
+      boosterStock: state.hammerCount + state.bombCount + state.brushCount,
+      coveredOnBoard: {
+        for (final row in state.board.grid)
+          for (final tile in row)
+            if (tile != null && tile.obstacle != ObstacleType.none)
+              tile.obstacle,
+      },
+    );
+    if (step == null) return;
+
+    (Position, Position)? swap;
+    if (step == TutorialStep.firstSwap) {
+      final objective = state.level.objective;
+      swap = ref
+          .read(gameProvider.notifier)
+          .tutorialSwapSuggestion(
+            avoidResult: objective.type == ObjectiveType.reachDigit
+                ? objective.digit
+                : null,
+          );
+    }
+
+    ref.read(tutorialProvider.notifier).markSeen(step);
+    // Sem troca possível não há o que a mão mostrar; o passo fica gasto do
+    // mesmo jeito (o tabuleiro travado já encerra a fase).
+    if (step == TutorialStep.firstSwap && swap == null) return;
+    setState(() {
+      _tutorialStep = step;
+      _tutorialSwap = swap;
+    });
+  }
+
+  void _closeTutorial() {
+    if (mounted) setState(() => _tutorialStep = null);
+  }
+
+  void _skipTutorial() {
+    ref.read(tutorialProvider.notifier).skipAll();
+    _closeTutorial();
+  }
+
+  /// Retângulo global de uma célula do tabuleiro.
+  Rect? _cellRect(Position cell) {
+    final box = _boardKey.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return null;
+    final origin = box.localToGlobal(Offset.zero);
+    final geometry = BoardGeometry(availableWidth: box.size.width);
+    return Rect.fromLTWH(
+      origin.dx + geometry.left(cell.col),
+      origin.dy + geometry.top(cell.row),
+      geometry.tileSize,
+      geometry.tileSize,
+    );
+  }
+
+  /// Retângulo global do widget com [key] dentro da tela.
+  ///
+  /// As chaves do HUD e do dock são `Key` comuns (os testes as usam com
+  /// `find.byKey`); trocá-las por `GlobalKey` mudaria os widgets deles só para
+  /// o tutorial medir. A busca percorre a árvore só enquanto um balão está no
+  /// ar, uma vez por quadro de layout.
+  Rect? _rectOfKey(Key key) {
+    Element? found;
+    void visit(Element element) {
+      if (found != null) return;
+      if (element.widget.key == key) {
+        found = element;
+        return;
+      }
+      element.visitChildren(visit);
+    }
+
+    final root = _screenKey.currentContext;
+    if (root is! Element) return null;
+    root.visitChildren(visit);
+    final box = found?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  Widget _tutorialLayer(
+    BuildContext context,
+    GameState state,
+    TutorialStep step,
+  ) {
+    final l10n = AppLocalizations.of(context);
+
+    List<Rect> only(Rect? rect) => rect == null ? const [] : [rect];
+
+    List<Rect> obstacleCell(ObstacleType type) {
+      final board = ref.read(gameProvider).board;
+      for (final row in board.grid) {
+        for (final tile in row) {
+          if (tile != null && tile.obstacle == type) {
+            return only(_cellRect(tile.position));
+          }
+        }
+      }
+      return const [];
+    }
+
+    final (String message, List<Rect> Function() locate) = switch (step) {
+      TutorialStep.firstSwap => (
+        l10n.tutorialFirstSwap,
+        () => [
+          for (final cell in [_tutorialSwap!.$1, _tutorialSwap!.$2])
+            ?_cellRect(cell),
+        ],
+      ),
+      TutorialStep.fusion => (
+        l10n.tutorialFusion(
+          l10n.tutorialAmount(switch (_tutorialFusion?.count ?? 3) {
+            3 => 'three',
+            4 => 'four',
+            5 => 'five',
+            _ => 'other',
+          }),
+          _tutorialFusion?.from ?? 0,
+          _tutorialFusion?.to ?? 1,
+        ),
+        () => const <Rect>[],
+      ),
+      TutorialStep.objective => (
+        l10n.tutorialObjective(
+          l10n.objectiveLabel(
+            state.level.objective,
+            target: state.objectiveTarget,
+          ),
+        ),
+        () => only(_rectOfKey(hudObjectiveKey)),
+      ),
+      TutorialStep.movesMedallion => (
+        l10n.tutorialMovesMedallion,
+        () => only(_rectOfKey(movesLeftKey)),
+      ),
+      TutorialStep.freeMiss => (
+        l10n.tutorialFreeMiss,
+        () => only(_rectOfKey(movesLeftKey)),
+      ),
+      TutorialStep.boosterDock => (
+        l10n.tutorialBoosterDock,
+        () => only(_rectOfKey(boosterDockKey)),
+      ),
+      TutorialStep.obstacleIce => (
+        l10n.tutorialObstacleIce,
+        () => obstacleCell(ObstacleType.ice),
+      ),
+      TutorialStep.obstacleGlass => (
+        l10n.tutorialObstacleGlass,
+        () => obstacleCell(ObstacleType.glass),
+      ),
+      TutorialStep.obstacleStone => (
+        l10n.tutorialObstacleStone,
+        () => obstacleCell(ObstacleType.stone),
+      ),
+    };
+
+    final firstSwap = step == TutorialStep.firstSwap;
+    return TutorialLayer(
+      // Um passo novo é uma camada nova: o relógio de fechar e a mão
+      // recomeçam do zero.
+      key: ValueKey(step),
+      message: message,
+      locate: locate,
+      veil: firstSwap,
+      hand: firstSwap,
+      onClose: firstSwap ? null : _closeTutorial,
+      onSkip: _skipTutorial,
+    );
   }
 
   @override
@@ -291,7 +604,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         _endlessSuggestionOpen = true;
         ref.read(gameProvider.notifier).markEndlessOfferShown();
       }
+
+      _tutorialOnChange(previous, next);
     });
+
+    // Os passos "de repouso" (sem acontecimento que os dispare) são checados
+    // depois do quadro: decidir no meio do `build` exigiria mudar o provider
+    // do tutorial durante a construção. Com tudo visto (o caso de quase toda
+    // partida) nem isso é agendado.
+    final tutorialPending = ref.watch(
+      tutorialProvider.select((t) => TutorialStep.values.any(t.isPending)),
+    );
+    if (tutorialPending && _tutorialStep == null && _ready) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _maybeShowIdleTutorial(),
+      );
+    }
 
     // O céu fica por trás do `Scaffold` inteiro — inclusive da `AppBar`
     // transparente —, para o topo não virar uma faixa de outra cor.
@@ -308,6 +636,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           // tela de celular os botões cairiam fora da dobra e a ação principal
           // depois de vencer ficaria inalcançável sem rolar.
           child: Stack(
+            key: _screenKey,
             children: [
               PlayfieldLayout(
                 hud: LevelBanner(state: state),
@@ -385,13 +714,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     !state.isOver &&
                                     !state.isHammerTargeting &&
                                     !state.isBombTargeting &&
-                                    !state.isBrushTargeting,
+                                    !state.isBrushTargeting &&
+                                    // A mão do tutorial já aponta uma jogada;
+                                    // um segundo par aceso seria outra.
+                                    _tutorialStep != TutorialStep.firstSwap,
                                 // Durante a mira o toque não chega aqui: a
                                 // camada de mira o intercepta antes, para
                                 // poder distinguir "bateu na célula" de
                                 // "tocou fora e desistiu".
-                                onTileTap: notifier.selectTile,
-                                onTileSwipe: notifier.swapTiles,
+                                onTileTap: _onTileTap,
+                                onTileSwipe: _onTileSwipe,
                               ),
                             ),
                             Positioned.fill(
@@ -464,6 +796,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 Positioned.fill(
                   child: ApexCelebration(key: ValueKey('apex_${state.runId}')),
                 ),
+              // Abaixo de todo convite e cartão: um balão de tutorial nunca
+              // disputa espaço com uma decisão. Sai de cena na mira (o toque tem
+              // outro destino) e com o convite de movimentos aberto.
+              if (_tutorialStep != null &&
+                  _ready &&
+                  !state.isOver &&
+                  !_movesOfferOpen &&
+                  !state.isHammerTargeting &&
+                  !state.isBombTargeting &&
+                  !state.isBrushTargeting)
+                _tutorialLayer(context, state, _tutorialStep!),
               // O cartão de início some assim que a fase acaba: perder no
               // primeiro movimento não pode deixar dois cartões na tela.
               if (!_ready && !state.isOver)

@@ -1344,6 +1344,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'CLOSE'**
   String get creditsClose;
+
+  /// No description provided for @tutorialFirstSwap.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap these two pieces to line up three of a kind.'**
+  String get tutorialFirstSwap;
+
+  /// No description provided for @tutorialFusion.
+  ///
+  /// In en, this message translates to:
+  /// **'The piece you touched evolves: {amount} {from}s become a {to}!'**
+  String tutorialFusion(String amount, int from, int to);
+
+  /// No description provided for @tutorialAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'{size, select, three{three} four{four} five{five} other{several}}'**
+  String tutorialAmount(String size);
+
+  /// No description provided for @tutorialObjective.
+  ///
+  /// In en, this message translates to:
+  /// **'{objective} to win.'**
+  String tutorialObjective(String objective);
+
+  /// No description provided for @tutorialMovesMedallion.
+  ///
+  /// In en, this message translates to:
+  /// **'These are your moves. Every swap that makes a match spends one.'**
+  String get tutorialMovesMedallion;
+
+  /// No description provided for @tutorialFreeMiss.
+  ///
+  /// In en, this message translates to:
+  /// **'A swap without a match costs no move: the pieces just slide back.'**
+  String get tutorialFreeMiss;
+
+  /// No description provided for @tutorialBoosterDock.
+  ///
+  /// In en, this message translates to:
+  /// **'Stuck? The Hammer smashes the piece you tap, without spending a move.'**
+  String get tutorialBoosterDock;
+
+  /// No description provided for @tutorialObstacleIce.
+  ///
+  /// In en, this message translates to:
+  /// **'Ice traps the piece. One fusion next to it breaks it.'**
+  String get tutorialObstacleIce;
+
+  /// No description provided for @tutorialObstacleGlass.
+  ///
+  /// In en, this message translates to:
+  /// **'Glass takes two fusions next to it before it breaks.'**
+  String get tutorialObstacleGlass;
+
+  /// No description provided for @tutorialObstacleStone.
+  ///
+  /// In en, this message translates to:
+  /// **'Stone takes three fusions next to it, or gives way at once to a 9 born beside it.'**
+  String get tutorialObstacleStone;
+
+  /// No description provided for @tutorialGotIt.
+  ///
+  /// In en, this message translates to:
+  /// **'GOT IT'**
+  String get tutorialGotIt;
+
+  /// No description provided for @tutorialSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip tutorial'**
+  String get tutorialSkip;
+
+  /// No description provided for @settingsReplayTutorial.
+  ///
+  /// In en, this message translates to:
+  /// **'Replay tutorial'**
+  String get settingsReplayTutorial;
+
+  /// No description provided for @settingsReplayTutorialDone.
+  ///
+  /// In en, this message translates to:
+  /// **'The tutorial will show up again in your next levels.'**
+  String get settingsReplayTutorialDone;
 }
 
 class _AppLocalizationsDelegate

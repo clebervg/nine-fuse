@@ -88,6 +88,13 @@ abstract interface class GameStorage {
   /// não pode religar a vibração que o jogador desligou.
   Future<GameSettings> readSettings();
   Future<void> writeSettings(GameSettings settings);
+
+  /// Nomes dos passos do tutorial que o jogador já viu.
+  ///
+  /// Strings, e não o enum: um passo removido numa versão futura vira um nome
+  /// que ninguém procura, em vez de uma leitura que estoura.
+  Future<Set<String>> readTutorialSeen();
+  Future<void> writeTutorialSeen(Set<String> steps);
 }
 
 /// Persistência real, no armazenamento do dispositivo.
@@ -110,6 +117,7 @@ class PrefsGameStorage implements GameStorage {
   static const String _musicOnKey = 'settings_music_on';
   static const String _vibrationOnKey = 'settings_vibration_on';
   static const String _languageKey = 'settings_language';
+  static const String _tutorialKey = 'tutorial_seen_steps';
 
   @override
   Future<int> readCampaignProgress() async =>
@@ -298,6 +306,19 @@ class PrefsGameStorage implements GameStorage {
       await prefs.setString(_languageKey, code);
     }
   }
+
+  @override
+  Future<Set<String>> readTutorialSeen() async =>
+      ((await SharedPreferences.getInstance()).getStringList(_tutorialKey) ??
+              const <String>[])
+          .toSet();
+
+  @override
+  Future<void> writeTutorialSeen(Set<String> steps) async =>
+      (await SharedPreferences.getInstance()).setStringList(
+        _tutorialKey,
+        steps.toList(),
+      );
 }
 
 /// Persistência só em memória, para testes.
@@ -313,9 +334,11 @@ class InMemoryGameStorage implements GameStorage {
     this.prunedBelow = 0,
     this.lastSpinTimestamp,
     this.settings = const GameSettings(),
+    Set<String>? tutorialSeen,
     Set<int>? claimedChests,
     Map<int, LevelRecord>? levelRecords,
-  }) : claimedChests = claimedChests ?? {},
+  }) : tutorialSeen = tutorialSeen ?? {},
+       claimedChests = claimedChests ?? {},
        levelRecords = levelRecords ?? {};
 
   int campaignProgress;
@@ -328,6 +351,7 @@ class InMemoryGameStorage implements GameStorage {
   int prunedBelow;
   DateTime? lastSpinTimestamp;
   GameSettings settings;
+  Set<String> tutorialSeen;
   Set<int> claimedChests;
   Map<int, LevelRecord> levelRecords;
 
@@ -408,4 +432,11 @@ class InMemoryGameStorage implements GameStorage {
 
   @override
   Future<void> writeSettings(GameSettings value) async => settings = value;
+
+  @override
+  Future<Set<String>> readTutorialSeen() async => Set.of(tutorialSeen);
+
+  @override
+  Future<void> writeTutorialSeen(Set<String> steps) async =>
+      tutorialSeen = Set.of(steps);
 }
