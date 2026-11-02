@@ -79,6 +79,50 @@ const int kMaxObstacles = 7;
 /// que são as mais curtas que o jogo já se permitiu.
 const int kMinMoveLimit = 10;
 
+/// A partir de qual fase o gerador começa a intercalar fases "hard".
+///
+/// 30 é o pedido original: as fases artesanais (1-10) e os primeiros dois
+/// blocos gerados (11-30) continuam sem variação de intensidade — o jogador
+/// ainda está aprendendo o ritmo normal da campanha gerada.
+const int kHardLevelStart = 30;
+
+/// O quanto o limite de movimentos encolhe numa fase hard, em relação ao
+/// que a fórmula normal (aperto por bloco + ritmo) já calculou para aquele
+/// número. 0,75 é o "-25%" pedido.
+///
+/// Aplicado **depois** do aperto por bloco e do ritmo senoidal, e **antes**
+/// do piso de projeto ([kMinMoveLimit]/[kHeavyDigitMoveFloor]) — a fase hard
+/// nunca fica mais curta que o piso que já vale para qualquer fase.
+const double kHardMoveMultiplier = 0.75;
+
+/// A fase [number] é uma fase "hard"?
+///
+/// Exatamente uma fase hard a cada [kBlockSize] fases, a partir de
+/// [kHardLevelStart] — mas a posição dentro do bloco **cicla** em vez de
+/// ficar presa sempre na mesma (posição 8, `kBlockSize - 2`): fixa, ela
+/// caía sempre no arquétipo de quebra de cobertura (`_objectiveFor` só
+/// devolve `clearObstacles`/`clearAllObstacles` a partir da posição
+/// `kBlockSize - 3`), e a intensificação da fase hard nunca visitava uma
+/// fase de dígito — o oposto do objetivo de reduzir repetição que o resto
+/// deste gerador persegue. [_hardPositionFor] cicla pela mesma razão que
+/// [_spawnMinFor] cicla a janela de sorteio: nunca a posição 0 (a costura
+/// teria uma fase hard logo na abertura do bloco, sem nenhuma fase normal
+/// antes para contrastar) e nunca a última posição, `kBlockSize - 1` (o
+/// fecho "limpe tudo" já é um arquétipo fixo por conta própria — a mesma
+/// razão que excluía a última posição na versão anterior desta função —, e
+/// não deveria carregar as duas intensificações ao mesmo tempo).
+bool isHardLevel(int number) {
+  if (number < kHardLevelStart) return false;
+  return _positionOf(number) == _hardPositionFor(_blockOf(number));
+}
+
+/// A posição hard do bloco [block], ciclando por `1..kBlockSize - 2` — nunca
+/// a posição 0 nem a última do bloco (ver [isHardLevel]). O intervalo
+/// cobre tanto posições de dígito (`_objectiveFor` até `kBlockSize - 4`)
+/// quanto as duas de quebra de cobertura, então a fase hard varia de
+/// arquétipo em vez de sempre cair no mesmo.
+int _hardPositionFor(int block) => 1 + block % (kBlockSize - 2);
+
 /// Piso de movimentos das fases "pesadas": mais de dois alvos de dígito
 /// alto (7, 8 ou o próprio [kMaxDigit]) na mesma fase.
 ///
@@ -166,7 +210,7 @@ GameLevel generateLevel(int number) {
   final block = _blockOf(number);
   final spawnMin = _spawnMinFor(block);
   final spawnMax = spawnMin + kSpawnWidth - 1;
-  final obstacles = _obstaclesFor(block);
+  final obstacles = _obstaclesFor(block, hard: isHardLevel(number));
   final objective = _finalObjectiveFor(number);
 
   return GameLevel(
@@ -185,6 +229,34 @@ GameLevel generateLevel(int number) {
   );
 }
 
+/// Isola o efeito de [kHardMoveMultiplier] no limite de movimentos da fase
+/// [number], para teste.
+///
+/// Recalcula o mesmo `moveLimit` que [generateLevel] calcularia para
+/// [number] — mesmo objetivo, mesmo bloco, mesma janela de sorteio —, mas
+/// forçando [hard] em vez de deixar [_movesFor] ler `isHardLevel(number)`
+/// sozinho. Sem isso, comparar `generateLevel(hardLevel)` contra
+/// `generateLevel(hardLevel - 1)` mede a diferença de **duas** fases que
+/// podem ter arquétipo de objetivo diferente (a posição hard cicla entre
+/// dígito e cobertura, ver [isHardLevel]) — o multiplicador fica misturado
+/// com a diferença de fórmula entre `reachDigit` e `clearObstacles`. Aqui as
+/// duas chamadas usam o objetivo real da própria fase [number]; só o `hard`
+/// varia.
+int moveLimitForTesting(int number, {required bool hard}) {
+  final block = _blockOf(number);
+  final spawnMin = _spawnMinFor(block);
+  final spawnMax = spawnMin + kSpawnWidth - 1;
+  final objective = _finalObjectiveFor(number);
+  return _movesFor(
+    objective: objective,
+    block: block,
+    spawnMin: spawnMin,
+    spawnMax: spawnMax,
+    number: number,
+    hardOverride: hard,
+  );
+}
+
 /// Objetivo final da fase [number], já passado pelo controle de
 /// anti-repetição.
 ///
@@ -199,7 +271,7 @@ Objective _finalObjectiveFor(int number) {
     final block = _blockOf(number);
     final position = _positionOf(number);
     final spawnMax = _spawnMinFor(block) + kSpawnWidth - 1;
-    final obstacles = _obstaclesFor(block);
+    final obstacles = _obstaclesFor(block, hard: isHardLevel(number));
 
     final candidate = _objectiveFor(
       position: position,
@@ -439,7 +511,7 @@ Objective _objectiveFor({
 /// escolhem seu alvo daqui, e um bloco sem cobertura nenhuma não teria o que
 /// pedir. A dureza entra por bloco, do mais macio para o mais duro, na mesma
 /// ordem em que a campanha artesanal as apresentou.
-ObstacleLayout _obstaclesFor(int block) {
+ObstacleLayout _obstaclesFor(int block, {bool hard = false}) {
   final ice = (2 + block % 3).clamp(1, 4);
   final glass = (1 + block ~/ 2).clamp(1, 3);
   // O teto da pedra voltou a 3. O motivo do teto reduzido a 2 era um bug do
@@ -455,16 +527,39 @@ ObstacleLayout _obstaclesFor(int block) {
   // de folga que o teto 2 comprava.
   final stone = (block ~/ 3).clamp(0, 3);
 
+  // Fase hard: camada dupla — dobra cada tipo presente antes do teto. Só
+  // dobra o que já existe (multiplicar zero continua zero); o teto de
+  // tabuleiro é o mesmo de qualquer fase, então o corte por baixo (menos
+  // gelo primeiro) segue valendo igual.
+  final doubledIce = hard ? ice * 2 : ice;
+  final doubledGlass = hard ? glass * 2 : glass;
+  final doubledStone = hard ? stone * 2 : stone;
+
   // O teto é do tabuleiro, não do desenho: o excesso é aparado da cobertura
-  // mais macia, que é a que menos muda o que a fase pede.
-  var trimmedIce = ice;
-  var total = ice + glass + stone;
+  // mais macia primeiro (gelo, até o piso de 1), depois da próxima mais macia
+  // (vidro, até o mesmo piso), e só em último caso da pedra (também até o
+  // piso de 1) — a mais dura entrega primeiro e é a última a perder unidade.
+  // Sem os dois estágios seguintes, uma fase hard cujo vidro e/ou pedra já
+  // dobrados sozinhos excedem o teto furava `kMaxObstacles` mesmo com o gelo
+  // já no piso — foi o que a densidade dobrada da fase hard expôs.
+  var trimmedIce = doubledIce;
+  var trimmedGlass = doubledGlass;
+  var trimmedStone = doubledStone;
+  var total = doubledIce + doubledGlass + doubledStone;
   while (total > kMaxObstacles && trimmedIce > 1) {
     trimmedIce--;
     total--;
   }
+  while (total > kMaxObstacles && trimmedGlass > 1) {
+    trimmedGlass--;
+    total--;
+  }
+  while (total > kMaxObstacles && trimmedStone > 1) {
+    trimmedStone--;
+    total--;
+  }
 
-  return ObstacleLayout(ice: trimmedIce, glass: glass, stone: stone);
+  return ObstacleLayout(ice: trimmedIce, glass: trimmedGlass, stone: trimmedStone);
 }
 
 /// O teto de contagem que vale para um objetivo de dígito [digit] a
@@ -506,6 +601,7 @@ int _movesFor({
   required int spawnMin,
   required int spawnMax,
   required int number,
+  bool? hardOverride,
 }) {
   final double base = switch (objective.type) {
     ObjectiveType.reachDigit => _digitMoves(objective, spawnMin: spawnMin, spawnMax: spawnMax),
@@ -525,12 +621,14 @@ int _movesFor({
   // par, não quem define a tendência de longo prazo — essa continua sendo o
   // aperto por bloco.
   final paced = base * tighteningFactor * _pacingFactor(number);
+  final hard = hardOverride ?? isHardLevel(number);
+  final hardened = hard ? paced * kHardMoveMultiplier : paced;
 
   final distance = objective.type == ObjectiveType.reachDigit
       ? objective.digit! - _averageBoardTileLevel(spawnMax)
       : 0.0;
   final floor = _moveFloorFor(objective, distance: distance);
-  final result = paced.floor();
+  final result = hardened.floor();
   return result < floor ? floor : result;
 }
 

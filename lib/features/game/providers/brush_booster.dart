@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
+import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
@@ -19,20 +21,40 @@ import 'package:nine_fuse/features/game/providers/game_storage.dart';
 /// própria (obstáculo não é afetado) nem tranco de tela a sincronizar.
 @immutable
 class BrushState {
-  const BrushState({this.count = 0, this.isTargeting = false});
+  const BrushState({
+    this.count = 0,
+    this.isTargeting = false,
+    this.pendingTarget,
+  });
 
   /// Pincéis em estoque. Inventário do jogador, como os outros dois.
   final int count;
 
   /// O jogador está escolhendo a peça a pintar.
   ///
-  /// Sem Modo Fantasma, como a Bomba: estoque zero recusa o toque no dock em
-  /// vez de entrar em mira.
+  /// Modo Fantasma, mesma regra do Martelo/Bomba: liga mesmo com estoque
+  /// zero. `usePaint` é quem decide, na hora do toque, se pinta de verdade
+  /// ou só guarda o alvo.
   final bool isTargeting;
 
-  BrushState copyWith({int? count, bool? isTargeting}) => BrushState(
+  /// Peça escolhida no Modo Fantasma, à espera do pincel.
+  ///
+  /// Mesma regra do Martelo/Bomba: guardá-la evita cobrar duas vezes pela
+  /// mesma pintura, e quem assistiu ao anúncio (ou comprou) não precisa
+  /// mirar de novo.
+  final Position? pendingTarget;
+
+  BrushState copyWith({
+    int? count,
+    bool? isTargeting,
+    Position? pendingTarget,
+    bool clearPendingTarget = false,
+  }) => BrushState(
     count: count ?? this.count,
     isTargeting: isTargeting ?? this.isTargeting,
+    pendingTarget: clearPendingTarget
+        ? null
+        : (pendingTarget ?? this.pendingTarget),
   );
 
   /// O mesmo estoque, sem nada de uma partida.
@@ -43,10 +65,11 @@ class BrushState {
       identical(this, other) ||
       other is BrushState &&
           count == other.count &&
-          isTargeting == other.isTargeting;
+          isTargeting == other.isTargeting &&
+          pendingTarget == other.pendingTarget;
 
   @override
-  int get hashCode => Object.hash(count, isTargeting);
+  int get hashCode => Object.hash(count, isTargeting, pendingTarget);
 
   @override
   String toString() => 'BrushState($count em estoque, mirando: $isTargeting)';
@@ -57,16 +80,19 @@ class BrushState {
 mixin BrushBooster<S> on StateNotifier<S> {
   /// Mesmos dois avisos dos outros boosters: engajar a mira e errar a mira.
   static void Function() targetingFeedback = () {
-    HapticFeedback.selectionClick();
-    SystemSound.play(SystemSoundType.click);
+    Haptics.selection();
+    GameAudio.play(SoundEvent.select, fallback: Haptics.click);
   };
 
   static void Function() rejectionFeedback = () =>
-      SystemSound.play(SystemSoundType.alert);
+      GameAudio.play(SoundEvent.invalidSwap, fallback: Haptics.alert);
 
   /// Pintar não é destruir — o toque leve de seleção é o suficiente, ao
   /// contrário do `heavyImpact` do Martelo/Bomba.
-  static void Function() paintFeedback = HapticFeedback.selectionClick;
+  static void Function() paintFeedback = () {
+    Haptics.selection();
+    GameAudio.play(SoundEvent.brush);
+  };
 
   // --- o que cada notifier fornece -------------------------------------------
 
@@ -96,11 +122,9 @@ mixin BrushBooster<S> on StateNotifier<S> {
       return;
     }
 
-    if (brush.count <= 0) {
-      rejectionFeedback();
-      return;
-    }
-
+    // Modo Fantasma: entra em mira mesmo com estoque zero — mesma regra do
+    // Martelo/Bomba. `usePaint` é quem decide, na hora do toque, se pinta
+    // de verdade ou só guarda o alvo.
     targetingFeedback();
     writeBrush(brush.copyWith(isTargeting: true));
     onBrushTargetingStarted();
@@ -108,32 +132,74 @@ mixin BrushBooster<S> on StateNotifier<S> {
 
   void onBrushTargetingStarted() {}
 
+  /// Sai do modo de mira, descartando o alvo pendente.
   void cancelBrushTargeting() {
-    writeBrush(brush.copyWith(isTargeting: false));
+    writeBrush(brush.copyWith(isTargeting: false, clearPendingTarget: true));
   }
 
   /// Pinta a peça em [pos]: soma 1 ao valor. Mira errada (fora do tabuleiro,
   /// casa vazia, obstáculo, peça especial, dígito já máximo) avisa e não
   /// cobra — mesma régua do Martelo/Bomba.
+  ///
+  /// Com estoque zero o alvo é apenas guardado, e quem abre o convite de
+  /// aquisição é a tela. A pintura sai depois, em [grantBrush].
   void usePaint(Position pos) {
-    if (brushEngine == null || !acceptsBrush || brush.count <= 0) return;
+    if (brushEngine == null || !acceptsBrush) return;
 
+    if (!_isPaintable(pos)) {
+      rejectionFeedback();
+      return;
+    }
+
+    if (brush.count <= 0) {
+      writeBrush(brush.copyWith(pendingTarget: pos));
+      return;
+    }
+
+    _paint(pos);
+  }
+
+  /// Mesma checagem de [MatchEngine.paintTile], repetida aqui para poder
+  /// recusar **antes** do Modo Fantasma guardar um alvo que o motor já sabe
+  /// que nunca vai pintar — mesma régua do Martelo/Bomba.
+  bool _isPaintable(Position pos) {
+    if (!Board.contains(pos)) return false;
+    final tile = brushBoard.getTileAt(pos);
+    return tile != null &&
+        !tile.isBlocked &&
+        tile.specialType == null &&
+        tile.value < kMaxDigit;
+  }
+
+  /// Credita pincéis e, se havia alvo escolhido no Modo Fantasma, pinta
+  /// nele.
+  void grantBrush({int count = 1}) {
+    _setBrushCount(brush.count + count);
+
+    final pending = brush.pendingTarget;
+    if (pending == null || brushEngine == null || !acceptsBrush) return;
+
+    _paint(pending);
+  }
+
+  void _paint(Position pos) {
     final engine = brushEngine!;
     final resolution = engine.paintTile(brushBoard, pos);
     if (resolution == null) {
+      // O alvo pode ter ficado inválido (peça já no teto, virou especial,
+      // sumiu) enquanto o anúncio rodava — mesmo caso que `grantBomb` trata.
+      // O pincel já foi creditado; só a mira falha, sem cobrar de novo.
       rejectionFeedback();
+      writeBrush(brush.copyWith(clearPendingTarget: true));
       return;
     }
 
     paintFeedback();
     _setBrushCount(brush.count - 1);
-    writeBrush(brush.copyWith(isTargeting: false));
+    writeBrush(brush.copyWith(isTargeting: false, clearPendingTarget: true));
 
     playBrushResolution(engine, resolution);
   }
-
-  /// Credita pincéis ao inventário do jogador.
-  void grantBrush({int count = 1}) => _setBrushCount(brush.count + count);
 
   void _setBrushCount(int count) {
     writeBrush(brush.copyWith(count: count));

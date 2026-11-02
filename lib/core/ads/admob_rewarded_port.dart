@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:nine_fuse/core/ads/consent_service.dart';
 import 'package:nine_fuse/core/ads/rewarded_ad_service.dart';
 
 /// A ponte com o SDK do AdMob.
@@ -13,13 +14,22 @@ import 'package:nine_fuse/core/ads/rewarded_ad_service.dart';
 /// puro. Testar esta classe exigiria um binding nativo e mediria o SDK, não o
 /// jogo.
 class AdMobRewardedPort implements RewardedAdPort {
-  const AdMobRewardedPort();
+  const AdMobRewardedPort({required this.consent});
+
+  /// Nenhum anúncio é pedido antes de o consentimento (UMP/ATT) resolver.
+  final ConsentService consent;
 
   @override
   Future<RewardedAdHandle?> load(String unitId) async {
     // Sem unidade não há o que pedir: fora de Android e iOS o `AdIds` devolve
     // string vazia de propósito, e chamar o SDK ali estouraria no canal.
     if (unitId.isEmpty) return null;
+
+    // O preload dos quatro funis chega junto, no início da fase; todos esperam
+    // o MESMO consentimento (o serviço o calcula uma vez). Sem permissão, é
+    // "sem anúncio", não erro.
+    final permission = await consent.ensure();
+    if (!permission.canRequestAds) return null;
 
     final completer = Completer<RewardedAdHandle?>();
 
@@ -35,7 +45,9 @@ class AdMobRewardedPort implements RewardedAdPort {
     try {
       await RewardedAd.load(
         adUnitId: unitId,
-        request: const AdRequest(),
+        // Sem consentimento de personalização (ATT recusado), só anúncios
+        // genéricos.
+        request: AdRequest(nonPersonalizedAds: !permission.personalized),
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: (ad) => completer.complete(_AdMobRewardedAd(ad)),
           // Sem inventário é resposta, não erro: quem chamou trata `null` como

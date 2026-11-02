@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:nine_fuse/features/game/domain/game_settings.dart';
 import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -80,6 +81,13 @@ abstract interface class GameStorage {
   /// migração nem valor de fachada.
   Future<DateTime?> readLastSpinTimestamp();
   Future<void> writeLastSpinTimestamp(DateTime value);
+
+  /// Som, música, vibração e idioma.
+  ///
+  /// Cada campo ilegível volta ao seu padrão **sozinho**: um volume corrompido
+  /// não pode religar a vibração que o jogador desligou.
+  Future<GameSettings> readSettings();
+  Future<void> writeSettings(GameSettings settings);
 }
 
 /// Persistência real, no armazenamento do dispositivo.
@@ -97,6 +105,11 @@ class PrefsGameStorage implements GameStorage {
   static const String _coinsKey = 'wallet_coins';
   static const String _chestsKey = 'campaign_chests_claimed';
   static const String _lastSpinKey = 'daily_spin_last_timestamp';
+  static const String _soundOnKey = 'settings_sound_on';
+  static const String _soundVolumeKey = 'settings_sound_volume';
+  static const String _musicOnKey = 'settings_music_on';
+  static const String _vibrationOnKey = 'settings_vibration_on';
+  static const String _languageKey = 'settings_language';
 
   @override
   Future<int> readCampaignProgress() async =>
@@ -212,10 +225,7 @@ class PrefsGameStorage implements GameStorage {
 
   @override
   Future<void> writeArchivedStars(int stars) async =>
-      (await SharedPreferences.getInstance()).setInt(
-        _archivedStarsKey,
-        stars,
-      );
+      (await SharedPreferences.getInstance()).setInt(_archivedStarsKey, stars);
 
   @override
   Future<int> readPrunedBelow() async =>
@@ -230,9 +240,7 @@ class PrefsGameStorage implements GameStorage {
 
   @override
   Future<DateTime?> readLastSpinTimestamp() async {
-    final millis = (await SharedPreferences.getInstance()).getInt(
-      _lastSpinKey,
-    );
+    final millis = (await SharedPreferences.getInstance()).getInt(_lastSpinKey);
     if (millis == null) return null;
     return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
   }
@@ -243,6 +251,53 @@ class PrefsGameStorage implements GameStorage {
         _lastSpinKey,
         value.toUtc().millisecondsSinceEpoch,
       );
+  @override
+  Future<GameSettings> readSettings() async {
+    const defaults = GameSettings();
+    final SharedPreferences prefs;
+    try {
+      prefs = await SharedPreferences.getInstance();
+    } catch (error) {
+      debugPrint('Configurações ilegíveis, usando o padrão: $error');
+      return defaults;
+    }
+    // Um tipo trocado no disco (versão antiga, edição manual) faz o
+    // `getBool` lançar; cada campo cai no padrão por conta própria.
+    T? read<T>(T? Function() get) {
+      try {
+        return get();
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final volume = read(() => prefs.getDouble(_soundVolumeKey));
+    return GameSettings(
+      soundOn: read(() => prefs.getBool(_soundOnKey)) ?? defaults.soundOn,
+      soundVolume: volume == null || volume.isNaN
+          ? defaults.soundVolume
+          : volume.clamp(0.0, 1.0),
+      musicOn: read(() => prefs.getBool(_musicOnKey)) ?? defaults.musicOn,
+      vibrationOn:
+          read(() => prefs.getBool(_vibrationOnKey)) ?? defaults.vibrationOn,
+      language: AppLanguage.fromCode(read(() => prefs.getString(_languageKey))),
+    );
+  }
+
+  @override
+  Future<void> writeSettings(GameSettings settings) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_soundOnKey, settings.soundOn);
+    await prefs.setDouble(_soundVolumeKey, settings.soundVolume);
+    await prefs.setBool(_musicOnKey, settings.musicOn);
+    await prefs.setBool(_vibrationOnKey, settings.vibrationOn);
+    final code = settings.language.code;
+    if (code == null) {
+      await prefs.remove(_languageKey);
+    } else {
+      await prefs.setString(_languageKey, code);
+    }
+  }
 }
 
 /// Persistência só em memória, para testes.
@@ -257,6 +312,7 @@ class InMemoryGameStorage implements GameStorage {
     this.archivedStars = 0,
     this.prunedBelow = 0,
     this.lastSpinTimestamp,
+    this.settings = const GameSettings(),
     Set<int>? claimedChests,
     Map<int, LevelRecord>? levelRecords,
   }) : claimedChests = claimedChests ?? {},
@@ -271,6 +327,7 @@ class InMemoryGameStorage implements GameStorage {
   int archivedStars;
   int prunedBelow;
   DateTime? lastSpinTimestamp;
+  GameSettings settings;
   Set<int> claimedChests;
   Map<int, LevelRecord> levelRecords;
 
@@ -345,4 +402,10 @@ class InMemoryGameStorage implements GameStorage {
   @override
   Future<void> writeLastSpinTimestamp(DateTime value) async =>
       lastSpinTimestamp = value;
+
+  @override
+  Future<GameSettings> readSettings() async => settings;
+
+  @override
+  Future<void> writeSettings(GameSettings value) async => settings = value;
 }

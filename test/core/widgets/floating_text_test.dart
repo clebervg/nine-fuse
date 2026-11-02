@@ -64,7 +64,7 @@ void main() {
 
     final text = tester.widget<Text>(find.text('+250'));
     final shadowColor = text.style!.shadows!.first.color;
-    expect(shadowColor, isNot(AppColors.digit3));
+    expect(shadowColor, isNot(AppColors.uiGold));
   });
 
   testWidgets('opacidade some no fim e o overlay se autodestrói', (

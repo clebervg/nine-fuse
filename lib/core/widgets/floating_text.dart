@@ -3,7 +3,7 @@ import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 
 /// Cor padrão do texto flutuante quando nenhuma é informada.
-const Color _kDefaultColor = AppColors.digit3;
+const Color _kDefaultColor = AppColors.uiGold;
 
 /// Cor de destaque para eventos críticos/combo.
 const Color _kCriticalColor = Color(0xFFFF6D00);

@@ -142,5 +142,173 @@ void main() {
         }
       });
     });
+
+    group('Fases hard', () {
+      test('isHardLevel é falso antes da fase 30', () {
+        for (var n = kHandcraftedLevels + 1; n < kHardLevelStart; n++) {
+          expect(isHardLevel(n), isFalse, reason: 'fase $n');
+        }
+      });
+
+      test('isHardLevel marca exatamente 1 fase por bloco a partir da 30', () {
+        // A posição hard cicla por bloco (Fix 3): o espaçamento numérico
+        // entre fases hard consecutivas não é mais fixo em kBlockSize (varia
+        // com o salto de posição), mas continua havendo exatamente uma fase
+        // hard por bloco — o teste passou a contar por bloco, não por
+        // distância entre números.
+        final hardInRange = [
+          for (var n = kHardLevelStart; n < kHardLevelStart + kBlockSize * 5; n++)
+            if (isHardLevel(n)) n,
+        ];
+        expect(hardInRange.length, 5);
+        // Uma por bloco: nenhum par de fases hard compartilha o mesmo bloco.
+        final blocks = hardInRange
+            .map((n) => (n - kHandcraftedLevels - 1) ~/ kBlockSize)
+            .toSet();
+        expect(blocks.length, hardInRange.length);
+      });
+
+      test(
+        'kHardMoveMultiplier reduz o limite de movimentos em ~25% para a '
+        'mesma fase, isolado do arquétipo de objetivo',
+        () {
+          // A posição hard cicla entre arquétipos (Fix 3: fases hard tanto de
+          // dígito quanto de cobertura), então comparar generateLevel(hardLevel)
+          // com generateLevel(hardLevel - 1) mediria também a diferença de
+          // fórmula entre reachDigit/clearObstacles, não só o multiplicador.
+          // moveLimitForTesting recalcula a MESMA fase (mesmo objetivo, mesmo
+          // bloco, mesma janela) com e sem o multiplicador aplicado, isolando
+          // seu efeito.
+          final hardLevels = [
+            for (var n = kHardLevelStart; n < kHardLevelStart + kBlockSize * 10; n++)
+              if (isHardLevel(n)) n,
+          ];
+          expect(hardLevels, isNotEmpty);
+
+          for (final number in hardLevels) {
+            final withHard = moveLimitForTesting(number, hard: true);
+            final withoutHard = moveLimitForTesting(number, hard: false);
+
+            expect(
+              withHard,
+              greaterThanOrEqualTo(kMinMoveLimit),
+              reason: 'fase $number',
+            );
+
+            // O piso de movimentos (kMinMoveLimit/kHeavyDigitMoveFloor) pode
+            // interceptar o valor calculado de qualquer um dos dois lados —
+            // quando isso acontece, "hard" e "não-hard" convergem no mesmo
+            // piso e o multiplicador deixa de se manifestar no resultado
+            // final. A checagem de redução (estrita e de ~25%) só vale
+            // quando nenhum dos dois esbarrou no piso; do contrário, o piso
+            // já garante que nenhum dos dois ficou baixo demais.
+            final hitFloor =
+                withHard == kMinMoveLimit ||
+                withHard == kHeavyDigitMoveFloor ||
+                withoutHard == kMinMoveLimit ||
+                withoutHard == kHeavyDigitMoveFloor;
+            if (!hitFloor) {
+              expect(
+                withHard,
+                lessThan(withoutHard),
+                reason: 'fase $number',
+              );
+              expect(
+                withHard / withoutHard,
+                closeTo(kHardMoveMultiplier, 0.05),
+                reason: 'fase $number',
+              );
+            }
+          }
+        },
+      );
+
+      test('fase hard nunca cai abaixo do piso de movimentos, mesmo em blocos distantes', () {
+        final start = kHandcraftedLevels + 1 + 40 * kBlockSize;
+        final end = kHandcraftedLevels + 1 + 60 * kBlockSize;
+        for (var number = start; number < end; number++) {
+          if (!isHardLevel(number)) continue;
+          final level = generateLevel(number);
+          expect(level.moveLimit, greaterThanOrEqualTo(kMinMoveLimit));
+        }
+      });
+
+      test(
+        'a posição hard cicla por bloco, e nunca cai na primeira nem na '
+        'última posição do bloco',
+        () {
+          final start = kHandcraftedLevels + 1 + 40 * kBlockSize;
+          final end = kHandcraftedLevels + 1 + 80 * kBlockSize;
+          final positions = <int>{};
+          for (var number = start; number < end; number++) {
+            if (!isHardLevel(number)) continue;
+            final position = (number - kHandcraftedLevels - 1) % kBlockSize;
+            expect(position, greaterThan(0));
+            expect(position, lessThan(kBlockSize - 1));
+            positions.add(position);
+          }
+          // Cicla de verdade: mais de uma posição aparece na amostra.
+          expect(positions.length, greaterThan(1));
+        },
+      );
+
+      test(
+        'a fase hard varia de arquétipo entre blocos: não é sempre '
+        'quebra de cobertura',
+        () {
+          final hardLevels = [
+            for (var n = kHardLevelStart; n < kHardLevelStart + kBlockSize * 40; n++)
+              if (isHardLevel(n)) n,
+          ];
+
+          final archetypes = {
+            for (final n in hardLevels) generateLevel(n).objective.type,
+          };
+
+          expect(
+            archetypes,
+            contains(ObjectiveType.reachDigit),
+            reason: 'nenhuma fase hard amostrada caiu em objetivo de dígito',
+          );
+          expect(
+            archetypes.any(
+              (t) =>
+                  t == ObjectiveType.clearObstacles ||
+                  t == ObjectiveType.clearAllObstacles,
+            ),
+            isTrue,
+            reason: 'nenhuma fase hard amostrada caiu em quebra de cobertura',
+          );
+        },
+      );
+
+      group('Densidade de obstáculos em fases hard', () {
+        test('fase hard tem o dobro de cada tipo de obstáculo do bloco, respeitando o teto', () {
+          final hardLevels = [
+            for (var n = kHardLevelStart; n < kHardLevelStart + kBlockSize * 30; n++)
+              if (isHardLevel(n)) n,
+          ];
+
+          for (final hardLevel in hardLevels) {
+            final hard = generateLevel(hardLevel);
+            final notHard = generateLevel(hardLevel - 1);
+
+            // A partir do bloco em que o dobro já satura o teto dos dois
+            // lados, hard e não-hard empatam no mesmo total aparado — nunca
+            // menor, porque dobrar não pode reduzir a densidade de origem.
+            expect(
+              hard.obstacles.total,
+              greaterThanOrEqualTo(notHard.obstacles.total),
+              reason: 'fase hard $hardLevel',
+            );
+            expect(
+              hard.obstacles.total,
+              lessThanOrEqualTo(kMaxObstacles),
+              reason: 'fase hard $hardLevel excedeu o teto',
+            );
+          }
+        });
+      });
+    });
   });
 }

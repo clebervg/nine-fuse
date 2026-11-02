@@ -1,42 +1,46 @@
-# Ícones nativos de todas as plataformas, gerados a partir do mestre em
-# assets/icon/app_icon.png.
+# Ícones nativos de todas as plataformas, gerados a partir dos mestres em
+# assets/icon/.
 #
-#   dart run flutter_launcher_icons       # mestre -> todos os tamanhos
+#   dart run flutter_launcher_icons       # mestres -> todos os tamanhos
 #
-# **Mudança de fonte (2026-09-10):** o mestre passou a ser um PNG 1024x1024
-# entregue pronto (o brasão dourado com o "9"), e não mais derivado de
-# `assets/images/logo.svg` via `tool/prepare_icons.dart`. Os dois artefatos
-# antigos daquele pipeline (`app_icon_old.png`, `app_icon_foreground.png`)
-# ficaram para trás em `assets/icon/` como referência — não apague sem
-# confirmar que ninguém vai precisar recompor o pipeline do SVG.
+# **Mudança de fonte (2026-10-01):** os mestres vêm do pacote de arte "candy
+# pop" (insígnia dodecagonal roxa com o "9" dourado, a mesma do `tile_9`):
+#   - `app_icon.png`            1024, quadro inteiro (iOS, web, Android legado)
+#   - `app_icon_foreground.png` 432, frente do ícone adaptativo, já recortada
+#                               na zona segura e com fundo transparente
+#   - `app_icon_background.png` 432, fundo do ícone adaptativo (céu estrelado)
+# O pacote entregou a frente separada, então o Android voltou a ter ícone
+# adaptativo — a limitação registrada na troca de 2026-09-10 (sem camada de
+# frente, faíscas decepadas pela máscara circular) deixou de existir.
 #
-# **Sem ícone adaptativo (Android) desta vez, e é decisão explícita.** O
-# mestre novo não veio com uma camada de frente separada (fundo transparente,
-# arte recortada na zona segura de 66%) nem com o SVG de origem para a
-# ferramenta extrair uma — as faíscas do brasão encostam perto da borda, e
-# usar o quadro inteiro como `adaptive_icon_foreground` cortaria pontas em
-# aparelhos que aplicam máscara circular. Até uma frente de verdade ser
-# produzida, o Android usa o mestre como ícone único (legado, sem recorte
-# adaptativo) — pior do que o ícone adaptativo, melhor do que uma faísca
-# decepada.
+# Os PNGs prontos por densidade que vieram no pacote (`mipmap-*`) não são
+# copiados à mão: esta ferramenta é a fonte única, e uma cópia manual seria
+# sobrescrita na próxima regeração.
+#
+# Sem camada `monochrome` (ícone temático do Android 13+): o pacote sugeria
+# a própria frente colorida, que vira uma silhueta chapada sob o tema. Fica
+# de fora até existir uma versão monocromática de verdade.
 flutter_launcher_icons:
   image_path: "assets/icon/app_icon.png"
 
   ios: true
-  # O mestre já é opaco (sem canal alfa em uso), mas mantido como rede de
-  # segurança: se um mestre futuro vier com transparência, o envio continua
-  # válido em vez de ser recusado na revisão.
+  # O 1024 do pacote vem com canal alfa (RGBA) e a App Store recusa ícone
+  # com alfa: a ferramenta achata sobre `background_color_ios`.
   remove_alpha_ios: true
-  # Amostrado do canto do próprio mestre novo (`#06091F`), não mais do stop
-  # do gradiente do SVG antigo — é o que preenche atrás do ícone quando o
-  # sistema aplica a máscara arredondada do iOS.
-  background_color_ios: "#06091F"
+  # Fundo da splash e da arte (`#080D2A`, `splash.background` no manifest).
+  background_color_ios: "#080D2A"
 
   android: "ic_launcher"
   min_sdk_android: 21
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  adaptive_icon_background: "assets/icon/app_icon_background.png"
+  # A frente do pacote já vem posicionada na zona segura de 66%. O inset
+  # padrão da ferramenta (16%) a encolheria de novo — o mesmo "encolhimento
+  # duplo" que já deixou a marca minúscula dentro da máscara uma vez.
+  adaptive_icon_foreground_inset: 0
 
   web:
     generate: true
     image_path: "assets/icon/app_icon.png"
-    background_color: "#06091F"
-    theme_color: "#06091F"
+    background_color: "#080D2A"
+    theme_color: "#080D2A"

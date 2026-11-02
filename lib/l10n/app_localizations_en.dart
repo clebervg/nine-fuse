@@ -109,6 +109,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playButton => 'PLAY';
 
   @override
+  String get levelStartShopHammer => 'Hammer';
+
+  @override
+  String get levelStartShopBomb => 'Bomb';
+
+  @override
+  String get levelStartShopBrush => 'Brush';
+
+  @override
+  String levelStartShopBuy(int price) {
+    return '$price 🪙';
+  }
+
+  @override
   String get tipAlignThree =>
       'Line up three equal tiles: the one you touched evolves.';
 
@@ -391,6 +405,96 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get continueOfferTitle => 'OUT OF MOVES';
+
+  @override
+  String continueOfferBody(int bonus) {
+    return 'Watch a short ad or spend coins to get $bonus extra moves and keep going.';
+  }
+
+  @override
+  String continueOfferWatch(int bonus) {
+    return 'WATCH AD (+$bonus)';
+  }
+
+  @override
+  String continueOfferBuy(int price) {
+    return 'Buy for $price 🪙';
+  }
+
+  @override
+  String get continueOfferDecline => 'GIVE UP';
+
+  @override
+  String get continueOfferFailed => 'No ad available right now.';
+
+  @override
+  String get continueOfferNoCoins => 'Not enough coins';
+
+  @override
+  String continueOfferBalance(int coins) {
+    return 'You have $coins 🪙';
+  }
+
+  @override
+  String get bombOfferTitle => 'Out of bombs';
+
+  @override
+  String get bombOfferBody =>
+      'Watch a short ad and blast the 3x3 area you picked.';
+
+  @override
+  String get bombOfferWatch => 'WATCH AD';
+
+  @override
+  String bombOfferBuy(int price) {
+    return 'Buy for $price 🪙';
+  }
+
+  @override
+  String get bombOfferDecline => 'NOT NOW';
+
+  @override
+  String get bombOfferFailed => 'No ad available right now.';
+
+  @override
+  String get bombOfferNoCoins => 'Not enough coins';
+
+  @override
+  String bombOfferBalance(int coins) {
+    return 'You have $coins 🪙';
+  }
+
+  @override
+  String get brushOfferTitle => 'Out of brushes';
+
+  @override
+  String get brushOfferBody =>
+      'Watch a short ad and raise the piece you picked by one.';
+
+  @override
+  String get brushOfferWatch => 'WATCH AD';
+
+  @override
+  String brushOfferBuy(int price) {
+    return 'Buy for $price 🪙';
+  }
+
+  @override
+  String get brushOfferDecline => 'NOT NOW';
+
+  @override
+  String get brushOfferFailed => 'No ad available right now.';
+
+  @override
+  String get brushOfferNoCoins => 'Not enough coins';
+
+  @override
+  String brushOfferBalance(int coins) {
+    return 'You have $coins 🪙';
+  }
+
+  @override
   String get coinStoreTitle => 'Your coins';
 
   @override
@@ -440,7 +544,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dailySpinTitle => 'Daily Spin';
 
   @override
-  String get dailySpinSubtitle => 'Spin the wheel for a free daily prize!';
+  String get dailySpinSubtitle => '1 free spin per day';
 
   @override
   String get dailySpinSpinButton => 'SPIN';
@@ -452,13 +556,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dailySpinCloseButton => 'CLOSE';
 
   @override
-  String dailySpinPrizeWon(String prize) {
-    return 'You won $prize!';
-  }
+  String get dailySpinFreeButton => 'FREE SPIN';
 
   @override
-  String dailySpinComeBackIn(int hours) {
-    return 'Come back in ${hours}h for your next spin';
+  String get dailySpinNextFreeIn => 'Next free spin in';
+
+  @override
+  String get dailySpinPrizeTitle => 'YOU WON!';
+
+  @override
+  String get dailySpinCollectButton => 'COLLECT';
+
+  @override
+  String dailySpinStockFull(int coins) {
+    return 'Stock full: +$coins coins';
   }
 
   @override
@@ -513,4 +624,224 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storeKeywords =>
       'number match 3,number puzzle,merge numbers,fusion puzzle,numeric puzzle,2048 match 3,offline puzzle,logic game';
+
+  @override
+  String get privacyTitle => 'Privacy';
+
+  @override
+  String get privacyBody =>
+      'NineFuse keeps your progress on this device only. Ads are provided by Google AdMob.';
+
+  @override
+  String get privacyPolicyLink => 'Privacy Policy';
+
+  @override
+  String get privacyAdOptions => 'Ad privacy options';
+
+  @override
+  String get privacyClose => 'CLOSE';
+
+  @override
+  String get privacyTooltip => 'Privacy';
+
+  @override
+  String get outcomeWonHeadline => 'COMPLETE!';
+
+  @override
+  String get continueOfferResume => 'PICK UP WHERE YOU LEFT OFF';
+
+  @override
+  String continueOfferBonus(int bonus) {
+    String _temp0 = intl.Intl.pluralLogic(
+      bonus,
+      locale: localeName,
+      other: '+$bonus MOVES',
+      one: '+1 MOVE',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String objectiveMissingDigit(int count, int digit) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'So close: $count more $digit pieces.',
+      one: 'So close: 1 more $digit piece.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String objectiveMissingObstacle(int count, String obstacle) {
+    return 'So close: $count $obstacle left.';
+  }
+
+  @override
+  String mapChapterStars(int number, int earned, int total) {
+    return 'CHAPTER $number · $earned/$total';
+  }
+
+  @override
+  String get mapYouAreHere => 'YOU ARE HERE';
+
+  @override
+  String mapPlayLevel(int number) {
+    return 'PLAY LEVEL $number';
+  }
+
+  @override
+  String mapNewObstacle(int level, String obstacle) {
+    return 'New obstacle on level $level: $obstacle';
+  }
+
+  @override
+  String get mapDailySpinTooltip => 'Daily spin';
+
+  @override
+  String get homeShop => 'SHOP';
+
+  @override
+  String get homeSpin => 'SPIN';
+
+  @override
+  String get homeMap => 'MAP';
+
+  @override
+  String homeChapterLevel(int chapter, int level) {
+    return 'CHAPTER $chapter · LEVEL $level';
+  }
+
+  @override
+  String homeStarsSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count stars in the campaign',
+      one: '1 star in the campaign',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shopTitle => 'SHOP';
+
+  @override
+  String get shopBoosters => 'BOOSTERS';
+
+  @override
+  String get shopCoins => 'COINS';
+
+  @override
+  String shopStock(int count) {
+    return 'You have $count';
+  }
+
+  @override
+  String shopVideoTitle(int coins) {
+    return '+$coins coins';
+  }
+
+  @override
+  String get shopVideoSubtitle => 'Watch a short video';
+
+  @override
+  String get shopWatch => 'WATCH';
+
+  @override
+  String get shopBuyFailed =>
+      'The purchase couldn\'t be completed. Your coins weren\'t spent.';
+
+  @override
+  String get chestReadyTitle => 'Chapter chest!';
+
+  @override
+  String get chestCollect => 'COLLECT';
+
+  @override
+  String get chestLockedTitle => 'Chest locked';
+
+  @override
+  String chestLockedHint(int chapter) {
+    return 'Beat every level of chapter $chapter to open it.';
+  }
+
+  @override
+  String get chestOk => 'OK';
+
+  @override
+  String semanticsChestLocked(int chapter) {
+    return 'Chapter $chapter chest, locked.';
+  }
+
+  @override
+  String semanticsChestReady(int chapter) {
+    return 'Chapter $chapter chest, ready to open.';
+  }
+
+  @override
+  String semanticsChestOpened(int chapter) {
+    return 'Chapter $chapter chest, already opened.';
+  }
+
+  @override
+  String get settingsTooltip => 'Settings';
+
+  @override
+  String get settingsTitle => 'SETTINGS';
+
+  @override
+  String get settingsSectionAudio => 'SOUND & TOUCH';
+
+  @override
+  String get settingsSound => 'Sound effects';
+
+  @override
+  String get settingsVolume => 'Effects volume';
+
+  @override
+  String get settingsMusic => 'Music';
+
+  @override
+  String get settingsVibration => 'Vibration';
+
+  @override
+  String get settingsSectionLanguage => 'LANGUAGE';
+
+  @override
+  String get settingsLanguageSystem => 'Device default';
+
+  @override
+  String get settingsLanguagePt => 'Português';
+
+  @override
+  String get settingsLanguageEn => 'English';
+
+  @override
+  String get settingsSectionPrivacy => 'PRIVACY';
+
+  @override
+  String get settingsPrivacyPolicy => 'Privacy policy';
+
+  @override
+  String get settingsConsent => 'Manage ad consent';
+
+  @override
+  String get settingsSectionAbout => 'ABOUT';
+
+  @override
+  String get settingsCredits => 'Credits';
+
+  @override
+  String get settingsLicenses => 'Open source licenses';
+
+  @override
+  String get creditsTitle => 'Credits';
+
+  @override
+  String get creditsBody =>
+      'Nunito, Lilita One and Baloo 2 fonts under the SIL Open Font License (OFL).\nTiles, obstacles and icons: NineFuse \"candy pop\" art pack.\nMade with Flutter.';
+
+  @override
+  String get creditsClose => 'CLOSE';
 }

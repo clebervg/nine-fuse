@@ -31,6 +31,11 @@
 
   "playButton": "JOGAR",
 
+  "levelStartShopHammer": "Martelo",
+  "levelStartShopBomb": "Bomba",
+  "levelStartShopBrush": "Pincel",
+  "levelStartShopBuy": "{price} 🪙",
+
   "tipAlignThree": "Alinhe três peças iguais: a do seu toque evolui.",
   "tipRepeatFusion": "Repita a fusão. Trocas que não formam trio não gastam movimento.",
   "tipChainFusion": "Três 4 viram um 5. Planeje a fusão em cadeia.",
@@ -136,6 +141,30 @@
   "hammerOfferBalance": "Você tem {coins} 🪙",
   "hammerOfferEarnCoins": "Ganhar +{reward} 🪙 (Assistir Vídeo)",
   "hammerOfferEarnedCoins": "+{reward} 🪙 creditadas no seu saldo!",
+  "continueOfferTitle": "SEM JOGADAS",
+  "continueOfferBody": "Assista a um anúncio curto ou gaste moedas para ganhar {bonus} movimentos extras e continuar.",
+  "continueOfferWatch": "ASSISTIR (+{bonus})",
+  "continueOfferBuy": "Comprar por {price} 🪙",
+  "continueOfferDecline": "DESISTIR",
+  "continueOfferFailed": "Nenhum anúncio disponível agora.",
+  "continueOfferNoCoins": "Moedas insuficientes",
+  "continueOfferBalance": "Você tem {coins} 🪙",
+  "bombOfferTitle": "Sem bombas",
+  "bombOfferBody": "Assista a um anúncio curto e destrua a área 3x3 escolhida.",
+  "bombOfferWatch": "ASSISTIR ANÚNCIO",
+  "bombOfferBuy": "Comprar por {price} 🪙",
+  "bombOfferDecline": "AGORA NÃO",
+  "bombOfferFailed": "Nenhum anúncio disponível agora.",
+  "bombOfferNoCoins": "Moedas insuficientes",
+  "bombOfferBalance": "Você tem {coins} 🪙",
+  "brushOfferTitle": "Sem pincéis",
+  "brushOfferBody": "Assista a um anúncio curto e eleve em 1 a peça escolhida.",
+  "brushOfferWatch": "ASSISTIR ANÚNCIO",
+  "brushOfferBuy": "Comprar por {price} 🪙",
+  "brushOfferDecline": "AGORA NÃO",
+  "brushOfferFailed": "Nenhum anúncio disponível agora.",
+  "brushOfferNoCoins": "Moedas insuficientes",
+  "brushOfferBalance": "Você tem {coins} 🪙",
   "coinStoreTitle": "Suas moedas",
   "coinStoreClose": "FECHAR",
   "coinsBadgeSemantics": "{coins} moedas",
@@ -158,12 +187,15 @@
   "brushSemantics": "Pincel, {count} em estoque. Soma 1 ao valor de uma peça sem gastar movimento.",
 
   "dailySpinTitle": "Roleta Diária",
-  "dailySpinSubtitle": "Gire a roleta e ganhe um prêmio grátis hoje!",
+  "dailySpinSubtitle": "1 giro grátis por dia",
   "dailySpinSpinButton": "GIRAR",
   "dailySpinWatchAgainButton": "Girar de Novo (Assistir Vídeo)",
   "dailySpinCloseButton": "FECHAR",
-  "dailySpinPrizeWon": "Você ganhou {prize}!",
-  "dailySpinComeBackIn": "Volte em {hours}h para o próximo giro",
+  "dailySpinFreeButton": "GIRAR GRÁTIS",
+  "dailySpinNextFreeIn": "Próximo giro grátis em",
+  "dailySpinPrizeTitle": "VOCÊ GANHOU!",
+  "dailySpinCollectButton": "COLETAR",
+  "dailySpinStockFull": "Estoque cheio: +{coins} moedas",
 
   "movesOfferTitle": "Quase lá!",
   "movesOfferBody": "{count, plural, =1{Resta 1 movimento} other{Restam {count} movimentos}}. Assista a um anúncio curto e ganhe mais {reward}.",
@@ -178,5 +210,93 @@
   "storeSubtitle": "Combine 3, evolua o número, alcance o 9",
   "storeShortDescription": "Match-3 de números: três iguais viram o próximo. Chegue ao 9 e libere o Super 9.",
   "storeFullDescription": "NineFuse é um quebra-cabeça de números em que combinar não é só eliminar.\n\nAlinhe três dígitos iguais e o do meio EVOLUI para o próximo: três 4 viram um 5. Repita a fusão, planeje a cadeia e suba a escala até o clímax do jogo — o dígito 9, que limpa os bloqueios ao redor, e o raro Super 9 (fusão de 5+), que converte todo um valor do tabuleiro numa única troca.\n\n• FUSÃO, NÃO SÓ ELIMINAÇÃO — a mecânica do Match-3 com a progressão do merge.\n• O RITUAL DO 9 — o dígito máximo limpa bloqueios ao redor, e o Super 9 promove o tabuleiro inteiro.\n• GELO, VIDRO E PEDRA — coberturas que cedem a 1, 2 ou 3 fusões encostadas.\n• CAMPANHA COM OBJETIVOS — alcance um dígito, quebre coberturas, limpe o tabuleiro.\n• MODO RECORDE — corrida sem limite de movimentos, com o seu recorde guardado.\n• MARTELO DE FUSÃO — quebre uma célula travada sem gastar jogada.\n• SEM TRAVA DE VIDAS — jogue quantas vezes quiser, na hora que quiser.\n\nVisual escuro, cores vibrantes por dígito e animações de fusão fluídas.",
-  "storeKeywords": "match 3 numeros,quebra cabeca numeros,jogo de fusao,puzzle numerico,merge numeros,jogo 2048 match 3,puzzle offline,jogo de logica"
+  "storeKeywords": "match 3 numeros,quebra cabeca numeros,jogo de fusao,puzzle numerico,merge numeros,jogo 2048 match 3,puzzle offline,jogo de logica",
+
+  "privacyTitle": "Privacidade",
+  "privacyBody": "O NineFuse guarda seu progresso só neste aparelho. Os anúncios são do Google AdMob.",
+  "privacyPolicyLink": "Política de Privacidade",
+  "privacyAdOptions": "Opções de privacidade dos anúncios",
+  "privacyClose": "FECHAR",
+  "privacyTooltip": "Privacidade",
+  "outcomeWonHeadline": "CONCLUÍDA!",
+  "continueOfferResume": "CONTINUAR DE ONDE PAROU",
+  "continueOfferBonus": "{bonus, plural, =1{+1 JOGADA} other{+{bonus} JOGADAS}}",
+  "@continueOfferBonus": {
+    "placeholders": { "bonus": { "type": "int" } }
+  },
+  "objectiveMissingDigit": "{count, plural, =1{Faltou pouco: 1 peça {digit}.} other{Faltou pouco: {count} peças {digit}.}}",
+  "@objectiveMissingDigit": {
+    "placeholders": { "count": { "type": "int" }, "digit": { "type": "int" } }
+  },
+  "objectiveMissingObstacle": "Faltou pouco: {count} {obstacle}.",
+  "@objectiveMissingObstacle": {
+    "placeholders": { "count": { "type": "int" }, "obstacle": { "type": "String" } }
+  },
+  "mapChapterStars": "CAPÍTULO {number} · {earned}/{total}",
+  "@mapChapterStars": {
+    "placeholders": { "number": { "type": "int" }, "earned": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "mapYouAreHere": "VOCÊ ESTÁ AQUI",
+  "mapPlayLevel": "JOGAR FASE {number}",
+  "@mapPlayLevel": {
+    "placeholders": { "number": { "type": "int" } }
+  },
+  "mapNewObstacle": "Novo obstáculo na fase {level}: {obstacle}",
+  "@mapNewObstacle": {
+    "placeholders": { "level": { "type": "int" }, "obstacle": { "type": "String" } }
+  },
+  "mapDailySpinTooltip": "Roleta diária",
+  "homeShop": "LOJA",
+  "homeSpin": "ROLETA",
+  "homeMap": "MAPA",
+  "homeChapterLevel": "CAPÍTULO {chapter} · FASE {level}",
+  "@homeChapterLevel": {
+    "placeholders": { "chapter": { "type": "int" }, "level": { "type": "int" } }
+  },
+  "homeStarsSemantics": "{count, plural, =1{1 estrela na campanha} other{{count} estrelas na campanha}}",
+  "@homeStarsSemantics": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "shopTitle": "LOJA",
+  "shopBoosters": "BOOSTERS",
+  "shopCoins": "MOEDAS",
+  "shopStock": "Você tem {count}",
+  "@shopStock": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "shopVideoTitle": "+{coins} moedas",
+  "@shopVideoTitle": {
+    "placeholders": { "coins": { "type": "int" } }
+  },
+  "shopVideoSubtitle": "Assista a um vídeo curto",
+  "shopWatch": "ASSISTIR",
+  "shopBuyFailed": "Não deu para concluir a compra. Suas moedas não foram gastas.",
+  "chestReadyTitle": "Baú do capítulo!",
+  "chestCollect": "COLETAR",
+  "chestLockedTitle": "Baú trancado",
+  "chestLockedHint": "Vença as fases do capítulo {chapter} para abrir.",
+  "chestOk": "OK",
+  "semanticsChestLocked": "Baú do capítulo {chapter}, trancado.",
+  "semanticsChestReady": "Baú do capítulo {chapter}, pronto para abrir.",
+  "semanticsChestOpened": "Baú do capítulo {chapter}, já aberto.",
+  "settingsTooltip": "Configurações",
+  "settingsTitle": "AJUSTES",
+  "settingsSectionAudio": "SOM E TOQUE",
+  "settingsSound": "Efeitos sonoros",
+  "settingsVolume": "Volume dos efeitos",
+  "settingsMusic": "Música",
+  "settingsVibration": "Vibração",
+  "settingsSectionLanguage": "IDIOMA",
+  "settingsLanguageSystem": "Do aparelho",
+  "settingsLanguagePt": "Português",
+  "settingsLanguageEn": "English",
+  "settingsSectionPrivacy": "PRIVACIDADE",
+  "settingsPrivacyPolicy": "Política de privacidade",
+  "settingsConsent": "Gerenciar consentimento de anúncios",
+  "settingsSectionAbout": "SOBRE",
+  "settingsCredits": "Créditos",
+  "settingsLicenses": "Licenças de código aberto",
+  "creditsTitle": "Créditos",
+  "creditsBody": "Fontes Nunito, Lilita One e Baloo 2 sob a SIL Open Font License (OFL).\nPeças, coberturas e ícones: pacote de arte \"candy pop\" do NineFuse.\nFeito com Flutter.",
+  "creditsClose": "FECHAR"
 }

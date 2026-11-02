@@ -2,10 +2,11 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/theme/app_fonts.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/endless_progression.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_metric_card.dart';
-import 'package:nine_fuse/features/game/presentation/widgets/glass_panel.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/tile_widget.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
@@ -43,8 +44,12 @@ class EndlessBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return GlassPanel(
-      padding: const EdgeInsets.all(14),
+    // A mesma placa do HUD da campanha: azul-noite, aro de ouro e base 3D. As
+    // pílulas de dentro têm borda neutra — a cor fica no ícone, para o
+    // tabuleiro em moldura de ouro continuar sendo o que mais chama o olho.
+    return Container(
+      decoration: NfDecorations.panel(borderWidth: 2),
+      padding: const EdgeInsets.all(12),
       child: Column(
         children: [
           IntrinsicHeight(
@@ -69,7 +74,7 @@ class EndlessBanner extends StatelessWidget {
                   child: GameMetricCard(
                     label: l10n.endlessRecord,
                     icon: Icons.emoji_events,
-                    accent: AppColors.digit3,
+                    accent: AppColors.uiGold,
                     compact: true,
                     value:
                         '${highScore > state.score ? highScore : state.score}',
@@ -94,11 +99,11 @@ class EndlessBanner extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           _StepIndicator(state: state, progression: progression),
           // O booster **não** mora aqui: é ação, não informação, e dentro da
-          // moldura das métricas lia como um indicador a mais. Ele agora é a
-          // [HammerBar], numa faixa própria abaixo do card, montada pela tela.
+          // moldura das métricas lia como um indicador a mais. Ele é a
+          // [HammerBar], numa placa própria abaixo do tabuleiro.
         ],
       ),
     );
@@ -264,7 +269,12 @@ class _StepIndicator extends StatelessWidget {
               children: [
                 Text(
                   l10n.endlessNextBand,
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  style: const TextStyle(
+                    fontFamily: AppFonts.number,
+                    color: NfColors.textSoft,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 // Espaço explícito, e não no fim da frase traduzida: espaço
                 // à direita de um valor de ARB some numa revisão distraída e
@@ -285,7 +295,7 @@ class _StepIndicator extends StatelessWidget {
               key: endlessBandProgressKey,
               value: fraction,
               minHeight: 6,
-              backgroundColor: AppColors.darkBackground,
+              backgroundColor: NfColors.night0,
               valueColor: AlwaysStoppedAnimation(
                 AppColors.getColorByDigit(promotion),
               ),

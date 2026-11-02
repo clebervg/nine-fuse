@@ -29,7 +29,7 @@ class CoinSourcesCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.digit3.withValues(alpha: 0.35)),
+        border: Border.all(color: AppColors.uiGold.withValues(alpha: 0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,7 +38,7 @@ class CoinSourcesCard extends StatelessWidget {
           Text(
             l10n.coinSourcesTitle.toUpperCase(),
             style: const TextStyle(
-              color: AppColors.digit3,
+              color: AppColors.uiGold,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.1,
@@ -81,7 +81,7 @@ class _CoinSource extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 3),
     child: Row(
       children: [
-        Icon(icon, size: 14, color: AppColors.digit3),
+        Icon(icon, size: 14, color: AppColors.uiGold),
         const SizedBox(width: 8),
         Expanded(
           child: Text(

@@ -7,6 +7,7 @@ import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/continue_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_suggestion_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
@@ -72,7 +73,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// O resgate de derrota sobe sobre o cartão de desfecho a cada perda por
+  /// limite de movimentos; recusá-lo é o que revela o botão de tentar de
+  /// novo por baixo.
+  Future<void> dismissContinueOffer(WidgetTester tester) async {
+    if (find.byKey(continueOfferDeclineKey).evaluate().isEmpty) return;
+    await tester.tap(find.byKey(continueOfferDeclineKey));
+    await tester.pumpAndSettle();
+  }
+
   Future<void> retry(WidgetTester tester) async {
+    await dismissContinueOffer(tester);
     await tester.tap(find.byKey(const Key('retry_level')));
     await tester.pumpAndSettle();
   }

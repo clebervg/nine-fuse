@@ -131,10 +131,11 @@ void main() {
     testWidgets('vitória', (tester) async {
       await pumpEn(tester, card(status: GameStatus.won));
 
-      expect(find.text('LEVEL COMPLETED!'), findsOneWidget);
+      expect(find.text('COMPLETE!'), findsOneWidget);
+      expect(find.text('LEVEL 4'), findsOneWidget);
       expect(find.text('Goal reached in 8 moves.'), findsOneWidget);
       expect(find.text('NEXT LEVEL'), findsOneWidget);
-      expect(find.text('FASE CONCLUÍDA!'), findsNothing);
+      expect(find.text('CONCLUÍDA!'), findsNothing);
     });
 
     // As duas derrotas continuam com títulos distintos depois de traduzidas —
@@ -231,7 +232,9 @@ void main() {
 
       expect(find.textContaining('High Score Mode'), findsOneWidget);
       expect(find.text('Your best score: 400 pts'), findsOneWidget);
-      expect(find.text('Beat Record'), findsOneWidget);
+      // A chamada virou botão de play compacto: o texto é o rótulo dele para
+      // leitor de tela e toque longo.
+      expect(find.bySemanticsLabel('Beat Record'), findsOneWidget);
       expect(find.textContaining('Endless'), findsNothing);
     });
 
@@ -258,11 +261,14 @@ void main() {
           chapter: kChapters.first,
           totalStars: 4,
           starTotal: kChapters.first.starTotal,
+          currentLevel: 3,
         ),
       );
 
-      expect(find.text('Chapter 1: Primary Fusions'), findsOneWidget);
-      expect(find.text('Capítulo 1: Fusões Primárias'), findsNothing);
+      // A placa separa o número (no rótulo, com as estrelas) do nome.
+      expect(find.text('CHAPTER 1 · 4/18'), findsOneWidget);
+      expect(find.text('PRIMARY FUSIONS'), findsOneWidget);
+      expect(find.text('FUSÕES PRIMÁRIAS'), findsNothing);
     });
   });
 

@@ -1,18 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nine_fuse/core/assets/tile_sprite_manager.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
+import 'package:nine_fuse/core/widgets/sprite_icon.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 import 'package:nine_fuse/features/game/presentation/l10n_labels.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/obstacle_overlay.dart';
+import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
+
+/// Chave do botão que compra um Martelo direto no início de fase.
+const Key levelStartBuyHammerKey = Key('level_start_buy_hammer');
+
+/// Chave do botão que compra uma Bomba direto no início de fase.
+const Key levelStartBuyBombKey = Key('level_start_buy_bomb');
+
+/// Chave do botão que compra um Pincel direto no início de fase.
+const Key levelStartBuyBrushKey = Key('level_start_buy_brush');
 
 /// Chave do cartão de início de fase.
 const Key levelStartKey = Key('level_start');
 
 /// Chave do botão que libera o tabuleiro.
 const Key startLevelKey = Key('start_level');
+
+/// Chave do 'X' que fecha o cartão sem jogar, voltando ao mapa.
+const Key levelStartCloseKey = Key('level_start_close');
 
 /// Cartão que abre a fase: o que fazer, com quantos movimentos, e um botão.
 ///
@@ -25,19 +43,40 @@ const Key startLevelKey = Key('start_level');
 /// tira o tabuleiro da árvore de foco e complica o teste de widget, além de
 /// obrigar a coordenar duas navegações no `Navigator` a cada reinício de fase.
 /// Aqui é só uma camada do `Stack` da tela, ligada e desligada por estado.
-class LevelStartDialog extends StatelessWidget {
+class LevelStartDialog extends ConsumerWidget {
   const LevelStartDialog({
     super.key,
     required this.level,
     required this.onPlay,
+    this.onClose,
+    this.onBuyHammer,
+    this.onBuyBomb,
+    this.onBuyBrush,
   });
 
   final GameLevel level;
   final VoidCallback onPlay;
 
+  /// Fecha o cartão sem começar a fase, voltando à tela anterior (o mapa).
+  /// Nulo omite o 'X' — hoje só a `GameScreen` sabe voltar ao mapa.
+  final VoidCallback? onClose;
+
+  /// Credita o item no notifier da partida em curso (campanha ou Endless).
+  ///
+  /// É a tela quem passa cada um — `notifier.grantHammer`/`grantBomb`/
+  /// `grantBrush` —, o mesmo jeito que `HammerOfferDialog`/`BombOfferDialog`/
+  /// `BrushOfferDialog` já recebem `onGranted`. Campanha e Endless são
+  /// notifiers irmãos, sem uma classe-mãe comum a que este widget pudesse
+  /// amarrar um único provider; nulo (nos testes de tela que montam o cartão
+  /// isolado) só mantém o botão sempre desabilitado.
+  final VoidCallback? onBuyHammer;
+  final VoidCallback? onBuyBomb;
+  final VoidCallback? onBuyBrush;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final wallet = ref.watch(walletProvider);
     final objective = level.objective;
     // Numa fase de cobertura não há dígito-alvo, e pintar o cartão com a cor de
     // um dígito qualquer prometeria uma peça que a fase não pede.
@@ -57,6 +96,8 @@ class LevelStartDialog extends StatelessWidget {
       title: l10n.levelTitle(level.number),
       titleFontSize: 24,
       accent: accent,
+      onClose: onClose,
+      closeKey: levelStartCloseKey,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -81,9 +122,10 @@ class LevelStartDialog extends StatelessWidget {
             l10n.objectiveLabel(objective, target: target),
             textAlign: TextAlign.center,
             style: const TextStyle(
+              fontFamily: AppFonts.display,
               color: Colors.white,
               fontSize: 19,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 18),
@@ -95,24 +137,83 @@ class LevelStartDialog extends StatelessWidget {
             Text(
               hint,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+              style: const TextStyle(
+                fontFamily: AppFonts.display,
+                color: NfColors.textSoft,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+          // A mini-loja: comprar aqui não passa pelo Modo Fantasma dos
+          // convites de aquisição (Bomba/Pincel/Martelo) — não há tabuleiro
+          // para mirar antes de "JOGAR", então a compra credita direto, sem
+          // alvo pendente nenhum.
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Expanded(
+                child: _BoosterShopButton(
+                  buttonKey: levelStartBuyHammerKey,
+                  label: l10n.levelStartShopHammer,
+                  asset: 'assets/images/ic_hammer.png',
+                  icon: Icons.gavel_rounded,
+                  canAfford:
+                      wallet.canAfford(kHammerCoinPrice) && onBuyHammer != null,
+                  buyLabel: l10n.levelStartShopBuy(kHammerCoinPrice),
+                  onBuy: () => _buy(ref, kHammerCoinPrice, onBuyHammer),
+                ),
+              ),
+              Expanded(
+                child: _BoosterShopButton(
+                  buttonKey: levelStartBuyBombKey,
+                  label: l10n.levelStartShopBomb,
+                  asset: 'assets/images/ic_bomb.png',
+                  icon: Icons.gps_fixed_rounded,
+                  canAfford:
+                      wallet.canAfford(kBombCoinPrice) && onBuyBomb != null,
+                  buyLabel: l10n.levelStartShopBuy(kBombCoinPrice),
+                  onBuy: () => _buy(ref, kBombCoinPrice, onBuyBomb),
+                ),
+              ),
+              Expanded(
+                child: _BoosterShopButton(
+                  buttonKey: levelStartBuyBrushKey,
+                  label: l10n.levelStartShopBrush,
+                  asset: 'assets/images/ic_brush.png',
+                  icon: Icons.brush_rounded,
+                  canAfford:
+                      wallet.canAfford(kBrushCoinPrice) && onBuyBrush != null,
+                  buyLabel: l10n.levelStartShopBuy(kBrushCoinPrice),
+                  onBuy: () => _buy(ref, kBrushCoinPrice, onBuyBrush),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          // Ouro, como toda ação principal do observatório: a cor do alvo já
+          // assina o selo e a peça, e um botão na cor do dígito competiria
+          // com a peça pelo olhar.
           GameButton(
             key: startLevelKey,
             label: l10n.playButton,
-            color: accent,
-            foreground: objective.isObstacleGoal
-                ? AppColors.darkBackground
-                : AppColors.getTextColorForDigit(objective.digit!),
-            fontSize: 18,
+            color: AppColors.uiGold,
+            fontSize: 22,
             onPressed: onPlay,
           ),
         ],
       ),
     );
+  }
+
+  /// Debita a carteira e só então credita o item — a mesma ordem de
+  /// `HammerOfferDialog`: se `spendCoins` recusar (saldo caiu por fora entre
+  /// o build e o toque), nada é creditado.
+  void _buy(WidgetRef ref, int price, VoidCallback? grant) {
+    if (grant == null) return;
+    if (ref.read(walletProvider.notifier).spendCoins(price)) grant();
   }
 }
 
@@ -124,7 +225,15 @@ class _TargetTile extends StatelessWidget {
   final Color color;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => Image.asset(
+    TileSpriteManager.assetKeyFor(digit),
+    width: 96,
+    height: 96,
+    // Sem o PNG, a peça vetorial de sempre.
+    errorBuilder: (context, error, stack) => _fallback(),
+  );
+
+  Widget _fallback() => Container(
     width: 84,
     height: 84,
     decoration: BoxDecoration(
@@ -198,10 +307,10 @@ class _TargetObstacle extends StatelessWidget {
           Text(
             '$count',
             style: TextStyle(
-              fontFamily: AppFonts.display,
+              fontFamily: AppFonts.number,
               color: color,
               fontSize: 28,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -222,15 +331,11 @@ class _MoveBudget extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-    decoration: BoxDecoration(
-      color: AppColors.darkBackground,
-      borderRadius: BorderRadius.circular(30),
-      border: Border.all(color: AppColors.darkBorder),
-    ),
+    decoration: NfDecorations.card(radius: 30),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.swap_horiz, color: Colors.white54, size: 20),
+        const Icon(Icons.swap_horiz, color: NfColors.textMuted, size: 20),
         const SizedBox(width: 8),
         // `Flexible` porque o rótulo cresce com o limite da fase: numa fase
         // de três dígitos, numa tela de 375pt, o texto passava da borda do
@@ -240,13 +345,68 @@ class _MoveBudget extends StatelessWidget {
             label,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
+              fontFamily: AppFonts.number,
               color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ),
       ],
     ),
+  );
+}
+
+/// Um item da mini-loja: ícone, rótulo e um [GameButton] de preço.
+///
+/// Compacto de propósito — este cartão já tem o alvo, o objetivo e o
+/// orçamento de movimentos disputando espaço; a mini-loja é um atalho de
+/// conveniência, não o funil principal de aquisição (que continua sendo os
+/// convites de Modo Fantasma, com o anúncio recompensado em primeiro lugar).
+class _BoosterShopButton extends StatelessWidget {
+  const _BoosterShopButton({
+    required this.buttonKey,
+    required this.label,
+    required this.asset,
+    required this.icon,
+    required this.canAfford,
+    required this.buyLabel,
+    required this.onBuy,
+  });
+
+  final Key buttonKey;
+  final String label;
+  final String asset;
+  final IconData icon;
+  final bool canAfford;
+  final String buyLabel;
+  final VoidCallback onBuy;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      // A arte do booster, a mesma do dock da fase.
+      SpriteIcon(asset: asset, fallback: icon, size: 34, color: Colors.white70),
+      const SizedBox(height: 2),
+      Text(
+        label,
+        style: const TextStyle(
+          fontFamily: AppFonts.display,
+          color: NfColors.textSoft,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      const SizedBox(height: 4),
+      GameButton(
+        key: buttonKey,
+        label: buyLabel,
+        color: canAfford ? AppColors.uiGold : AppColors.darkSurface,
+        fontSize: 13,
+        expand: false,
+        onPressed: canAfford ? onBuy : null,
+      ),
+    ],
   );
 }

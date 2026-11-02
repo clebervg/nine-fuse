@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nine_fuse/features/game/domain/game_settings.dart';
+import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
@@ -10,7 +12,6 @@ import 'package:nine_fuse/features/game/presentation/widgets/endless_banner.dart
 import 'package:nine_fuse/features/game/presentation/widgets/tile_widget.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
-import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
 
@@ -77,6 +78,11 @@ class _BrokenStorage implements GameStorage {
       throw StateError('sem disco');
   @override
   Future<void> writeLastSpinTimestamp(DateTime value) async =>
+      throw StateError('sem disco');
+  @override
+  Future<GameSettings> readSettings() async => throw StateError('sem disco');
+  @override
+  Future<void> writeSettings(GameSettings settings) async =>
       throw StateError('sem disco');
 }
 

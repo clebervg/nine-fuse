@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Sem INTERNET só os manifests de debug/profile a tinham: um release
+         não carregaria anúncio nenhum, e sem erro visível. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Advertising ID, exigido pelo AdMob em targetSdk 33+. Declarar o uso
+         também no Play Console (Conteúdo do app > ID de publicidade). -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="NineFuse"
@@ -34,18 +39,14 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- App ID do AdMob. É o ID de TESTE oficial do Google: um build de
-             desenvolvimento pedindo inventário real conta como tráfego
-             inválido, e é o caminho mais curto para a conta ser suspensa antes
-             de o jogo chegar à loja.
-
-             Trocar pelo ID de produção é a última coisa antes de publicar, e o
-             par dele fica no Info.plist do iOS (GADApplicationIdentifier).
+        <!-- App ID do AdMob, vindo de manifestPlaceholders em
+             app/build.gradle.kts: ID de TESTE no debug, ID de produção no
+             release. O par iOS fica no Info.plist (GADApplicationIdentifier).
              Sem esta meta-data o SDK derruba o app na inicialização — não é
              opcional. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="${admobAppId}" />
 
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
@@ -65,6 +66,11 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- url_launcher: abrir a política de privacidade no navegador. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>

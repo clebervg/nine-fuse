@@ -3,13 +3,14 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/star_rating.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/continue_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_outcome_card.dart';
@@ -104,7 +105,7 @@ void main() {
   ) async {
     await pumpGame(tester);
 
-    expect(find.text('Fase 42'), findsOneWidget);
+    expect(find.text('FASE 42'), findsOneWidget);
     expect(find.text('Crie 9 peças 8'), findsOneWidget);
     expect(find.text('0 de 9'), findsOneWidget);
     expect(find.text('500'), findsOneWidget);
@@ -171,7 +172,7 @@ void main() {
 
     expect(notifier.state.status, GameStatus.won);
     expect(find.byKey(const Key('level_outcome')), findsOneWidget);
-    expect(find.text('FASE CONCLUÍDA!'), findsOneWidget);
+    expect(find.text('CONCLUÍDA!'), findsOneWidget);
     expect(find.byKey(starsKey), findsOneWidget);
   });
 
@@ -257,6 +258,11 @@ void main() {
 
     await playSwap(tester, findSwap(creatingMatch: true)!);
     expect(notifier.state.status, GameStatus.lost);
+
+    // O resgate sobe sobre o cartão de derrota; recusar revela o botão de
+    // tentar de novo.
+    await tester.tap(find.byKey(continueOfferDeclineKey));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('retry_level')));
     await tester.pumpAndSettle();
@@ -362,7 +368,7 @@ void main() {
     expect(counter.data, '0');
     expect(
       counter.style?.color,
-      isNot(AppColors.digit0),
+      isNot(NfColors.alert),
       reason: 'o contador não deveria seguir vermelho após o fim da fase',
     );
   });
@@ -380,7 +386,7 @@ void main() {
 
     final counter = tester.widget<Text>(find.byKey(movesLeftKey));
     expect(counter.data, '3');
-    expect(counter.style?.color, AppColors.digit0);
+    expect(counter.style?.color, NfColors.alert);
   });
 
   testWidgets('cabe numa tela pequena sem estourar o layout', (tester) async {
@@ -532,4 +538,56 @@ void main() {
       expect(find.byKey(chapterStarProgressKey), findsOneWidget);
     },
   );
+
+  group('Continue Offer', () {
+    const tight = GameLevel(
+      number: 50,
+      objective: Objective(digit: 9, count: 9),
+      moveLimit: 1,
+    );
+
+    testWidgets(
+      'perder por falta de movimentos abre o resgate sobre o cartão de derrota',
+      (tester) async {
+        await pumpGame(tester, level: tight);
+
+        await playSwap(tester, findSwap(creatingMatch: true)!);
+        expect(notifier.state.status, GameStatus.lost);
+
+        // O cartão de derrota continua na árvore por baixo, como o convite de
+        // migração para o Endless já faz: o resgate sobe **sobre** ele.
+        expect(find.byKey(continueOfferKey), findsOneWidget);
+        expect(find.byKey(const Key('level_outcome')), findsOneWidget);
+      },
+    );
+
+    testWidgets('recusar revela o cartão de derrota', (tester) async {
+      await pumpGame(tester, level: tight);
+
+      await playSwap(tester, findSwap(creatingMatch: true)!);
+      expect(notifier.state.status, GameStatus.lost);
+
+      await tester.tap(find.byKey(continueOfferDeclineKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(continueOfferKey), findsNothing);
+      expect(find.byKey(const Key('level_outcome')), findsOneWidget);
+    });
+
+    testWidgets('assistir ao anúncio revive a fase e some o resgate', (
+      tester,
+    ) async {
+      await pumpGame(tester, level: tight);
+
+      await playSwap(tester, findSwap(creatingMatch: true)!);
+      expect(notifier.state.status, GameStatus.lost);
+
+      await tester.tap(find.byKey(continueOfferWatchKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(continueOfferKey), findsNothing);
+      expect(find.byKey(const Key('level_outcome')), findsNothing);
+      expect(notifier.state.status, GameStatus.playing);
+    });
+  });
 }

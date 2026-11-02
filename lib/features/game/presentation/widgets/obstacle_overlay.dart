@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:nine_fuse/core/assets/tile_sprite_manager.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
 
 /// Cobertura desenhada por cima da peça presa.
@@ -97,6 +98,12 @@ class ObstacleBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(size * 0.25);
+    // A amostra mostra a cobertura intacta: mesma convenção do tabuleiro, que
+    // guarda o sprite pela dupla (tipo, hp cheio).
+    final sprite = TileSpriteManager.spriteForObstacle(
+      type,
+      type.hitPoints,
+    );
 
     return Container(
       width: size,
@@ -111,7 +118,20 @@ class ObstacleBadge extends StatelessWidget {
           ),
         ],
       ),
-      child: ObstacleOverlay(type: type, radius: radius),
+      child: sprite != null
+          // Sprite já produzido para este tipo: a arte substitui o
+          // CustomPainter, recortada pela mesma silhueta do badge.
+          ? ClipRRect(
+              borderRadius: radius,
+              child: Image(
+                image: sprite,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+              ),
+            )
+          : ObstacleOverlay(type: type, radius: radius),
     );
   }
 }

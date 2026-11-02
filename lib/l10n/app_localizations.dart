@@ -194,6 +194,30 @@ abstract class AppLocalizations {
   /// **'PLAY'**
   String get playButton;
 
+  /// No description provided for @levelStartShopHammer.
+  ///
+  /// In en, this message translates to:
+  /// **'Hammer'**
+  String get levelStartShopHammer;
+
+  /// No description provided for @levelStartShopBomb.
+  ///
+  /// In en, this message translates to:
+  /// **'Bomb'**
+  String get levelStartShopBomb;
+
+  /// No description provided for @levelStartShopBrush.
+  ///
+  /// In en, this message translates to:
+  /// **'Brush'**
+  String get levelStartShopBrush;
+
+  /// No description provided for @levelStartShopBuy.
+  ///
+  /// In en, this message translates to:
+  /// **'{price} 🪙'**
+  String levelStartShopBuy(int price);
+
   /// No description provided for @tipAlignThree.
   ///
   /// In en, this message translates to:
@@ -625,6 +649,150 @@ abstract class AppLocalizations {
   /// **'+{reward} 🪙 added to your balance!'**
   String hammerOfferEarnedCoins(int reward);
 
+  /// No description provided for @continueOfferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'OUT OF MOVES'**
+  String get continueOfferTitle;
+
+  /// No description provided for @continueOfferBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch a short ad or spend coins to get {bonus} extra moves and keep going.'**
+  String continueOfferBody(int bonus);
+
+  /// No description provided for @continueOfferWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'WATCH AD (+{bonus})'**
+  String continueOfferWatch(int bonus);
+
+  /// No description provided for @continueOfferBuy.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy for {price} 🪙'**
+  String continueOfferBuy(int price);
+
+  /// No description provided for @continueOfferDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'GIVE UP'**
+  String get continueOfferDecline;
+
+  /// No description provided for @continueOfferFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'No ad available right now.'**
+  String get continueOfferFailed;
+
+  /// No description provided for @continueOfferNoCoins.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough coins'**
+  String get continueOfferNoCoins;
+
+  /// No description provided for @continueOfferBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {coins} 🪙'**
+  String continueOfferBalance(int coins);
+
+  /// No description provided for @bombOfferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of bombs'**
+  String get bombOfferTitle;
+
+  /// No description provided for @bombOfferBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch a short ad and blast the 3x3 area you picked.'**
+  String get bombOfferBody;
+
+  /// No description provided for @bombOfferWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'WATCH AD'**
+  String get bombOfferWatch;
+
+  /// No description provided for @bombOfferBuy.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy for {price} 🪙'**
+  String bombOfferBuy(int price);
+
+  /// No description provided for @bombOfferDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT NOW'**
+  String get bombOfferDecline;
+
+  /// No description provided for @bombOfferFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'No ad available right now.'**
+  String get bombOfferFailed;
+
+  /// No description provided for @bombOfferNoCoins.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough coins'**
+  String get bombOfferNoCoins;
+
+  /// No description provided for @bombOfferBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {coins} 🪙'**
+  String bombOfferBalance(int coins);
+
+  /// No description provided for @brushOfferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of brushes'**
+  String get brushOfferTitle;
+
+  /// No description provided for @brushOfferBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch a short ad and raise the piece you picked by one.'**
+  String get brushOfferBody;
+
+  /// No description provided for @brushOfferWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'WATCH AD'**
+  String get brushOfferWatch;
+
+  /// No description provided for @brushOfferBuy.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy for {price} 🪙'**
+  String brushOfferBuy(int price);
+
+  /// No description provided for @brushOfferDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT NOW'**
+  String get brushOfferDecline;
+
+  /// No description provided for @brushOfferFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'No ad available right now.'**
+  String get brushOfferFailed;
+
+  /// No description provided for @brushOfferNoCoins.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough coins'**
+  String get brushOfferNoCoins;
+
+  /// No description provided for @brushOfferBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {coins} 🪙'**
+  String brushOfferBalance(int coins);
+
   /// No description provided for @coinStoreTitle.
   ///
   /// In en, this message translates to:
@@ -706,7 +874,7 @@ abstract class AppLocalizations {
   /// No description provided for @dailySpinSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Spin the wheel for a free daily prize!'**
+  /// **'1 free spin per day'**
   String get dailySpinSubtitle;
 
   /// No description provided for @dailySpinSpinButton.
@@ -727,17 +895,35 @@ abstract class AppLocalizations {
   /// **'CLOSE'**
   String get dailySpinCloseButton;
 
-  /// No description provided for @dailySpinPrizeWon.
+  /// No description provided for @dailySpinFreeButton.
   ///
   /// In en, this message translates to:
-  /// **'You won {prize}!'**
-  String dailySpinPrizeWon(String prize);
+  /// **'FREE SPIN'**
+  String get dailySpinFreeButton;
 
-  /// No description provided for @dailySpinComeBackIn.
+  /// No description provided for @dailySpinNextFreeIn.
   ///
   /// In en, this message translates to:
-  /// **'Come back in {hours}h for your next spin'**
-  String dailySpinComeBackIn(int hours);
+  /// **'Next free spin in'**
+  String get dailySpinNextFreeIn;
+
+  /// No description provided for @dailySpinPrizeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'YOU WON!'**
+  String get dailySpinPrizeTitle;
+
+  /// No description provided for @dailySpinCollectButton.
+  ///
+  /// In en, this message translates to:
+  /// **'COLLECT'**
+  String get dailySpinCollectButton;
+
+  /// No description provided for @dailySpinStockFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock full: +{coins} coins'**
+  String dailySpinStockFull(int coins);
 
   /// No description provided for @movesOfferTitle.
   ///
@@ -816,6 +1002,348 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'number match 3,number puzzle,merge numbers,fusion puzzle,numeric puzzle,2048 match 3,offline puzzle,logic game'**
   String get storeKeywords;
+
+  /// No description provided for @privacyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get privacyTitle;
+
+  /// No description provided for @privacyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'NineFuse keeps your progress on this device only. Ads are provided by Google AdMob.'**
+  String get privacyBody;
+
+  /// No description provided for @privacyPolicyLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicyLink;
+
+  /// No description provided for @privacyAdOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Ad privacy options'**
+  String get privacyAdOptions;
+
+  /// No description provided for @privacyClose.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get privacyClose;
+
+  /// No description provided for @privacyTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get privacyTooltip;
+
+  /// No description provided for @outcomeWonHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'COMPLETE!'**
+  String get outcomeWonHeadline;
+
+  /// No description provided for @continueOfferResume.
+  ///
+  /// In en, this message translates to:
+  /// **'PICK UP WHERE YOU LEFT OFF'**
+  String get continueOfferResume;
+
+  /// No description provided for @continueOfferBonus.
+  ///
+  /// In en, this message translates to:
+  /// **'{bonus, plural, =1{+1 MOVE} other{+{bonus} MOVES}}'**
+  String continueOfferBonus(int bonus);
+
+  /// No description provided for @objectiveMissingDigit.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{So close: 1 more {digit} piece.} other{So close: {count} more {digit} pieces.}}'**
+  String objectiveMissingDigit(int count, int digit);
+
+  /// No description provided for @objectiveMissingObstacle.
+  ///
+  /// In en, this message translates to:
+  /// **'So close: {count} {obstacle} left.'**
+  String objectiveMissingObstacle(int count, String obstacle);
+
+  /// Rótulo da placa do capítulo no mapa: número do capítulo e estrelas conquistadas nele.
+  ///
+  /// In en, this message translates to:
+  /// **'CHAPTER {number} · {earned}/{total}'**
+  String mapChapterStars(int number, int earned, int total);
+
+  /// No description provided for @mapYouAreHere.
+  ///
+  /// In en, this message translates to:
+  /// **'YOU ARE HERE'**
+  String get mapYouAreHere;
+
+  /// No description provided for @mapPlayLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'PLAY LEVEL {number}'**
+  String mapPlayLevel(int number);
+
+  /// Aviso do mapa quando um tipo de cobertura estreia nas próximas fases.
+  ///
+  /// In en, this message translates to:
+  /// **'New obstacle on level {level}: {obstacle}'**
+  String mapNewObstacle(int level, String obstacle);
+
+  /// No description provided for @mapDailySpinTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily spin'**
+  String get mapDailySpinTooltip;
+
+  /// No description provided for @homeShop.
+  ///
+  /// In en, this message translates to:
+  /// **'SHOP'**
+  String get homeShop;
+
+  /// No description provided for @homeSpin.
+  ///
+  /// In en, this message translates to:
+  /// **'SPIN'**
+  String get homeSpin;
+
+  /// No description provided for @homeMap.
+  ///
+  /// In en, this message translates to:
+  /// **'MAP'**
+  String get homeMap;
+
+  /// Pílula do menu inicial com o capítulo e a fase da vez.
+  ///
+  /// In en, this message translates to:
+  /// **'CHAPTER {chapter} · LEVEL {level}'**
+  String homeChapterLevel(int chapter, int level);
+
+  /// No description provided for @homeStarsSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 star in the campaign} other{{count} stars in the campaign}}'**
+  String homeStarsSemantics(int count);
+
+  /// No description provided for @shopTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SHOP'**
+  String get shopTitle;
+
+  /// No description provided for @shopBoosters.
+  ///
+  /// In en, this message translates to:
+  /// **'BOOSTERS'**
+  String get shopBoosters;
+
+  /// No description provided for @shopCoins.
+  ///
+  /// In en, this message translates to:
+  /// **'COINS'**
+  String get shopCoins;
+
+  /// No description provided for @shopStock.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {count}'**
+  String shopStock(int count);
+
+  /// No description provided for @shopVideoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'+{coins} coins'**
+  String shopVideoTitle(int coins);
+
+  /// No description provided for @shopVideoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch a short video'**
+  String get shopVideoSubtitle;
+
+  /// No description provided for @shopWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'WATCH'**
+  String get shopWatch;
+
+  /// No description provided for @shopBuyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The purchase couldn\'t be completed. Your coins weren\'t spent.'**
+  String get shopBuyFailed;
+
+  /// No description provided for @chestReadyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter chest!'**
+  String get chestReadyTitle;
+
+  /// No description provided for @chestCollect.
+  ///
+  /// In en, this message translates to:
+  /// **'COLLECT'**
+  String get chestCollect;
+
+  /// No description provided for @chestLockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Chest locked'**
+  String get chestLockedTitle;
+
+  /// No description provided for @chestLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Beat every level of chapter {chapter} to open it.'**
+  String chestLockedHint(int chapter);
+
+  /// No description provided for @chestOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get chestOk;
+
+  /// No description provided for @semanticsChestLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter {chapter} chest, locked.'**
+  String semanticsChestLocked(int chapter);
+
+  /// No description provided for @semanticsChestReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter {chapter} chest, ready to open.'**
+  String semanticsChestReady(int chapter);
+
+  /// No description provided for @semanticsChestOpened.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter {chapter} chest, already opened.'**
+  String semanticsChestOpened(int chapter);
+
+  /// No description provided for @settingsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTooltip;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SETTINGS'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsSectionAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'SOUND & TOUCH'**
+  String get settingsSectionAudio;
+
+  /// No description provided for @settingsSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound effects'**
+  String get settingsSound;
+
+  /// No description provided for @settingsVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Effects volume'**
+  String get settingsVolume;
+
+  /// No description provided for @settingsMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get settingsMusic;
+
+  /// No description provided for @settingsVibration.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration'**
+  String get settingsVibration;
+
+  /// No description provided for @settingsSectionLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'LANGUAGE'**
+  String get settingsSectionLanguage;
+
+  /// No description provided for @settingsLanguageSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Device default'**
+  String get settingsLanguageSystem;
+
+  /// No description provided for @settingsLanguagePt.
+  ///
+  /// In en, this message translates to:
+  /// **'Português'**
+  String get settingsLanguagePt;
+
+  /// No description provided for @settingsLanguageEn.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get settingsLanguageEn;
+
+  /// No description provided for @settingsSectionPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'PRIVACY'**
+  String get settingsSectionPrivacy;
+
+  /// No description provided for @settingsPrivacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get settingsPrivacyPolicy;
+
+  /// No description provided for @settingsConsent.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage ad consent'**
+  String get settingsConsent;
+
+  /// No description provided for @settingsSectionAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'ABOUT'**
+  String get settingsSectionAbout;
+
+  /// No description provided for @settingsCredits.
+  ///
+  /// In en, this message translates to:
+  /// **'Credits'**
+  String get settingsCredits;
+
+  /// No description provided for @settingsLicenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Open source licenses'**
+  String get settingsLicenses;
+
+  /// No description provided for @creditsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Credits'**
+  String get creditsTitle;
+
+  /// No description provided for @creditsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nunito, Lilita One and Baloo 2 fonts under the SIL Open Font License (OFL).\nTiles, obstacles and icons: NineFuse \"candy pop\" art pack.\nMade with Flutter.'**
+  String get creditsBody;
+
+  /// No description provided for @creditsClose.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get creditsClose;
 }
 
 class _AppLocalizationsDelegate

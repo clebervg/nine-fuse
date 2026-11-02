@@ -109,6 +109,20 @@ class AppLocalizationsPt extends AppLocalizations {
   String get playButton => 'JOGAR';
 
   @override
+  String get levelStartShopHammer => 'Martelo';
+
+  @override
+  String get levelStartShopBomb => 'Bomba';
+
+  @override
+  String get levelStartShopBrush => 'Pincel';
+
+  @override
+  String levelStartShopBuy(int price) {
+    return '$price 🪙';
+  }
+
+  @override
   String get tipAlignThree =>
       'Alinhe três peças iguais: a do seu toque evolui.';
 
@@ -393,6 +407,96 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get continueOfferTitle => 'SEM JOGADAS';
+
+  @override
+  String continueOfferBody(int bonus) {
+    return 'Assista a um anúncio curto ou gaste moedas para ganhar $bonus movimentos extras e continuar.';
+  }
+
+  @override
+  String continueOfferWatch(int bonus) {
+    return 'ASSISTIR (+$bonus)';
+  }
+
+  @override
+  String continueOfferBuy(int price) {
+    return 'Comprar por $price 🪙';
+  }
+
+  @override
+  String get continueOfferDecline => 'DESISTIR';
+
+  @override
+  String get continueOfferFailed => 'Nenhum anúncio disponível agora.';
+
+  @override
+  String get continueOfferNoCoins => 'Moedas insuficientes';
+
+  @override
+  String continueOfferBalance(int coins) {
+    return 'Você tem $coins 🪙';
+  }
+
+  @override
+  String get bombOfferTitle => 'Sem bombas';
+
+  @override
+  String get bombOfferBody =>
+      'Assista a um anúncio curto e destrua a área 3x3 escolhida.';
+
+  @override
+  String get bombOfferWatch => 'ASSISTIR ANÚNCIO';
+
+  @override
+  String bombOfferBuy(int price) {
+    return 'Comprar por $price 🪙';
+  }
+
+  @override
+  String get bombOfferDecline => 'AGORA NÃO';
+
+  @override
+  String get bombOfferFailed => 'Nenhum anúncio disponível agora.';
+
+  @override
+  String get bombOfferNoCoins => 'Moedas insuficientes';
+
+  @override
+  String bombOfferBalance(int coins) {
+    return 'Você tem $coins 🪙';
+  }
+
+  @override
+  String get brushOfferTitle => 'Sem pincéis';
+
+  @override
+  String get brushOfferBody =>
+      'Assista a um anúncio curto e eleve em 1 a peça escolhida.';
+
+  @override
+  String get brushOfferWatch => 'ASSISTIR ANÚNCIO';
+
+  @override
+  String brushOfferBuy(int price) {
+    return 'Comprar por $price 🪙';
+  }
+
+  @override
+  String get brushOfferDecline => 'AGORA NÃO';
+
+  @override
+  String get brushOfferFailed => 'Nenhum anúncio disponível agora.';
+
+  @override
+  String get brushOfferNoCoins => 'Moedas insuficientes';
+
+  @override
+  String brushOfferBalance(int coins) {
+    return 'Você tem $coins 🪙';
+  }
+
+  @override
   String get coinStoreTitle => 'Suas moedas';
 
   @override
@@ -442,8 +546,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get dailySpinTitle => 'Roleta Diária';
 
   @override
-  String get dailySpinSubtitle =>
-      'Gire a roleta e ganhe um prêmio grátis hoje!';
+  String get dailySpinSubtitle => '1 giro grátis por dia';
 
   @override
   String get dailySpinSpinButton => 'GIRAR';
@@ -455,13 +558,20 @@ class AppLocalizationsPt extends AppLocalizations {
   String get dailySpinCloseButton => 'FECHAR';
 
   @override
-  String dailySpinPrizeWon(String prize) {
-    return 'Você ganhou $prize!';
-  }
+  String get dailySpinFreeButton => 'GIRAR GRÁTIS';
 
   @override
-  String dailySpinComeBackIn(int hours) {
-    return 'Volte em ${hours}h para o próximo giro';
+  String get dailySpinNextFreeIn => 'Próximo giro grátis em';
+
+  @override
+  String get dailySpinPrizeTitle => 'VOCÊ GANHOU!';
+
+  @override
+  String get dailySpinCollectButton => 'COLETAR';
+
+  @override
+  String dailySpinStockFull(int coins) {
+    return 'Estoque cheio: +$coins moedas';
   }
 
   @override
@@ -516,4 +626,224 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get storeKeywords =>
       'match 3 numeros,quebra cabeca numeros,jogo de fusao,puzzle numerico,merge numeros,jogo 2048 match 3,puzzle offline,jogo de logica';
+
+  @override
+  String get privacyTitle => 'Privacidade';
+
+  @override
+  String get privacyBody =>
+      'O NineFuse guarda seu progresso só neste aparelho. Os anúncios são do Google AdMob.';
+
+  @override
+  String get privacyPolicyLink => 'Política de Privacidade';
+
+  @override
+  String get privacyAdOptions => 'Opções de privacidade dos anúncios';
+
+  @override
+  String get privacyClose => 'FECHAR';
+
+  @override
+  String get privacyTooltip => 'Privacidade';
+
+  @override
+  String get outcomeWonHeadline => 'CONCLUÍDA!';
+
+  @override
+  String get continueOfferResume => 'CONTINUAR DE ONDE PAROU';
+
+  @override
+  String continueOfferBonus(int bonus) {
+    String _temp0 = intl.Intl.pluralLogic(
+      bonus,
+      locale: localeName,
+      other: '+$bonus JOGADAS',
+      one: '+1 JOGADA',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String objectiveMissingDigit(int count, int digit) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Faltou pouco: $count peças $digit.',
+      one: 'Faltou pouco: 1 peça $digit.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String objectiveMissingObstacle(int count, String obstacle) {
+    return 'Faltou pouco: $count $obstacle.';
+  }
+
+  @override
+  String mapChapterStars(int number, int earned, int total) {
+    return 'CAPÍTULO $number · $earned/$total';
+  }
+
+  @override
+  String get mapYouAreHere => 'VOCÊ ESTÁ AQUI';
+
+  @override
+  String mapPlayLevel(int number) {
+    return 'JOGAR FASE $number';
+  }
+
+  @override
+  String mapNewObstacle(int level, String obstacle) {
+    return 'Novo obstáculo na fase $level: $obstacle';
+  }
+
+  @override
+  String get mapDailySpinTooltip => 'Roleta diária';
+
+  @override
+  String get homeShop => 'LOJA';
+
+  @override
+  String get homeSpin => 'ROLETA';
+
+  @override
+  String get homeMap => 'MAPA';
+
+  @override
+  String homeChapterLevel(int chapter, int level) {
+    return 'CAPÍTULO $chapter · FASE $level';
+  }
+
+  @override
+  String homeStarsSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count estrelas na campanha',
+      one: '1 estrela na campanha',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shopTitle => 'LOJA';
+
+  @override
+  String get shopBoosters => 'BOOSTERS';
+
+  @override
+  String get shopCoins => 'MOEDAS';
+
+  @override
+  String shopStock(int count) {
+    return 'Você tem $count';
+  }
+
+  @override
+  String shopVideoTitle(int coins) {
+    return '+$coins moedas';
+  }
+
+  @override
+  String get shopVideoSubtitle => 'Assista a um vídeo curto';
+
+  @override
+  String get shopWatch => 'ASSISTIR';
+
+  @override
+  String get shopBuyFailed =>
+      'Não deu para concluir a compra. Suas moedas não foram gastas.';
+
+  @override
+  String get chestReadyTitle => 'Baú do capítulo!';
+
+  @override
+  String get chestCollect => 'COLETAR';
+
+  @override
+  String get chestLockedTitle => 'Baú trancado';
+
+  @override
+  String chestLockedHint(int chapter) {
+    return 'Vença as fases do capítulo $chapter para abrir.';
+  }
+
+  @override
+  String get chestOk => 'OK';
+
+  @override
+  String semanticsChestLocked(int chapter) {
+    return 'Baú do capítulo $chapter, trancado.';
+  }
+
+  @override
+  String semanticsChestReady(int chapter) {
+    return 'Baú do capítulo $chapter, pronto para abrir.';
+  }
+
+  @override
+  String semanticsChestOpened(int chapter) {
+    return 'Baú do capítulo $chapter, já aberto.';
+  }
+
+  @override
+  String get settingsTooltip => 'Configurações';
+
+  @override
+  String get settingsTitle => 'AJUSTES';
+
+  @override
+  String get settingsSectionAudio => 'SOM E TOQUE';
+
+  @override
+  String get settingsSound => 'Efeitos sonoros';
+
+  @override
+  String get settingsVolume => 'Volume dos efeitos';
+
+  @override
+  String get settingsMusic => 'Música';
+
+  @override
+  String get settingsVibration => 'Vibração';
+
+  @override
+  String get settingsSectionLanguage => 'IDIOMA';
+
+  @override
+  String get settingsLanguageSystem => 'Do aparelho';
+
+  @override
+  String get settingsLanguagePt => 'Português';
+
+  @override
+  String get settingsLanguageEn => 'English';
+
+  @override
+  String get settingsSectionPrivacy => 'PRIVACIDADE';
+
+  @override
+  String get settingsPrivacyPolicy => 'Política de privacidade';
+
+  @override
+  String get settingsConsent => 'Gerenciar consentimento de anúncios';
+
+  @override
+  String get settingsSectionAbout => 'SOBRE';
+
+  @override
+  String get settingsCredits => 'Créditos';
+
+  @override
+  String get settingsLicenses => 'Licenças de código aberto';
+
+  @override
+  String get creditsTitle => 'Créditos';
+
+  @override
+  String get creditsBody =>
+      'Fontes Nunito, Lilita One e Baloo 2 sob a SIL Open Font License (OFL).\nPeças, coberturas e ícones: pacote de arte \"candy pop\" do NineFuse.\nFeito com Flutter.';
+
+  @override
+  String get creditsClose => 'FECHAR';
 }

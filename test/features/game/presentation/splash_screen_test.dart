@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/core/notifications/notification_port.dart';
-import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
+import 'package:nine_fuse/features/game/presentation/screens/home_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/splash_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
@@ -14,7 +15,7 @@ import 'package:nine_fuse/features/game/providers/game_storage.dart';
 
 import '../../../support/localized.dart';
 
-/// Porta de notificações que não faz nada — `LevelSelectScreen` chama
+/// Porta de notificações que não faz nada — `HomeScreen` chama
 /// `notificationService.onAppOpened()` no primeiro frame, e sem esta troca o
 /// teste bateria no plugin real de notificações (mesma classe mínima da
 /// Task 8/9).
@@ -30,13 +31,17 @@ class _FakeNotificationPort implements NotificationPort {
 }
 
 void main() {
-  testWidgets('chama onSplashComplete ao fim da animação, em vez de navegar',
-      (tester) async {
+  testWidgets('chama onSplashComplete ao fim da animação, em vez de navegar', (
+    tester,
+  ) async {
     var completed = false;
 
     await tester.pumpWidget(
       localizedApp(
-        home: SplashScreen(onSplashComplete: () => completed = true),
+        home: SplashScreen(
+          onSplashComplete: () => completed = true,
+          loaders: const [],
+        ),
       ),
     );
 
@@ -51,47 +56,96 @@ void main() {
     await tester.pump(kSplashDuration + const Duration(milliseconds: 1));
 
     expect(completed, isTrue);
-    expect(find.byType(LevelSelectScreen), findsNothing);
+    expect(find.byType(HomeScreen), findsNothing);
   });
 
-  testWidgets('navega para LevelSelectScreen ao fim da animação por padrão',
-      (tester) async {
-    final storage = InMemoryGameStorage(lastSpinTimestamp: DateTime.now());
-    final container = ProviderContainer(
-      overrides: [
-        endlessProvider.overrideWith(
-          (ref) => EndlessNotifier(random: Random(1), storage: storage),
-        ),
-        campaignProgressProvider.overrideWith(
-          (ref) => CampaignProgress(storage: storage),
-        ),
-        campaignRecordsProvider.overrideWith(
-          (ref) => CampaignRecords(storage: storage),
-        ),
-        endlessHighScoreProvider.overrideWith(
-          (ref) => EndlessHighScore(storage: storage),
-        ),
-        notificationPortProvider.overrideWithValue(_FakeNotificationPort()),
-        dailySpinStorageProvider.overrideWithValue(storage),
-      ],
-    );
-    addTearDown(container.dispose);
+  testWidgets(
+    'navega para o menu inicial (HomeScreen) ao fim da animação por padrão',
+    (tester) async {
+      final storage = InMemoryGameStorage(lastSpinTimestamp: DateTime.now());
+      final container = ProviderContainer(
+        overrides: [
+          endlessProvider.overrideWith(
+            (ref) => EndlessNotifier(random: Random(1), storage: storage),
+          ),
+          campaignProgressProvider.overrideWith(
+            (ref) => CampaignProgress(storage: storage),
+          ),
+          campaignRecordsProvider.overrideWith(
+            (ref) => CampaignRecords(storage: storage),
+          ),
+          endlessHighScoreProvider.overrideWith(
+            (ref) => EndlessHighScore(storage: storage),
+          ),
+          notificationPortProvider.overrideWithValue(_FakeNotificationPort()),
+          dailySpinStorageProvider.overrideWithValue(storage),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    tester.view.physicalSize = const Size(1200, 2600);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
+      tester.view.physicalSize = const Size(1200, 2600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: localizedApp(home: const SplashScreen(loaders: [])),
+        ),
+      );
+
+      expect(find.byType(HomeScreen), findsNothing);
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(HomeScreen), findsOneWidget);
+    },
+  );
+
+  testWidgets('segura a barra enquanto o carregamento não termina', (
+    tester,
+  ) async {
+    var completed = false;
+    final loading = Completer<void>();
 
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: localizedApp(home: const SplashScreen()),
+      localizedApp(
+        home: SplashScreen(
+          onSplashComplete: () => completed = true,
+          loaders: [() => loading.future],
+        ),
       ),
     );
 
-    expect(find.byType(LevelSelectScreen), findsNothing);
+    // Bem depois do tempo mínimo: sem a etapa concluída, a barra não pode
+    // chegar ao fim — senão o tabuleiro abriria sem os sprites.
+    await tester.pump(kSplashDuration * 3);
+    expect(completed, isFalse);
 
+    loading.complete();
+    // O `forward()` retomado roda num microtask, depois dos callbacks do
+    // quadro, e o ticker só começa no quadro seguinte — contar quadros à mão
+    // aqui seria testar o agendador, não a splash.
     await tester.pumpAndSettle();
+    expect(completed, isTrue);
+  });
 
-    expect(find.byType(LevelSelectScreen), findsOneWidget);
+  testWidgets('etapa que falha não prende o jogador na abertura', (
+    tester,
+  ) async {
+    var completed = false;
+
+    await tester.pumpWidget(
+      localizedApp(
+        home: SplashScreen(
+          onSplashComplete: () => completed = true,
+          loaders: [() => Future<void>.error(StateError('sem asset'))],
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(kSplashDuration + const Duration(milliseconds: 1));
+    expect(completed, isTrue);
   });
 }

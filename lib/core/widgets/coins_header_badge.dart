@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
+import 'package:nine_fuse/core/widgets/sprite_icon.dart';
 import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
@@ -23,6 +25,9 @@ const Key coinStoreWatchKey = Key('coin_store_watch');
 /// Chave do botão que fecha a loja.
 const Key coinStoreCloseKey = Key('coin_store_close');
 
+/// Ouro escuro do aro das pílulas e do botão voltar do topo.
+const Color _rimGold = Color(0xFFC98A18);
+
 /// Pílula de saldo do jogador, para o header de qualquer tela.
 ///
 /// **Por que em todas as telas.** O saldo só aparecia dentro do convite do
@@ -40,10 +45,26 @@ const Key coinStoreCloseKey = Key('coin_store_close');
 /// espelho durante a fase arriscaria dois números diferentes do mesmo item na
 /// mesma tela — o do HUD e o do header.
 class CoinsHeaderBadge extends ConsumerWidget {
-  const CoinsHeaderBadge({super.key, this.hammers});
+  const CoinsHeaderBadge({
+    super.key,
+    this.hammers,
+    this.onAdd,
+    this.showAdd = true,
+  });
 
   /// Estoque de martelos a exibir ao lado das moedas, ou nulo para omitir.
   final int? hammers;
+
+  /// O que o `+` abre. Nulo abre a caixa de moedas ([showCoinStore]).
+  ///
+  /// Fora de uma partida (menu e mapa) quem chama passa a tela da Loja; dentro
+  /// dela (fase, Endless) fica a caixa, porque a Loja vende booster gravando
+  /// no disco, e o estoque da partida viva é o do `GameState`, que não relê o
+  /// disco até o próximo `startLevel`.
+  final VoidCallback? onAdd;
+
+  /// Sem o `+`: na própria Loja ele só reabriria a tela em que o jogador está.
+  final bool showAdd;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -58,29 +79,44 @@ class CoinsHeaderBadge extends ConsumerWidget {
       excludeSemantics: true,
       child: Container(
         key: coinsHeaderBadgeKey,
-        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        padding: const EdgeInsets.only(left: 10, right: 4),
+        height: 42,
+        margin: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        // Mesmo navy de fundo das placas e o aro de ouro escuro do botão
+        // voltar: a pílula é parte do equipamento do topo, não uma etiqueta
+        // de sistema colada na barra.
         decoration: BoxDecoration(
-          color: const Color(0xE60E0E13),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: AppColors.digit3.withValues(alpha: 0.45),
-            width: 1.5,
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF111A4A), Color(0xFF0A1033)],
           ),
+          borderRadius: BorderRadius.circular(21),
+          border: Border.all(color: _rimGold, width: 2),
+          boxShadow: const [
+            BoxShadow(color: Color(0x73000000), offset: Offset(0, 3)),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _Amount(glyph: const _CoinGlyph(), value: coins),
+            _Amount(glyph: const _CoinGlyph(size: 28), value: coins),
             if (hammers case final count?) ...[
               const _Divider(),
               _Amount(
-                glyph: const Text('🔨', style: TextStyle(fontSize: 14)),
+                glyph: const SpriteIcon(
+                  asset: 'assets/images/ic_hammer.png',
+                  fallback: Icons.gavel_rounded,
+                  size: 24,
+                ),
                 value: count,
               ),
             ],
-            const SizedBox(width: 6),
-            _AddButton(onPressed: () => showCoinStore(context)),
+            if (showAdd) ...[
+              const SizedBox(width: 8),
+              _AddButton(onPressed: onAdd ?? () => showCoinStore(context)),
+            ] else
+              const SizedBox(width: 10),
           ],
         ),
       ),
@@ -114,15 +150,18 @@ class _Amount extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       glyph,
-      const SizedBox(width: 5),
-      Text(
-        '$value',
-        style: const TextStyle(
-          fontFamily: AppFonts.display,
-          color: Colors.white,
-          fontSize: 14,
-          fontWeight: FontWeight.w900,
-          height: 1,
+      const SizedBox(width: 6),
+      Padding(
+        padding: const EdgeInsets.only(right: 2),
+        child: Text(
+          '$value',
+          style: const TextStyle(
+            fontFamily: AppFonts.number,
+            color: Colors.white,
+            fontSize: 19,
+            fontWeight: FontWeight.w800,
+            height: 1,
+          ),
         ),
       ),
     ],
@@ -137,15 +176,17 @@ class _Amount extends StatelessWidget {
 /// existir no disco. Até lá, `Image.asset` falha ao carregar e o
 /// `errorBuilder` cai de volta no emoji, sem propagar erro para a tela.
 class _CoinGlyph extends StatelessWidget {
-  const _CoinGlyph();
+  const _CoinGlyph({this.size = 16});
+
+  final double size;
 
   @override
   Widget build(BuildContext context) => Image.asset(
     'assets/images/ic_coin.png',
-    width: 16,
-    height: 16,
+    width: size,
+    height: size,
     errorBuilder: (context, error, stackTrace) =>
-        const Text('🪙', style: TextStyle(fontSize: 14)),
+        Text('🪙', style: TextStyle(fontSize: size * 0.85)),
   );
 }
 
@@ -155,44 +196,64 @@ class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: 1,
-    height: 14,
+    height: 20,
     margin: const EdgeInsets.symmetric(horizontal: 8),
     color: Colors.white.withValues(alpha: 0.18),
   );
 }
 
-/// O `+`: discreto de propósito.
+/// O `+`: o selo verde de "adquirir mais", o mesmo dos boosters sem estoque.
 ///
-/// Ele divide a pílula com um número que o jogador vem ler; um botão chamativo
-/// ali transformaria um indicador em anúncio, e o indicador é o que justifica a
-/// pílula existir em todas as telas.
+/// Verde, e não ouro, porque é o sinal que o jogo inteiro usa para "dá para
+/// conseguir mais"; o ouro da pílula já diz "isto é valioso". O toque cobre o
+/// selo com folga: um círculo de 28pt sozinho fica abaixo do alvo mínimo.
 class _AddButton extends StatelessWidget {
   const _AddButton({required this.onPressed});
 
   final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.transparent,
-    shape: const CircleBorder(),
-    child: InkResponse(
-      key: coinsHeaderAddKey,
-      onTap: onPressed,
-      radius: 16,
-      containedInkWell: true,
-      customBorder: const CircleBorder(),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Container(
-          width: 18,
-          height: 18,
-          alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: AppColors.digit3,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.add_rounded, size: 14, color: Colors.black),
-        ),
+  Widget build(BuildContext context) => GestureDetector(
+    key: coinsHeaderAddKey,
+    behavior: HitTestBehavior.opaque,
+    onTap: onPressed,
+    child: const PlusSeal(size: 28),
+  );
+}
+
+/// Selo verde de `+`: degradê, base 3D e o sinal em Baloo 2.
+///
+/// Público porque é o mesmo selo no dock de boosters sem estoque — duas cópias
+/// divergiriam no primeiro ajuste de tom, e o jogador leria dois convites
+/// diferentes para a mesma ação.
+class PlusSeal extends StatelessWidget {
+  const PlusSeal({super.key, this.size = 28});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    alignment: Alignment.center,
+    decoration: const BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF9BF07A), NfColors.buyGreen],
+      ),
+      boxShadow: [BoxShadow(color: Color(0xFF176B2B), offset: Offset(0, 2))],
+    ),
+    child: Text(
+      '+',
+      style: TextStyle(
+        fontFamily: AppFonts.number,
+        fontWeight: FontWeight.w800,
+        fontSize: size * 0.78,
+        color: Colors.white,
+        height: 1.05,
+        shadows: const [Shadow(color: Color(0xFF176B2B), offset: Offset(0, 1))],
       ),
     ),
   );
@@ -261,11 +322,18 @@ class _CoinStoreDialogState extends ConsumerState<_CoinStoreDialog> {
         child: GameDialog(
           cardKey: coinStoreKey,
           title: l10n.coinStoreTitle,
-          accent: AppColors.digit3,
+          accent: AppColors.uiGold,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('🪙', style: TextStyle(fontSize: 40)),
+              // O mesmo asset da pílula do header, e não o emoji: a loja é a
+              // tela em que o jogador olha mais de perto para a moeda, e um
+              // glifo diferente ali leria como uma moeda diferente.
+              const SizedBox(
+                width: 40,
+                height: 40,
+                child: _CoinGlyph(size: 40),
+              ),
               const SizedBox(height: 8),
               Text(
                 l10n.hammerOfferBalance(coins),
@@ -283,7 +351,7 @@ class _CoinStoreDialogState extends ConsumerState<_CoinStoreDialog> {
               GameButton(
                 key: coinStoreWatchKey,
                 label: l10n.hammerOfferEarnCoins(kCoinsPerRewardedAd),
-                color: AppColors.digit3,
+                color: AppColors.uiGold,
                 foreground: Colors.black,
                 icon: Icons.ondemand_video_rounded,
                 onPressed: _earnCoins,

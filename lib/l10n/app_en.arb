@@ -83,6 +83,12 @@
 
   "playButton": "PLAY",
 
+  "levelStartShopHammer": "Hammer",
+  "levelStartShopBomb": "Bomb",
+  "levelStartShopBrush": "Brush",
+  "levelStartShopBuy": "{price} 🪙",
+  "@levelStartShopBuy": { "placeholders": { "price": { "type": "int" } } },
+
   "tipAlignThree": "Line up three equal tiles: the one you touched evolves.",
   "tipRepeatFusion": "Fuse again. Swaps that form no trio cost no move.",
   "tipChainFusion": "Three 4s become a 5. Plan the chain fusion.",
@@ -277,6 +283,54 @@
     "description": "Confirmation shown after the coin rewarded ad completes.",
     "placeholders": { "reward": { "type": "int" } }
   },
+  "continueOfferTitle": "OUT OF MOVES",
+  "continueOfferBody": "Watch a short ad or spend coins to get {bonus} extra moves and keep going.",
+  "@continueOfferBody": {
+    "placeholders": { "bonus": { "type": "int" } }
+  },
+  "continueOfferWatch": "WATCH AD (+{bonus})",
+  "@continueOfferWatch": {
+    "placeholders": { "bonus": { "type": "int" } }
+  },
+  "continueOfferBuy": "Buy for {price} 🪙",
+  "@continueOfferBuy": {
+    "placeholders": { "price": { "type": "int" } }
+  },
+  "continueOfferDecline": "GIVE UP",
+  "continueOfferFailed": "No ad available right now.",
+  "continueOfferNoCoins": "Not enough coins",
+  "continueOfferBalance": "You have {coins} 🪙",
+  "@continueOfferBalance": {
+    "placeholders": { "coins": { "type": "int" } }
+  },
+  "bombOfferTitle": "Out of bombs",
+  "bombOfferBody": "Watch a short ad and blast the 3x3 area you picked.",
+  "bombOfferWatch": "WATCH AD",
+  "bombOfferBuy": "Buy for {price} 🪙",
+  "@bombOfferBuy": {
+    "placeholders": { "price": { "type": "int" } }
+  },
+  "bombOfferDecline": "NOT NOW",
+  "bombOfferFailed": "No ad available right now.",
+  "bombOfferNoCoins": "Not enough coins",
+  "bombOfferBalance": "You have {coins} 🪙",
+  "@bombOfferBalance": {
+    "placeholders": { "coins": { "type": "int" } }
+  },
+  "brushOfferTitle": "Out of brushes",
+  "brushOfferBody": "Watch a short ad and raise the piece you picked by one.",
+  "brushOfferWatch": "WATCH AD",
+  "brushOfferBuy": "Buy for {price} 🪙",
+  "@brushOfferBuy": {
+    "placeholders": { "price": { "type": "int" } }
+  },
+  "brushOfferDecline": "NOT NOW",
+  "brushOfferFailed": "No ad available right now.",
+  "brushOfferNoCoins": "Not enough coins",
+  "brushOfferBalance": "You have {coins} 🪙",
+  "@brushOfferBalance": {
+    "placeholders": { "coins": { "type": "int" } }
+  },
   "coinStoreTitle": "Your coins",
   "coinStoreClose": "CLOSE",
   "coinsBadgeSemantics": "{coins} coins",
@@ -311,17 +365,17 @@
   },
 
   "dailySpinTitle": "Daily Spin",
-  "dailySpinSubtitle": "Spin the wheel for a free daily prize!",
+  "dailySpinSubtitle": "1 free spin per day",
   "dailySpinSpinButton": "SPIN",
   "dailySpinWatchAgainButton": "Spin Again (Watch Ad)",
   "dailySpinCloseButton": "CLOSE",
-  "dailySpinPrizeWon": "You won {prize}!",
-  "@dailySpinPrizeWon": {
-    "placeholders": { "prize": { "type": "String" } }
-  },
-  "dailySpinComeBackIn": "Come back in {hours}h for your next spin",
-  "@dailySpinComeBackIn": {
-    "placeholders": { "hours": { "type": "int" } }
+  "dailySpinFreeButton": "FREE SPIN",
+  "dailySpinNextFreeIn": "Next free spin in",
+  "dailySpinPrizeTitle": "YOU WON!",
+  "dailySpinCollectButton": "COLLECT",
+  "dailySpinStockFull": "Stock full: +{coins} coins",
+  "@dailySpinStockFull": {
+    "placeholders": { "coins": { "type": "int" } }
   },
 
   "movesOfferTitle": "Almost there!",
@@ -346,5 +400,108 @@
   "storeSubtitle": "Match 3, evolve the number, reach 9",
   "storeShortDescription": "Number match-3: three of a kind become the next digit. Reach 9 and unleash the Super 9.",
   "storeFullDescription": "NineFuse is a number puzzle where matching isn't just clearing.\n\nLine up three identical digits and the middle one EVOLVES into the next: three 4s become a 5. Repeat the fusion, plan the chain, and climb the scale to the game's climax — the digit 9, which clears blockers around it, and the rare Super 9 (a 5+ match), which converts a whole value across the board in a single swap.\n\n• FUSION, NOT JUST CLEARING — match-3 mechanics with merge progression.\n• THE RITUAL OF 9 — the top digit clears blockers around it, and the Super 9 promotes the whole board.\n• ICE, GLASS AND STONE — covers that yield to 1, 2 or 3 adjacent fusions.\n• OBJECTIVE-BASED CAMPAIGN — reach a digit, break covers, clear the board.\n• ENDLESS MODE — a run with no move limit, and your high score kept.\n• FUSION HAMMER — smash one stuck cell without spending a move.\n• NO LIVES TIMER — play as much as you want, whenever you want.\n\nDark visuals, vivid per-digit colours and fluid fusion animations.",
-  "storeKeywords": "number match 3,number puzzle,merge numbers,fusion puzzle,numeric puzzle,2048 match 3,offline puzzle,logic game"
+  "storeKeywords": "number match 3,number puzzle,merge numbers,fusion puzzle,numeric puzzle,2048 match 3,offline puzzle,logic game",
+
+  "privacyTitle": "Privacy",
+  "privacyBody": "NineFuse keeps your progress on this device only. Ads are provided by Google AdMob.",
+  "privacyPolicyLink": "Privacy Policy",
+  "privacyAdOptions": "Ad privacy options",
+  "privacyClose": "CLOSE",
+  "privacyTooltip": "Privacy",
+  "outcomeWonHeadline": "COMPLETE!",
+  "continueOfferResume": "PICK UP WHERE YOU LEFT OFF",
+  "continueOfferBonus": "{bonus, plural, =1{+1 MOVE} other{+{bonus} MOVES}}",
+  "@continueOfferBonus": {
+    "placeholders": { "bonus": { "type": "int" } }
+  },
+  "objectiveMissingDigit": "{count, plural, =1{So close: 1 more {digit} piece.} other{So close: {count} more {digit} pieces.}}",
+  "@objectiveMissingDigit": {
+    "placeholders": { "count": { "type": "int" }, "digit": { "type": "int" } }
+  },
+  "objectiveMissingObstacle": "So close: {count} {obstacle} left.",
+  "@objectiveMissingObstacle": {
+    "placeholders": { "count": { "type": "int" }, "obstacle": { "type": "String" } }
+  },
+  "mapChapterStars": "CHAPTER {number} · {earned}/{total}",
+  "@mapChapterStars": {
+    "description": "Rótulo da placa do capítulo no mapa: número do capítulo e estrelas conquistadas nele.",
+    "placeholders": { "number": { "type": "int" }, "earned": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "mapYouAreHere": "YOU ARE HERE",
+  "mapPlayLevel": "PLAY LEVEL {number}",
+  "@mapPlayLevel": {
+    "placeholders": { "number": { "type": "int" } }
+  },
+  "mapNewObstacle": "New obstacle on level {level}: {obstacle}",
+  "@mapNewObstacle": {
+    "description": "Aviso do mapa quando um tipo de cobertura estreia nas próximas fases.",
+    "placeholders": { "level": { "type": "int" }, "obstacle": { "type": "String" } }
+  },
+  "mapDailySpinTooltip": "Daily spin",
+  "homeShop": "SHOP",
+  "homeSpin": "SPIN",
+  "homeMap": "MAP",
+  "homeChapterLevel": "CHAPTER {chapter} · LEVEL {level}",
+  "@homeChapterLevel": {
+    "description": "Pílula do menu inicial com o capítulo e a fase da vez.",
+    "placeholders": { "chapter": { "type": "int" }, "level": { "type": "int" } }
+  },
+  "homeStarsSemantics": "{count, plural, =1{1 star in the campaign} other{{count} stars in the campaign}}",
+  "@homeStarsSemantics": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "shopTitle": "SHOP",
+  "shopBoosters": "BOOSTERS",
+  "shopCoins": "COINS",
+  "shopStock": "You have {count}",
+  "@shopStock": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "shopVideoTitle": "+{coins} coins",
+  "@shopVideoTitle": {
+    "placeholders": { "coins": { "type": "int" } }
+  },
+  "shopVideoSubtitle": "Watch a short video",
+  "shopWatch": "WATCH",
+  "shopBuyFailed": "The purchase couldn't be completed. Your coins weren't spent.",
+  "chestReadyTitle": "Chapter chest!",
+  "chestCollect": "COLLECT",
+  "chestLockedTitle": "Chest locked",
+  "chestLockedHint": "Beat every level of chapter {chapter} to open it.",
+  "@chestLockedHint": {
+    "placeholders": { "chapter": { "type": "int" } }
+  },
+  "chestOk": "OK",
+  "semanticsChestLocked": "Chapter {chapter} chest, locked.",
+  "@semanticsChestLocked": {
+    "placeholders": { "chapter": { "type": "int" } }
+  },
+  "semanticsChestReady": "Chapter {chapter} chest, ready to open.",
+  "@semanticsChestReady": {
+    "placeholders": { "chapter": { "type": "int" } }
+  },
+  "semanticsChestOpened": "Chapter {chapter} chest, already opened.",
+  "@semanticsChestOpened": {
+    "placeholders": { "chapter": { "type": "int" } }
+  },
+  "settingsTooltip": "Settings",
+  "settingsTitle": "SETTINGS",
+  "settingsSectionAudio": "SOUND & TOUCH",
+  "settingsSound": "Sound effects",
+  "settingsVolume": "Effects volume",
+  "settingsMusic": "Music",
+  "settingsVibration": "Vibration",
+  "settingsSectionLanguage": "LANGUAGE",
+  "settingsLanguageSystem": "Device default",
+  "settingsLanguagePt": "Português",
+  "settingsLanguageEn": "English",
+  "settingsSectionPrivacy": "PRIVACY",
+  "settingsPrivacyPolicy": "Privacy policy",
+  "settingsConsent": "Manage ad consent",
+  "settingsSectionAbout": "ABOUT",
+  "settingsCredits": "Credits",
+  "settingsLicenses": "Open source licenses",
+  "creditsTitle": "Credits",
+  "creditsBody": "Nunito, Lilita One and Baloo 2 fonts under the SIL Open Font License (OFL).\nTiles, obstacles and icons: NineFuse \"candy pop\" art pack.\nMade with Flutter.",
+  "creditsClose": "CLOSE"
 }

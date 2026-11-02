@@ -107,11 +107,13 @@ class EndlessState {
   bool get isBombTargeting => bomb.isTargeting;
   (Position, Map<Position, int>)? get bombStrike => bomb.strike;
   int get bombStrikes => bomb.strikes;
+  Position? get pendingBombTarget => bomb.pendingTarget;
 
   /// O Pincel: mesmo objeto único que a campanha usa, ver [BrushState].
   final BrushState brush;
 
   int get brushCount => brush.count;
+  Position? get pendingBrushTarget => brush.pendingTarget;
   bool get isBrushTargeting => brush.isTargeting;
 
   /// A Nova: mesmo par de contadores da campanha, ver

@@ -37,14 +37,31 @@ const int kMinMatch = 3;
 /// regra de jogo — em partida normal nunca deve ser alcançado.
 const int _maxCascades = 64;
 
-/// Teto de cascatas por jogada, como regra de jogo — não rede de segurança.
-/// Ao ser atingido com match ainda pendente no tabuleiro, `resolve()` para
-/// ali: o match não é perdido, fica congelado até a jogada seguinte.
+/// Valor histórico do antigo teto de cascatas "normal" por jogada.
+///
+/// Até esta correção, `resolve()` parava aqui mesmo com match pendente no
+/// tabuleiro — regra de jogo, não rede de segurança, segundo o comentário
+/// que este valor carregava. Na prática, fases geradas tardias (janela de
+/// sorteio saturada nos dígitos mais altos — ver Fase 15) produzem jogadas
+/// cuja cascata legítima passa de 4 elos com frequência; cada vez que isso
+/// acontecia, a jogada seguinte formava ainda mais cascata (o mesmo
+/// tabuleiro saturado), e o congestionamento crescia jogada após jogada em
+/// vez de só atrasar por um turno — visível para o jogador como "a fusão
+/// parou de acontecer sozinha". `resolve()` agora só para de verdade em
+/// `_maxCascades`, a rede de segurança contra loop infinito; este valor
+/// continua existindo só porque `CascadeBudget` e o parâmetro
+/// `cascadeBudget` de `resolve()` seguem sendo úteis para testar a máquina
+/// da Nova (que ainda soma 1 de orçamento ao disparar) isoladamente.
 const int kCascadeBudgetPerTurn = 4;
 
 /// Orçamento de reações consumido por `resolve()` dentro de uma única
 /// jogada. Existe como objeto (em vez de um contador solto) para o dia em
 /// que a origem da reação importar ao orçamento — hoje todo passo custa 1.
+///
+/// Não gate mais o loop de `resolve()` (ver `kCascadeBudgetPerTurn`): quem
+/// corta o loop de verdade é `_maxCascades`. O contador continua sendo
+/// incrementado/decrementado para a Nova poder testar seu reembolso sem
+/// depender do teto de segurança.
 class CascadeBudget {
   CascadeBudget([this.remaining = kCascadeBudgetPerTurn]);
 
@@ -755,7 +772,12 @@ class MatchEngine {
     // outra Nova na cascata seguinte (autoplay em cadeia).
     var novaUsedThisTurn = false;
 
-    while (!budget.isExhausted && steps.length < _maxCascades) {
+    // O teto de verdade é só `_maxCascades` (rede de segurança contra loop
+    // infinito). `budget` segue sendo consumido/reembolsado — a Nova ainda
+    // depende disso para não deixar seu próprio trio de anel congelado —,
+    // mas não interrompe mais o loop sozinho: um match legítimo nunca fica
+    // pendurado só porque a jogada encadeou mais cascatas que o normal.
+    while (steps.length < _maxCascades) {
       final matches = detectMatches(current);
       if (matches.isEmpty) break;
       budget.consume();

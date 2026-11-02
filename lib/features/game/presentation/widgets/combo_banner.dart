@@ -84,7 +84,7 @@ class _ComboBannerState extends State<ComboBanner>
     ),
     _Announcement.comboTwo => (
       text: l10n.comboTwo,
-      color: AppColors.digit3,
+      color: AppColors.uiGold,
       shake: false,
     ),
     _Announcement.comboMany => (

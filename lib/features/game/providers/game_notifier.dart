@@ -2,10 +2,13 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
+import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/nova_event.dart';
@@ -16,11 +19,15 @@ import 'package:nine_fuse/features/game/providers/brush_booster.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
+import 'package:nine_fuse/features/game/providers/step_sounds.dart';
 
 /// Orquestra o estado da fase. Toda a regra de Match-3 e fusão vive no
 /// [MatchEngine]; aqui só decidimos o que fazer com o resultado.
 class GameNotifier extends StateNotifier<GameState>
-    with HammerBooster<GameState>, BombBooster<GameState>, BrushBooster<GameState> {
+    with
+        HammerBooster<GameState>,
+        BombBooster<GameState>,
+        BrushBooster<GameState> {
   GameNotifier({
     Random? random,
     Future<void> Function(Duration)? delay,
@@ -289,6 +296,37 @@ class GameNotifier extends StateNotifier<GameState>
     );
   }
 
+  /// O convite de resgate de derrota (Continue Offer) abriu na tela.
+  ///
+  /// Quem marca é a UI, mesma razão de [markMovesOfferShown]: a regra sabe
+  /// dizer que a fase justifica o resgate, só a tela sabe se o cartão chegou
+  /// a subir.
+  void markContinueOfferShown() {
+    if (state.continueOfferShown) return;
+    state = state.copyWith(continueOfferShown: true);
+  }
+
+  /// Credita o resgate de derrota: +[kContinueBonusMoves] movimentos, e
+  /// revive a fase (volta a `playing`, sem motivo de derrota).
+  ///
+  /// Só surte efeito se [GameState.shouldOfferContinue] for verdadeiro no
+  /// instante da chamada — mesma guarda que [grantBonusMoves] aplica contra
+  /// double-crédito, aqui replicada porque o gatilho é o oposto (a fase
+  /// **precisa** estar perdida por falta de movimentos, não em andamento).
+  void grantContinueMoves() {
+    if (state.status != GameStatus.lost ||
+        state.lossReason != LossReason.moveLimitReached ||
+        state.continueOfferShown) {
+      return;
+    }
+    state = state.copyWith(
+      status: GameStatus.playing,
+      clearLossReason: true,
+      bonusMoves: state.bonusMoves + kContinueBonusMoves,
+      continueOfferShown: true,
+    );
+  }
+
   /// Substitui o tabuleiro por um montado à mão.
   ///
   /// Só para teste: é o que permite exercitar uma jogada específica — criar o
@@ -346,6 +384,7 @@ class GameNotifier extends StateNotifier<GameState>
       clearRejectedSwap: true,
       clearPendingSupernova: true,
     );
+    GameAudio.play(SoundEvent.select);
   }
 
   void deselectTile() {
@@ -376,8 +415,10 @@ class GameNotifier extends StateNotifier<GameState>
           clearSelectedTile: true,
           rejectedSwap: (from, to),
         );
+        GameAudio.play(SoundEvent.invalidSwap);
 
       case MoveSuperNineActivated(:final board, :final convertedFrom):
+        GameAudio.play(SoundEvent.superNine);
         // O `switch` não é `async`: travar a UI esperando o hitstop antes de
         // devolver o controle ao chamador não é necessário aqui.
         unawaited(_applySuperNineActivation(engine, board, convertedFrom));
@@ -426,6 +467,7 @@ class GameNotifier extends StateNotifier<GameState>
       if (step.fusions.any((f) => f.value == kMaxDigit)) {
         _explosionFeedback();
       }
+      _playStepSounds(step);
 
       // Um Super 9 CRIADO nesta jogada merece a mesma apresentação de
       // Supernova que a ativação já tem (spec: "Super 9 criado ou ativado
@@ -469,6 +511,7 @@ class GameNotifier extends StateNotifier<GameState>
         await _delay(JuiceTimings.novaHitstop);
         if (!mounted) return;
         _explosionFeedback();
+        GameAudio.play(SoundEvent.nova);
 
         // Recompensa: a única fusão do jogo que paga moeda direto — soma dos
         // tiers (no máximo uma Nova por jogada, mas soma por segurança se
@@ -484,11 +527,7 @@ class GameNotifier extends StateNotifier<GameState>
           novaStrikes: state.novaStrikes + 1,
           novaCoinsGranted: state.novaCoinsGranted + coinsGained,
         );
-        if (_random.nextBool()) {
-          grantBomb();
-        } else {
-          grantBrush();
-        }
+        _grantNovaBooster();
       }
 
       await _delay(JuiceTimings.fusion);
@@ -504,14 +543,45 @@ class GameNotifier extends StateNotifier<GameState>
     _finishMove(engine, resolution, extraScore: 0, countsAsMove: countsAsMove);
   }
 
+  /// O booster grátis da Nova (Bomba ou Pincel, sorteado), respeitando o
+  /// teto de [kMaxBoosterStock].
+  ///
+  /// É prêmio, não compra: com o estoque cheio o item vira
+  /// [kCoinsPerOverflowBooster] moedas, somadas a `novaCoinsGranted` — o
+  /// mesmo caminho da moeda da Nova, que a tela credita na carteira. Sem o
+  /// teto a Nova seria a única torneira grátis a empilhar booster sem fim,
+  /// exatamente o que o teto da roleta existe para impedir.
+  void _grantNovaBooster() {
+    final isBomb = _random.nextBool();
+    final current = isBomb ? state.bombCount : state.brushCount;
+    final credit = capBoosterReward(current: current, amount: 1);
+    if (credit.count > current) {
+      isBomb ? grantBomb() : grantBrush();
+    }
+    if (credit.overflowCoins > 0) {
+      state = state.copyWith(
+        novaCoinsGranted: state.novaCoinsGranted + credit.overflowCoins,
+      );
+    }
+  }
+
   /// Batida forte da explosão do dígito máximo.
   ///
   /// Injetável porque é a única coisa aqui que fala com a plataforma: nos
   /// testes vira um contador, e a suíte não depende de canal nativo.
   @visibleForTesting
-  static void Function() explosionFeedback = HapticFeedback.heavyImpact;
+  static void Function() explosionFeedback = Haptics.heavy;
 
   void _explosionFeedback() => explosionFeedback();
+
+  /// O som do quadro de fusão (ver [stepSound]) e o da cobertura quebrada.
+  /// Fica junto do clarão, e não em `_finishMove`, pelo mesmo motivo da
+  /// batida tátil: o som tem de coincidir com o que a tela mostra.
+  void _playStepSounds(ResolutionStep step) {
+    final sound = stepSound(step);
+    if (sound != null) GameAudio.play(sound);
+    if (stepBreaksObstacle(step)) GameAudio.play(SoundEvent.obstacleBreak);
+  }
 
   /// Aplica o desfecho da ativação do Super 9: consome 1 movimento (é uma
   /// jogada como qualquer swap), decai as peças especiais do turno e conta

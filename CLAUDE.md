@@ -43,15 +43,15 @@ Organize a pasta `lib/` da seguinte forma:
 
 ## Mapeamento Inicial dos Números & Cores
 Cada dígito possui uma cor vibrante e bem definida em `lib/core/constants/app_colors.dart`:
-- `0`: Vermelho vibrante (`0xFFE53935`)
-- `1`: Azul neon (`0xFF1E88E5`)
-- `2`: Verde lima (`0xFF43A047`)
-- `3`: Amarelo/Dourado (`0xFFFDD835`)
-- `4`: Laranja (`0xFFFB8C00`)
-- `5`: Roxo (`0xFF8E24AA`)
-- `6`: Rosa neon (`0xFFFF3DA5`)
-- `7`: Ciano (`0xFF00ACC1`)
-- `8`: Violeta/Índigo (`0xFF3949AB`)
+- `0`: Vermelho (`0xFFFF3B30`)
+- `1`: Azul (`0xFF007AFF`)
+- `2`: Verde (`0xFF34C759`)
+- `3`: Verde-água (`0xFF00B3A6`)
+- `4`: Laranja (`0xFFFF9500`)
+- `5`: Roxo (`0xFFAF52DE`)
+- `6`: Rosa (`0xFFFF5CA8`)
+- `7`: Azul-céu (`0xFF5AC8FA`)
+- `8`: Índigo (`0xFF4B3FD1`)
 - `9`: **Dourado Místico Dinâmico** — Degradê `0xFFFFD700` → `0xFFFF8C00`, com animação de pulso/respiração contínua e brilho neon (`AppColors.apexGlow`).
 
 ---
@@ -1611,3 +1611,363 @@ objetivo de fase + fonte de dano nova; orçamento de cascata + criação de
 match fora do match original) se cruzaram ao mesmo tempo — exatamente o
 tipo de interseção que um teste unitário isolado de cada mecânica não
 cobre sozinho.
+
+### Calibragem das fases hard (-25% movimentos + obstáculo dobrado) (2026-09-13)
+
+**Metodologia, mesma disciplina de todas as calibragens anteriores: medir
+com `simulate_economy.dart`, nunca escolher constante no olho.** As Tasks
+10-11 (commits `dbe4fbb` e `e675c4c`) introduziram `isHardLevel`,
+`kHardMoveMultiplier = 0.75` (-25% de movimentos) e a duplicação da
+densidade de obstáculo nas fases hard do gerador procedural
+(`_obstaclesFor(block, hard: isHardLevel(number))`), sem medir o efeito
+combinado das duas intensificações juntas. Esta task é essa medição.
+Um novo modo `--mode=hard` em `tool/simulate_economy.dart` reaproveita o
+mesmo bot guloso e a mesma leitura de alvo/progresso
+(`_targetOf`/`_gainOf`) que `--mode=generated` já usa — extraído para
+`_simulateGeneratedLevel` — e compara cada fase hard contra a vizinha
+`n - 1` (não-hard) do mesmo bloco: mesmo objetivo, mesma janela de
+sorteio, só a intensificação hard muda. Isolar na vizinha imediata (em
+vez de uma fase distante qualquer) é o que permite atribuir a diferença
+de taxa só ao efeito hard, e não a uma mudança de arquétipo entre fases
+que a distância já explicaria sozinha.
+
+**Amostra: as primeiras 15 fases hard a partir de `kHardLevelStart` (30),
+`--games=200`.** `isHardLevel` marca a penúltima posição de cada bloco
+(`kBlockSize - 2`), o que faz toda fase hard cair na posição de objetivo
+"quebre N coberturas" ou "limpe todo X" — nunca na de dígito (posições
+0-6) nem no fecho de bloco (posição 9, "limpe tudo"). A amostra saiu por
+isso inteira de cobertura, e não por viés de escolha:
+
+| fase | objetivo        | mov hard | vit hard | mov vizinho | vit vizinho |
+|------|-----------------|----------|----------|-------------|-------------|
+| 39   | Quebre 3 glass  | 22       | 93%      | 25          | 89%         |
+| 49   | Quebre 2 stone  | 14       | 23%      | 12          | 46%         |
+| 59   | Quebre 2 stone  | 14       | 20%      | 12          | 47%         |
+| 69   | Quebre 2 stone  | 14       | 19%      | 12          | 47%         |
+| 79   | Quebre 4 stone  | 27       | 65%      | 23          | 74%         |
+| 89   | Quebre 4 stone  | 27       | 23%      | 23          | 39%         |
+| 99   | Quebre 4 stone  | 26       | 22%      | 22          | 37%         |
+| 109  | Quebre 6 stone  | 38       | 24%      | 33          | 41%         |
+| 119  | Quebre 6 stone  | 38       | 82%      | 32          | 93%         |
+| 129  | Quebre 6 stone  | 37       | 17%      | 31          | 36%         |
+| 139  | Quebre 6 stone  | 36       | 17%      | 30          | 34%         |
+| 149  | Quebre 6 stone  | 35       | 20%      | 30          | 37%         |
+| 159  | Quebre 6 stone  | 35       | 77%      | 30          | 91%         |
+| 169  | Quebre 6 stone  | 35       | 16%      | 30          | 34%         |
+| 179  | Quebre 6 stone  | 35       | 16%      | 30          | 34%         |
+
+**Nenhuma fase hard mede 0%, e nenhuma mede 95%+ (o outro sinal de
+alarme do brief — teria dito que o modificador hard não fez nada).** O
+piso medido é 16% (fases 169 e 179); o teto é 93% (fase 39, glass). A
+combinação -25% movimentos + obstáculo dobrado empurra a taxa de vitória
+para baixo em toda a amostra — 12 das 15 linhas, a hard perde entre 10 e
+23 pontos percentuais contra a vizinha — mas nunca até zero.
+
+**Conclusão: os números seguem dentro do já documentado piso das fases
+de cobertura, e nenhuma constante precisou ser ajustada nesta task.**
+Toda a amostra é do arquétipo "quebre N"/"limpe todo X", e a seção da
+Fase 13/Fase 15 já registra que esse número é sempre um **piso**, não uma
+nota: o bot guloso persegue a fusão de maior valor e nunca mira a
+cobertura de propósito, então taxas na casa dos 16-25% em fases de pedra
+já eram esperadas mesmo **sem** a intensificação hard (ver a fase 108 na
+tabela de `--mode=generated`, 40-45% antes de qualquer hard). O
+`kHardMoveMultiplier = 0.75` reduz esse piso ainda mais, o que é
+exatamente o que "-25% de movimentos" deveria fazer — uma fase hard que
+não ficasse mensuravelmente mais dura que a vizinha seria a intensificação
+não fazendo nada, o segundo alarme que o brief pedia para vigiar. Não há
+aqui uma fase matematicamente impossível (0%) nem uma fase em que a
+dificuldade dobrada não se refletiu (95%+): o efeito é real, mensurável, e
+nenhum dos dois sintomas de alarme apareceu. Por isso a constante não foi
+tocada — mexer nela sem um sintoma de quebra seria fazer o oposto do que
+esta disciplina de calibragem existe para evitar (deformar a fórmula até
+a métrica ceder, o erro que a Fase 15 já registrou e reverteu uma vez).
+
+**Fases hard >200, quando aplicável, são as que a leitura de produto do
+spec associa ao uso esperado de Bomba/Pincel — sem enforcement de
+código.** Nada no motor ou no gerador verifica se o jogador tem
+booster nenhum antes de servir uma fase hard tardia; a leitura é de
+produto, não de regra: a essa altura da campanha infinita o jogo já
+apresentou os boosters de compra avulsa (Martelo/Bomba/Pincel, ver
+commits `d861807`/`17d0757`), e o piso mais baixo medido aqui (16%, bot
+sem boosters) é a taxa de quem joga só de fusão — a mesma leitura que
+toda fase de cobertura já registrava antes deste modo existir. Um
+jogador real com Bomba ou Pincel disponível mira a cobertura de
+propósito, o que o bot guloso nunca faz; medir esse uso exigiria simular
+o booster no bot, fora do escopo desta task.
+
+### Pacote de arte "candy pop": sprites, ícone e tela de carregamento (2026-10-01)
+
+**A arte entrou pelos caminhos que já existiam, sem código novo de
+carregamento.** `TileSpriteManager` e `SpriteIcon` já esperavam
+`assets/sprites/tiles/tile_N.png`, `assets/sprites/obstacles/obstacle_<tipo>_<hp>.png`
+e `assets/images/ic_<booster>.png` — os nomes do pacote são os mesmos. O
+mapeamento `(ObstacleType, hp) → sprite` também já existia; os pips de HP da
+pedra vêm desenhados no PNG, sem contador extra. O `manifest.json` do pacote
+fica versionado em `docs/brand/asset-manifest.json`, fonte das medidas usadas
+no código.
+
+**Só a escala 1x, e é decisão.** O manager carrega os bytes direto
+(`MemoryImage`) e ignora as variantes `2.0x/3.0x`, e 256 px já cobre uma
+célula de ~45pt em 3x. Copiar as outras escalas só engordaria o bundle.
+
+**O sprite é alinhado pela face, não pelo canvas.** A face da peça ocupa
+x=20 y=12 w=216 h=204 do canvas de 256 (`TileSpriteManager.spriteFace`);
+embaixo vêm a extrusão e a sombra. `_faceAlignedSprite` faz a largura da face
+virar a largura da célula, e a margem transparente e a sombra transbordam —
+por isso o `Stack` da peça é `Clip.none`. A cobertura usa o mesmo canvas e o
+mesmo encaixe, então assenta exatamente sobre a peça.
+
+**A paleta do código foi alinhada à dos sprites.** As cores acima (e
+`AppColors.digit0..8`) são as do manifest. A peça vem desenhada no PNG, mas
+partículas, halo e a vitrine do objetivo continuam pintados por `AppColors`:
+se as duas divergissem, o estilhaço sairia numa cor diferente da peça que
+quebrou. `palette_distance_test` segue passando com os tons novos.
+
+**Ícone adaptativo de volta no Android.** O pacote trouxe frente (fundo
+transparente, já na zona segura) e fundo separados; a limitação da troca de
+2026-09-10 acabou. `adaptive_icon_foreground_inset: 0` é obrigatório: o inset
+padrão de 16% da ferramenta encolheria a frente uma segunda vez. Conferido
+sob máscara circular de 66% — nada decepado. Sem camada `monochrome`: a
+sugerida pelo pacote era a frente colorida, que vira silhueta chapada.
+
+**Splash nativa em `#080D2A`, não mais `#121212`.** Ela agora precede a
+tela de carregamento, que é a arte cheia sobre esse azul-marinho; casar as
+duas evita o piscar de cor. iOS e Android legado só com cor; Android 12+ com
+`assets/icon/splash_icon.png` (o sistema sempre desenha um ícone ali).
+
+**A `SplashScreen` virou tela de carregamento de verdade.** Imagem
+`splash_1290x2796.png` em aspect fill e a barra preenchendo o trilho que já
+vem desenhado na arte (x=331 y=2336 w=628 h=32, raio 16), convertido pela
+mesma escala da imagem. O controller anda até um teto que só sobe conforme
+os `loaders` terminam (por padrão, o preload dos sprites — que saiu do
+`main.dart` para a barra ter o que acompanhar), com piso de
+`kSplashDuration`. Etapa que falha conta como concluída. Em tela mais larga
+que a arte (tablet), preencher cortaria o rodapé e o trilho junto; aí a arte
+cabe inteira com o fundo da splash nas laterais.
+
+**Ficou de fora, por decisão:** a fonte Baloo 2 que o pacote sugere para os
+números da UI — os números das peças já vêm no PNG, e trocar a Nunito é
+mudança de identidade com goldens a regerar, para uma rodada própria. Saíram
+`assets/images/logo.png` e `logo_splash.png` (só a splash antiga os usava);
+`tool/prepare_icons.dart` ainda os menciona, mas é o pipeline do SVG, já
+legado desde 2026-09-10.
+
+
+### Direção visual "Observatório Real": as 7 telas do Claude Design (2026-11-01)
+
+Referência: `Nine Fuse Telas.dc.html` no projeto do Claude Design (telas 01-07).
+Céu azul-noite, moldura de ouro e gema roxa. **Ouro marca o que é tocável e
+valioso, roxo marca o que é mágico.** Tokens em `core/theme/nf_tokens.dart`
+(`NfColors`, `NfRadii`, `NfDurations`, `NfDecorations`); widgets novos leem
+dali, não de hex solto.
+
+**Tipografia em três vozes, todas empacotadas.** Lilita One (títulos, botões
+grandes), Baloo 2 (números do HUD — a família dos números dos tiles) e Nunito
+(texto corrido). A Baloo 2 entrou como **subconjunto latino** dos pesos 700/800
+(72 KB cada, contra 410 KB com o devanágari da fonte original). Lilita One tem
+um peso só: passar `fontWeight` faz o Flutter sintetizar negrito borrado.
+`NfText` dá as quatro variantes; o contorno de `NfText.number` é traço, não
+sombra, por isso vale dentro de `Transform` animado (o bug de sombra do
+Impeller continua valendo para os títulos).
+
+**Restilizar no lugar, não duplicar.** `GameButton` e `GameDialog` mudaram de
+cara sem mudar de API: `color: AppColors.uiGold` vira o botão de ouro e
+`AppColors.darkSurface` o secundário azul-noite. Os doze chamadores não foram
+tocados por isso. O botão afunda 8→3px com escala 0,96 e dá `lightImpact`.
+
+**Vídeo premiado é sempre gema (`NfColors.gem`).** Cada convite usava a cor
+da sua peça, e o mesmo gesto ("assistir") parecia cinco ações diferentes. O
+verde (`buyGreen`) fica reservado para compra com dinheiro real, que ainda não
+existe.
+
+**O que o design pedia e não entrou, por decisão do dono do produto:**
+- **Preços e prêmios do design** (900, 1.200, 1.500, roleta até 1.000) eram
+  placeholder; valem os do código. A fatia dourada da roleta é a de maior
+  valor de `kSpinWheelPrizes`, calculada, não fixa.
+- **Pacotes em R$ e "Baú Real"** na Loja: não há billing. A Loja vende
+  boosters por moeda e oferece o vídeo premiado.
+- **"DESAFIO" com timer e "MUNDO"** no menu: não existem no jogo. O botão
+  virou ROLETA e "Mundo" virou Capítulo.
+- **"RECORDE NOVO" e "+1 martelo"** na vitória: não há recorde por fase nem
+  item por vitória.
+
+**Fluxo novo: Splash → Menu → Mapa → Fase.** O JOGAR do menu abre o **mapa**,
+que abre a fase da vez (`autoOpenCurrent`) — não a fase direto, porque o
+cartão de desfecho diz "Voltar às fases" e voltar tem de cair na trilha. A
+auto-abertura da roleta diária e o `onAppOpened()` das notificações saíram do
+mapa para o menu (primeira tela).
+
+**Teto de 5 por booster só para prêmio grátis** (`capBoosterReward`,
+`kMaxBoosterStock`, `kCoinsPerOverflowBooster = 50`): o excedente da roleta
+vira moeda e o popup diz "Estoque cheio". Compra (Loja, anúncio, mini-loja do
+início de fase) não passa pelo teto: recusar o que o jogador acabou de pagar
+seria cobrar sem entregar. Estoque legado acima de 5 não é cortado.
+
+**O "+" das moedas depende de onde a pílula está.** No menu e no mapa abre a
+Loja (rota); dentro da fase e do Recorde continua abrindo a caixa de moedas,
+porque a Loja grava estoque direto no disco e, numa partida, a autoridade é o
+`GameState` — o HUD mostraria um número velho até o próximo `startLevel`.
+
+**Tela de fase.** HUD numa placa só com o medalhão de jogadas no centro;
+alerta de jogadas sobe de ≤3 para ≤5 (`kUrgentMovesLeft`, só visual — o
+pre-churn segue em `kPreChurnMovesLeft`). Os boosters desceram para **baixo**
+do tabuleiro, no alcance do polegar, revertendo a posição das "Diretrizes de
+UI/UX: Booster Martelo" — continuam fora do card de métricas, e
+`hud_layout_test` passou a travar "dock abaixo do tabuleiro, acima da área
+segura". Sem estoque: ícone dessaturado por `ColorFilter.matrix` (não
+`Opacity`) e selo verde "+"; o Modo Fantasma não mudou.
+
+**Roleta.** Ângulo final por função pura (`targetTurnsFor`): ≥5 voltas a
+partir de onde a roda parou, ±30% de jitter injetável, testado para todos os
+índices. `Curves.decelerate` em 4200ms. A contagem "Próximo giro grátis" usa
+`Timer.periodic` (cancelado no dispose), não animação — o `pumpAndSettle`
+termina com ela ligada. O X fica desativado durante o giro: fechar no meio
+descartaria a animação antes do crédito.
+
+**Armadilhas desta rodada:**
+- **Golden sem a fonte vira retângulos.** `test/support/game_fonts.dart`
+  (`loadNfFonts`) carrega Lilita One e Baloo 2 nos quatro testes de golden.
+  Todos os seis goldens foram regerados (`board`, `game_hud`,
+  `game_hud_urgent`, `juice_fusion`, `level_outcome`, `saga_map`).
+- **`dart format` em pasta inteira** reformatou arquivos fora do escopo numa
+  das etapas; foram devolvidos ao HEAD. Formate só o que mudou.
+- **Animações em loop**: o halo da fase atual no mapa já repetia antes (com
+  `debugDisableMapPulse`); todas as animações novas são finitas (raios da
+  vitória param em 1,8s, lâmpadas da roleta só piscam enquanto ela gira).
+
+**Não validado em aparelho:** as telas foram conferidas por capturas de teste
+de widget em 390x844, 375x667 e 1080x2400 (20:9); falta rodar no simulador e
+num Android real, sobretudo o desempenho do blur dos modais.
+
+
+### Correções: baú de capítulo, teto do booster da Nova e visual do Super 9 (2026-11-01)
+
+**O baú de capítulo finalmente paga.** `Wallet.claimChapterChest` existia, com
+teste, e nenhuma tela o chamava — o cartão "Como ganhar moedas" prometia uma
+torneira que não abria. Agora há um nó de baú (`ChapterChestNode`, em
+`chapter_chest.dart`) no fim de cada capítulo pagável (1..`kChapterChestPayableCount`)
+na trilha, em três estados: trancado (azul-noite com cadeado no canto), pronto
+(ouro com halo **parado**) e aberto (bronze com ✓). Pronto credita e abre o
+popup "+200" com a moeda; trancado abre a dica "Vença as fases do capítulo N".
+
+- **O baú não entra na geometria da trilha.** Um nó a mais na sequência
+  empurraria todas as fases seguintes e quebraria a conta que centraliza a fase
+  da vez. Ele pousa ao lado, a meio caminho entre a última fase do capítulo e a
+  primeira do seguinte, do lado oposto ao da curva — longe da etiqueta "VOCÊ
+  ESTÁ AQUI", do tile 9 e das coroas de estrelas, que vivem colados nos pins.
+- **"Concluído" lê o progresso, não o histórico de estrelas.** A campanha só
+  destrava em ordem, então `progress >= lastLevel` já garante todas as fases
+  vencidas — e continua certo depois da poda (`prunedBelow`), quando contar
+  registros diria "capítulo vazio".
+- **O toque relê a carteira antes de pagar.** A carteira nasce zerada e a
+  leitura do mapa é assíncrona: um toque antes dela veria o baú como não pago
+  e gravaria um saldo montado sobre zero por cima das moedas reais.
+  `claimChapterChest` continua sendo a trava de "uma vez só".
+- **O halo do baú pronto não pulsa.** O mapa já tem um elemento pulsante (a
+  fase da vez), e um segundo loop quebraria `pumpAndSettle`.
+- O golden `saga_map.png` **não mudou**: no recorte dele (fase 4) o primeiro
+  baú fica acima da área visível.
+
+**A Nova respeita o teto de booster.** O booster grátis da Nova chamava
+`grantBomb`/`grantBrush` direto e furava o `kMaxBoosterStock` que a roleta já
+respeitava. `_grantNovaBooster` (nos dois notifiers) passa por
+`capBoosterReward`: com o estoque cheio, o item vira `kCoinsPerOverflowBooster`
+somado a `novaCoinsGranted` — o mesmo caminho que a tela já usa para creditar a
+moeda da Nova. O sorteio Bomba/Pincel continua sendo **um** `nextBool`, para
+não mudar a sequência aleatória das partidas com semente.
+
+**O Super 9 ganhou cara própria.** Antes ele era desenhado igual a um 9 comum:
+a peça especial existia só na regra, e a reversão em `kSpecialTileLifespan`
+jogadas era invisível — o jogador via o poder sumir "do nada". Agora tem aro com
+degradê de varredura gema/ouro, halo de gema somado ao ouro do ápice e um selo
+no canto com as jogadas restantes (3, 2, 1). Ao nascer, o aro dá **um** pulso
+(anel que se expande e apaga, alfa de cor dentro do pintor — nada de
+`Opacity`/`FadeTransition` na peça). O número do selo é texto sem sombra,
+porque vive dentro das transformações animadas da peça.
+
+### Configurações e serviço de áudio (silencioso até haver arquivos) (2026-11-01)
+
+**O áudio entrou mudo, e isso é o estado correto, não um meio-termo.** Não
+há nenhum arquivo de som no projeto. `AudioService` (`core/audio/`) lê o
+AssetManifest no primeiro som pedido e só toca o que foi empacotado em
+`assets/audio/sfx/` e `assets/audio/music/` — quem soltar um arquivo com o
+nome certo (lista exata em `assets/audio/README.md`, derivada de
+`SoundEvent.fileName`) ouve o som sem mexer em código. Arquivo que falta é
+silêncio: sem exceção e sem log por jogada (falha do plugin é avisada uma
+vez). As duas pastas existem só com `.gitkeep` porque o Flutter reclama de
+diretório de asset declarado e inexistente no build.
+
+**Mesma régua dos anúncios: porta fina sem teste, decisão em Dart puro.**
+`AudioPort`/`AudioplayersPort` falam com o plugin; o serviço decide
+(arquivo existe? som ligado? faixa já tocando?). O padrão
+`GameAudio.service` é `AudioService.silent()`, e só o `main` liga o plugin —
+a suíte nunca abre canal de áudio. **É estático, e não provider**, porque
+quem dispara som são os ganchos táteis estáticos dos boosters e dos
+notifiers (mixins sem `ref`); passar provider até eles mudaria a assinatura
+de dois notifiers por um som.
+
+**`audioplayers` PINADO em `6.8.1`**, pelo histórico do `google_mobile_ads`.
+`flutter build ios --debug --simulator` e `flutter build apk --debug`
+compilaram com ele. Os players nativos são `late`: enquanto não houver
+arquivo, o jogo não abre player nenhum. Contexto de áudio de **jogo**
+(iOS `ambient`, Android `game` sem foco): respeita a chave de silencioso e
+**mistura** com a música do jogador em vez de pausá-la.
+`AudioContextConfig(respectSilence: true)` não serve — no Android ele troca
+o uso para toque de chamada.
+
+**O iOS não toca `.ogg`.** O AVPlayer não tem Vorbis, então a lista de
+extensões é por plataforma (`platformAudioExtensions`): no iOS o `.ogg` nem
+é considerado, e um `fusion.ogg` sozinho vira silêncio em vez de erro a cada
+fusão. O README recomenda `.mp3` para tudo.
+
+**Um som por passo de cascata, o mais forte vence** (`stepSound`, função
+pura compartilhada por campanha e Recorde): Super 9 > 9 nascendo > combo >
+fusão. A Nova soa no fim do hitstop, junto do payoff, e não no quadro em que
+os 9s se alinham. Cobertura só soa quando **quebra** — a mesma régua de
+`countCleared`.
+
+**O som de sistema virou reserva, não camada.** `GameAudio.play(...,
+fallback:)` roda o clique/alerta do sistema só quando o efeito próprio não
+tocou. Sem isso, no dia em que `select.mp3` chegar, o jogador ouviria os
+dois empilhados.
+
+**Vitória e derrota soam na transição de status (`ref.listen` da tela), não
+no cartão.** O cartão é `StatelessWidget` reconstruído a cada quadro das
+animações dele; som em `build` tocaria em loop. O tilintar das moedas mora
+em `WalletNotifier.creditCoins` (cinco torneiras, um som), com
+`chime: false` no estorno de compra que falhou — devolver moeda não é ganhar.
+
+**Configurações persistidas em `GameStorage`** (`settings_*`), cada campo
+com leitura tolerante **isolada**: um volume corrompido não pode religar a
+vibração que o jogador desligou. Idioma "do aparelho" apaga a chave em vez
+de gravar `system`. `SettingsNotifier` descarta a leitura do disco que
+chega depois de um toque local, o mesmo remédio da carteira.
+
+**A vibração passa por um ponto só (`Haptics`, `core/feedback/`).** Todo
+`HapticFeedback` e `SystemSound` do jogo saiu de boosters, notifiers,
+roleta, mapa, baú e `GameButton` para lá; o `main` espelha as Configurações
+nele (`applyFeedbackSettings`, via `container.listen`). Fica fora do
+notifier de propósito: uma suíte que cria dez notifiers não sai mexendo em
+estado global. Os ganchos injetáveis (`strikeFeedback`,
+`explosionFeedback`...) continuam existindo e sendo dublados como antes.
+"Som desligado" também cala o clique e o alerta do sistema — um interruptor
+de som que deixa o clique do mapa tocando mente.
+
+**Idioma:** `NineFuseApp` virou `ConsumerWidget` e lê só
+`settings.language.code` (`select`): mexer no volume não reconstrói o app.
+
+**Tela de Configurações é rota, não caixa** (quatro seções não cabem num
+modal no iPhone SE). Tudo vale na hora, sem "salvar". O item de
+consentimento só aparece quando `privacyOptionsRequired` diz que é exigido,
+perguntado uma vez no `initState` (um `FutureBuilder` com a chamada no
+`build` voltaria ao UMP a cada interruptor). "Política de privacidade"
+reabre a mesma caixa que o botão do menu abria. **A engrenagem substituiu o
+botão de privacidade do Menu** (`homePrivacyKey` → `homeSettingsKey`;
+nenhum teste usava a chave antiga).
+
+**Ficou de fora, por decisão:** número de versão nos Créditos (não há
+`package_info_plus`, e um plugin nativo a mais só para "1.0.0" não se
+paga); os próprios arquivos de áudio; e a música parar ao abrir um anúncio
+premiado (o SDK do AdMob já pede foco de áudio, e sem arquivo de música não
+há o que medir). **Não validado em aparelho:** o caminho nativo do
+`audioplayers` só foi compilado, não ouvido — não há arquivo para tocar.

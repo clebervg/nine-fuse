@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/presentation/l10n_labels.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
@@ -76,9 +76,9 @@ class ChapterStarProgress extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontFamily: AppFonts.display,
-                    color: Colors.white70,
-                    fontSize: 12,
+                    fontFamily: AppFonts.number,
+                    color: NfColors.textSoft,
+                    fontSize: 13,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.3,
                   ),
@@ -91,17 +91,17 @@ class ChapterStarProgress extends StatelessWidget {
                   Text(
                     '$starsInChapter/${chapter.starTotal}',
                     style: const TextStyle(
-                      fontFamily: AppFonts.display,
+                      fontFamily: AppFonts.number,
                       color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(width: 3),
                   const Icon(
                     Icons.star_rounded,
-                    size: 15,
-                    color: AppColors.digit3,
+                    size: 16,
+                    color: NfColors.gold,
                   ),
                 ],
               ),
@@ -122,7 +122,7 @@ class _Track extends StatelessWidget {
   final double from;
   final double to;
 
-  static const double _height = 7;
+  static const double _height = 8;
 
   @override
   Widget build(BuildContext context) => ClipRRect(
@@ -131,7 +131,9 @@ class _Track extends StatelessWidget {
       height: _height,
       width: double.infinity,
       child: DecoratedBox(
-        decoration: const BoxDecoration(color: AppColors.darkBackground),
+        // Trilho afundado no painel, o mesmo navy escuro dos pontos apagados
+        // do mapa: o que falta é "noite", o que já é do jogador é ouro.
+        decoration: const BoxDecoration(color: NfColors.night0),
         // `TweenAnimationBuilder` anima de `begin` até `end` na primeira
         // construção, que é exatamente o que se quer aqui: o cartão aparece
         // com o total antigo e ele sobe sozinho. Sem ganho, `begin == end` e
@@ -151,7 +153,7 @@ class _Track extends StatelessWidget {
             // objetivo no HUD, e nenhum teste acusou.
             heightFactor: 1,
             child: const DecoratedBox(
-              decoration: BoxDecoration(color: AppColors.digit3),
+              decoration: BoxDecoration(gradient: NfDecorations.goldFill),
             ),
           ),
         ),

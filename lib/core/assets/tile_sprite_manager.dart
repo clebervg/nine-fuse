@@ -17,6 +17,16 @@ import 'package:nine_fuse/features/game/domain/obstacle.dart';
 abstract final class TileSpriteManager {
   static final Map<int, ImageProvider> _cache = {};
 
+  /// Lado do canvas dos sprites de peça e de cobertura, em pixels de arte.
+  static const double spriteCanvas = 256;
+
+  /// Face superior da peça dentro do canvas (`tile_footprint_in_256` em
+  /// `docs/brand/asset-manifest.json`). Abaixo dela vêm a extrusão (até
+  /// y=230) e a sombra, e em volta, margem transparente. É a face que tem de
+  /// casar com a célula: alinhar pelo canvas inteiro deixaria as peças
+  /// afastadas umas das outras pela margem que a arte reserva para a sombra.
+  static const Rect spriteFace = Rect.fromLTWH(20, 12, 216, 204);
+
   /// Dígitos cuja carga já foi tentada nesta sessão, com ou sem sucesso.
   /// Sem isto, um dígito sem asset seria pedido ao bundle de novo a cada
   /// chamada de [preload] — e uma tela reaberta várias vezes bateria disco a

@@ -1,0 +1,14 @@
+# Template da assinatura de release. Copie para `android/key.properties`
+# (que o .gitignore já ignora) e preencha. NUNCA commite o arquivo real nem a
+# keystore, e guarde os dois em backup fora do repositório: perder a chave de
+# upload obriga a um processo de redefinição na Play Console.
+#
+# Gerar a keystore (uma vez; o comando pede as senhas e os dados do titular):
+#   keytool -genkey -v -keystore ~/upload-keystore.jks -storetype JKS \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+# `storeFile` aceita caminho absoluto ou relativo a `android/app/`.
+storePassword=<senha da keystore>
+keyPassword=<senha da chave>
+keyAlias=upload
+storeFile=<caminho para o upload-keystore.jks>
