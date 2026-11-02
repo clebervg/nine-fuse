@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/ads/ad_providers.dart';
+import 'package:nine_fuse/core/ads/interstitial_ad_service.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
@@ -31,6 +32,7 @@ import 'package:nine_fuse/features/game/presentation/widgets/saga_map.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
+import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
@@ -484,6 +486,14 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
           _centerOnCurrentLevel();
           // A fase pode ter gasto martelo e ganho moeda por estrela nova.
           ref.read(walletProvider.notifier).refresh();
+          // A saída da fase para o mapa é o outro momento do intersticial.
+          // O desfecho da última partida decide: derrota nunca mostra.
+          final moment = switch (ref.read(gameProvider).status) {
+            GameStatus.won => InterstitialMoment.afterVictory,
+            GameStatus.lost => InterstitialMoment.afterDefeat,
+            _ => InterstitialMoment.exitToMap,
+          };
+          maybeShowInterstitial(ref, moment);
         });
   }
 }

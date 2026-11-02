@@ -1971,3 +1971,67 @@ paga); os próprios arquivos de áudio; e a música parar ao abrir um anúncio
 premiado (o SDK do AdMob já pede foco de áudio, e sem arquivo de música não
 há o que medir). **Não validado em aparelho:** o caminho nativo do
 `audioplayers` só foi compilado, não ouvido — não há arquivo para tocar.
+
+
+### Intersticial, cap do martelo por vídeo, unidades próprias e mapa deslizante (2026-11-01)
+
+**Intersticial: a regra mora no serviço, a tela só diz onde está.**
+`InterstitialAdService` (Dart puro, mesma arquitetura do premiado: porta
+`InterstitialAdPort` + adaptador `AdMobInterstitialPort` fino e sem teste)
+recebe um `InterstitialMoment` — `afterVictory`, `exitToMap` ou
+`afterDefeat` — e decide. `afterDefeat` existe só para a proibição ficar
+escrita e testada: quem chama não precisa lembrar que derrota nunca mostra
+anúncio, basta dizer de onde está saindo. Os dois pontos de chamada são o
+"Próxima fase" do cartão de vitória (`_nextAfterVictory`, que espera o
+anúncio fechar antes de começar a fase seguinte) e o retorno da fase ao mapa
+(`_openLevel(...).then`), que lê o status da última partida para escolher o
+momento. Nunca no meio de uma partida: nenhum dos dois pontos existe com o
+tabuleiro em jogo.
+
+**Os 45 s são de jogo, não de relógio.** Relógio de parede passa sozinho com o
+jogador parado no mapa, na loja ou com o app em segundo plano, e um anúncio a
+cada saída de fase rápida seria o que ele lembra do jogo. O `GameScreen` tem um
+`Stopwatch` que corre só com o cartão de início fechado, a fase não encerrada e
+o app visível, e entrega o tempo ao serviço (`addPlayTime`). O relógio zera na
+**exibição**, não na oportunidade perdida por falta de estoque — pular por rede
+vazia não pode custar mais 45 s ao jogo. O primeiro anúncio da sessão também
+espera 45 s.
+
+**O `PopScope` da fase não bloqueia nada: descarrega o relógio na hora da
+saída.** O mapa decide o intersticial assim que a rota fecha, e o `dispose` da
+fase só roda depois da animação de saída — tarde demais para o tempo da última
+partida contar. `onPopInvokedWithResult` roda no próprio `pop`.
+
+**Onboarding protegido por progresso, não por sessão.** "Nunca na primeira
+sessão antes de vencer a fase 3" virou `campaignProgress <
+kInterstitialOnboardingLevels` (3): medir "sessão" pediria persistir mais
+estado, e quem ainda não venceu a fase 3 está no onboarding em qualquer
+sessão.
+
+**Sem estoque, pula — não carrega na hora.** O premiado carrega sob demanda
+porque o jogador pediu; o intersticial ninguém pediu, e segurar a navegação
+esperando a rede seria cobrar espera por um anúncio indesejado. Preload no
+`initState` da fase, como o premiado.
+
+**O padrão do provider é nenhum anúncio** (`NoInterstitialAdPort`), não
+"paga sem rede" como o premiado: um intersticial não paga nada, então o
+neutro em teste é não existir. Quem liga o AdMob é `admobOverrides()`. O
+Endless fica de fora de propósito: o fim de corrida é derrota.
+
+**No-Ads Pass: `adsRemovedProvider`, hoje sempre `false`.** É o único ponto a
+trocar quando houver billing. Remove só o intersticial — o premiado é opt-in.
+
+**Música pausa durante qualquer anúncio de tela cheia** (premiado e
+intersticial), com flag própria no `AudioService` (`pauseForAd` /
+`resumeAfterAd`), separada da suspensão do ciclo de vida: no Android o anúncio
+é outra activity e o app passa por oculto → visível ainda com ele aberto; com
+uma flag só, o `resume` do ciclo de vida religaria a música por baixo do
+anúncio. Os ganchos (`onShowStart`/`onShowEnd`) envolvem só a exibição, não a
+carga — uma rede sem estoque pausaria e religaria a faixa do zero sem anúncio
+nenhum na tela.
+
+**`check_admob_ids.sh` ganhou duas checagens:** toda unidade lida em
+`ad_ids.dart` tem de aparecer no comando de build do README, e
+`--defines "<flags>"` confere as flags de um build de verdade. Esquecer um
+`--dart-define` não quebra nada — só deixa o funil sem anúncio no release —,
+e é exatamente por isso que precisa de guarda.

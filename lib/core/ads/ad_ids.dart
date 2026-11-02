@@ -30,6 +30,10 @@ abstract final class AdIds {
       'ca-app-pub-3940256099942544/5224354917';
   static const String _iosTestRewarded =
       'ca-app-pub-3940256099942544/1712485313';
+  static const String _androidTestInterstitial =
+      'ca-app-pub-3940256099942544/1033173712';
+  static const String _iosTestInterstitial =
+      'ca-app-pub-3940256099942544/4411468910';
 
   // `const` + `fromEnvironment`: o valor é fixado na compilação, não há como
   // trocá-lo em runtime. O padrão vazio significa "não injetado".
@@ -37,6 +41,9 @@ abstract final class AdIds {
   static const String _moves = String.fromEnvironment('ADMOB_MOVES_REWARDED');
   static const String _coins = String.fromEnvironment('ADMOB_COINS_REWARDED');
   static const String _spin = String.fromEnvironment('ADMOB_SPIN_REWARDED');
+  static const String _interstitial = String.fromEnvironment(
+    'ADMOB_INTERSTITIAL',
+  );
 
   /// Unidade do anúncio que paga o Martelo de Fusão.
   ///
@@ -54,18 +61,32 @@ abstract final class AdIds {
   /// Unidade do anúncio que paga o giro extra da roleta diária.
   static String get spinRewarded => _resolve(_spin);
 
+  /// Unidade do intersticial (pós-vitória / saída para o mapa).
+  ///
+  /// O formato é outro (não premiado), então o ID de teste também: pedir um
+  /// intersticial numa unidade de premiado falha na rede.
+  static String get interstitial => _resolve(
+    _interstitial,
+    android: _androidTestInterstitial,
+    ios: _iosTestInterstitial,
+  );
+
   /// O ID injetado vence em qualquer modo; sem ele, teste fora de release e
   /// vazio em release (ver a documentação da classe).
-  static String _resolve(String injected) {
+  static String _resolve(
+    String injected, {
+    String android = _androidTestRewarded,
+    String ios = _iosTestRewarded,
+  }) {
     if (injected.isNotEmpty) return injected;
-    return kReleaseMode ? '' : _testRewarded;
+    return kReleaseMode ? '' : _testFor(android: android, ios: ios);
   }
 
   /// Fora de Android e iOS não há SDK de anúncio, e a string vazia é o que faz
   /// a carga falhar de forma limpa em vez de estourar no canal de plataforma.
-  static String get _testRewarded {
-    if (Platform.isAndroid) return _androidTestRewarded;
-    if (Platform.isIOS) return _iosTestRewarded;
+  static String _testFor({required String android, required String ios}) {
+    if (Platform.isAndroid) return android;
+    if (Platform.isIOS) return ios;
     return '';
   }
 }

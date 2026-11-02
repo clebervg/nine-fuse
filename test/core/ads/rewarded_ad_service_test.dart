@@ -186,4 +186,23 @@ void main() {
       expect(service.isReady, isFalse);
     });
   });
+
+  group('música', () {
+    test('pausa só em volta da exibição, não da carga sem estoque', () async {
+      final calls = <String>[];
+      final service = RewardedAdService(
+        port: _FakePort([null, _FakeAd()]),
+        unitId: unit,
+        onShowStart: () => calls.add('start'),
+        onShowEnd: () => calls.add('end'),
+      );
+
+      // Rede sem estoque: nada foi ao ar, a música não pode piscar.
+      expect(await service.show(), isFalse);
+      expect(calls, isEmpty);
+
+      expect(await service.show(), isTrue);
+      expect(calls, ['start', 'end']);
+    });
+  });
 }
