@@ -9,6 +9,8 @@ import 'package:nine_fuse/core/ads/consent_service.dart';
 import 'package:nine_fuse/core/ads/interstitial_ad_service.dart';
 import 'package:nine_fuse/core/ads/rewarded_ad_service.dart';
 import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/bomb_offer_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/brush_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/moves_offer_dialog.dart';
@@ -83,6 +85,34 @@ final spinAdServiceProvider = Provider<RewardedAdService>((ref) {
   return service;
 });
 
+/// Serviço do anúncio que paga a Bomba.
+///
+/// Unidade própria, como as outras: até aqui a Bomba e o Pincel não tinham
+/// unidade nem serviço — os providers deles nunca eram ligados ao AdMob, e o
+/// padrão "paga sem rede" valia também no release.
+final bombAdServiceProvider = Provider<RewardedAdService>((ref) {
+  final service = RewardedAdService(
+    port: ref.watch(rewardedAdPortProvider),
+    unitId: AdIds.bombRewarded,
+    onShowStart: _pauseMusicForAd,
+    onShowEnd: _resumeMusicAfterAd,
+  );
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+/// Serviço do anúncio que paga o Pincel.
+final brushAdServiceProvider = Provider<RewardedAdService>((ref) {
+  final service = RewardedAdService(
+    port: ref.watch(rewardedAdPortProvider),
+    unitId: AdIds.brushRewarded,
+    onShowStart: _pauseMusicForAd,
+    onShowEnd: _resumeMusicAfterAd,
+  );
+  ref.onDispose(service.dispose);
+  return service;
+});
+
 // A música do jogo cala enquanto um anúncio de tela cheia está no ar: o áudio
 // dos dois junto é ruído, e o do anúncio é o que o jogador escolheu ouvir.
 void _pauseMusicForAd() => unawaited(GameAudio.service.pauseForAd());
@@ -150,6 +180,8 @@ void preloadRewardedAds(WidgetRef ref) {
   // para evitar.
   ref.read(coinAdServiceProvider).preload();
   ref.read(spinAdServiceProvider).preload();
+  ref.read(bombAdServiceProvider).preload();
+  ref.read(brushAdServiceProvider).preload();
 }
 
 /// Liga os funis de anúncio ao AdMob.
@@ -166,6 +198,8 @@ List<Override> admobOverrides() => [
   movesAdProvider.overrideWith((ref) => ref.watch(movesAdServiceProvider).show),
   coinAdProvider.overrideWith((ref) => ref.watch(coinAdServiceProvider).show),
   spinAdProvider.overrideWith((ref) => ref.watch(spinAdServiceProvider).show),
+  bombAdProvider.overrideWith((ref) => ref.watch(bombAdServiceProvider).show),
+  brushAdProvider.overrideWith((ref) => ref.watch(brushAdServiceProvider).show),
   interstitialAdPortProvider.overrideWith(
     (ref) => AdMobInterstitialPort(consent: ref.watch(consentServiceProvider)),
   ),

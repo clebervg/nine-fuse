@@ -41,6 +41,8 @@ abstract final class AdIds {
   static const String _moves = String.fromEnvironment('ADMOB_MOVES_REWARDED');
   static const String _coins = String.fromEnvironment('ADMOB_COINS_REWARDED');
   static const String _spin = String.fromEnvironment('ADMOB_SPIN_REWARDED');
+  static const String _bomb = String.fromEnvironment('ADMOB_BOMB_REWARDED');
+  static const String _brush = String.fromEnvironment('ADMOB_BRUSH_REWARDED');
   static const String _interstitial = String.fromEnvironment(
     'ADMOB_INTERSTITIAL',
   );
@@ -60,6 +62,12 @@ abstract final class AdIds {
 
   /// Unidade do anúncio que paga o giro extra da roleta diária.
   static String get spinRewarded => _resolve(_spin);
+
+  /// Unidade do anúncio que paga a Bomba.
+  static String get bombRewarded => _resolve(_bomb);
+
+  /// Unidade do anúncio que paga o Pincel.
+  static String get brushRewarded => _resolve(_brush);
 
   /// Unidade do intersticial (pós-vitória / saída para o mapa).
   ///

@@ -2048,3 +2048,13 @@ compra com moeda continua livre, e no teto o botão de vídeo fica na caixa,
 apagado, dizendo "Volte amanhã para mais vídeos" (sumir com ele faria o
 jogador procurar o vídeo que usou ontem). O teto é contado **antes** do
 `onGranted`, que costuma fechar a caixa.
+
+**Bomba e Pincel ganharam unidade, serviço e preload próprios**
+(`ADMOB_BOMB_REWARDED`, `ADMOB_BRUSH_REWARDED`). O achado foi pior do que
+"usam a unidade de outro funil": `bombAdProvider` e `brushAdProvider` **nunca
+entravam em `admobOverrides()`**, então o padrão de teste — pagar sem anúncio —
+valia também no release, e os dois boosters saíam de graça pelo botão de
+vídeo. Há teste travando que, com o AdMob ligado, cada um pede a própria
+unidade. **Ainda fora, e é o mesmo defeito:** `continueAdProvider` (resgate de
+derrota) também não está em `admobOverrides()` e paga sem anúncio no release;
+não foi tocado por estar fora do escopo desta rodada.

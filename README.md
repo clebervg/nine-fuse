@@ -86,6 +86,8 @@ flutter build appbundle --release \
   --dart-define=ADMOB_MOVES_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
   --dart-define=ADMOB_COINS_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
   --dart-define=ADMOB_SPIN_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
+  --dart-define=ADMOB_BOMB_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
+  --dart-define=ADMOB_BRUSH_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
   --dart-define=ADMOB_INTERSTITIAL=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN
 ```
 O build de iOS usa os mesmos nomes de variável, com as unidades da app iOS.
