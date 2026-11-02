@@ -373,6 +373,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Watch a short ad and smash the cell you picked.';
 
   @override
+  String get hammerOfferAdCapReached => 'Come back tomorrow for more videos';
+
+  @override
   String get hammerOfferWatch => 'WATCH AD';
 
   @override

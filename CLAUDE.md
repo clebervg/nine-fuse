@@ -2035,3 +2035,16 @@ nenhum na tela.
 `--defines "<flags>"` confere as flags de um build de verdade. Esquecer um
 `--dart-define` não quebra nada — só deixa o funil sem anúncio no release —,
 e é exatamente por isso que precisa de guarda.
+
+**Teto de 3 Martelos por vídeo ao dia (`HammerAdCap`).** O contador guarda o
+**dia local** junto do número (`DailyAdCount`, persistido em `GameStorage`), e
+não um contador zerado à meia-noite: com o app fechado não há quem zere, e um
+número sem data não sabe se é de hoje. Lido noutro dia, vale zero — inclusive
+com o app aberto atravessando a meia-noite, porque `reachedToday` é calculado
+na hora contra o relógio, nunca guardado. Local, e não UTC: "volte amanhã" é o
+amanhã do jogador. Falha de leitura vale **zero** — travar o vídeo por disco
+ilegível tiraria o caminho principal do item. Só o vídeo do convite conta; a
+compra com moeda continua livre, e no teto o botão de vídeo fica na caixa,
+apagado, dizendo "Volte amanhã para mais vídeos" (sumir com ele faria o
+jogador procurar o vídeo que usou ontem). O teto é contado **antes** do
+`onGranted`, que costuma fechar a caixa.

@@ -601,6 +601,12 @@ abstract class AppLocalizations {
   /// **'Watch a short ad and smash the cell you picked.'**
   String get hammerOfferBody;
 
+  /// No description provided for @hammerOfferAdCapReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back tomorrow for more videos'**
+  String get hammerOfferAdCapReached;
+
   /// No description provided for @hammerOfferWatch.
   ///
   /// In en, this message translates to:

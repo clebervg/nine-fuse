@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:nine_fuse/features/game/domain/daily_ad_count.dart';
 import 'package:nine_fuse/features/game/domain/game_settings.dart';
 import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -82,6 +83,13 @@ abstract interface class GameStorage {
   Future<DateTime?> readLastSpinTimestamp();
   Future<void> writeLastSpinTimestamp(DateTime value);
 
+  /// Martelos ganhos por vídeo, com o dia (local) em que foram contados.
+  ///
+  /// O dia viaja junto porque é ele que zera o teto (`kMaxHammerAdsPerDay`):
+  /// lido em outro dia, o contador vale zero, sem tarefa de meia-noite.
+  Future<DailyAdCount> readHammerAdGrants();
+  Future<void> writeHammerAdGrants(DailyAdCount value);
+
   /// Som, música, vibração e idioma.
   ///
   /// Cada campo ilegível volta ao seu padrão **sozinho**: um volume corrompido
@@ -105,6 +113,8 @@ class PrefsGameStorage implements GameStorage {
   static const String _coinsKey = 'wallet_coins';
   static const String _chestsKey = 'campaign_chests_claimed';
   static const String _lastSpinKey = 'daily_spin_last_timestamp';
+  static const String _hammerAdDayKey = 'hammer_ad_grants_day';
+  static const String _hammerAdCountKey = 'hammer_ad_grants_count';
   static const String _soundOnKey = 'settings_sound_on';
   static const String _soundVolumeKey = 'settings_sound_volume';
   static const String _musicOnKey = 'settings_music_on';
@@ -251,6 +261,22 @@ class PrefsGameStorage implements GameStorage {
         _lastSpinKey,
         value.toUtc().millisecondsSinceEpoch,
       );
+
+  @override
+  Future<DailyAdCount> readHammerAdGrants() async {
+    final prefs = await SharedPreferences.getInstance();
+    final day = prefs.getString(_hammerAdDayKey);
+    if (day == null) return DailyAdCount.empty;
+    return DailyAdCount(day: day, count: prefs.getInt(_hammerAdCountKey) ?? 0);
+  }
+
+  @override
+  Future<void> writeHammerAdGrants(DailyAdCount value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_hammerAdDayKey, value.day);
+    await prefs.setInt(_hammerAdCountKey, value.count);
+  }
+
   @override
   Future<GameSettings> readSettings() async {
     const defaults = GameSettings();
@@ -312,6 +338,7 @@ class InMemoryGameStorage implements GameStorage {
     this.archivedStars = 0,
     this.prunedBelow = 0,
     this.lastSpinTimestamp,
+    this.hammerAdGrants = DailyAdCount.empty,
     this.settings = const GameSettings(),
     Set<int>? claimedChests,
     Map<int, LevelRecord>? levelRecords,
@@ -327,6 +354,7 @@ class InMemoryGameStorage implements GameStorage {
   int archivedStars;
   int prunedBelow;
   DateTime? lastSpinTimestamp;
+  DailyAdCount hammerAdGrants;
   GameSettings settings;
   Set<int> claimedChests;
   Map<int, LevelRecord> levelRecords;
@@ -402,6 +430,13 @@ class InMemoryGameStorage implements GameStorage {
   @override
   Future<void> writeLastSpinTimestamp(DateTime value) async =>
       lastSpinTimestamp = value;
+
+  @override
+  Future<DailyAdCount> readHammerAdGrants() async => hammerAdGrants;
+
+  @override
+  Future<void> writeHammerAdGrants(DailyAdCount value) async =>
+      hammerAdGrants = value;
 
   @override
   Future<GameSettings> readSettings() async => settings;

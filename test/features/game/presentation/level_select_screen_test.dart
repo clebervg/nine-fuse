@@ -18,11 +18,19 @@ import 'package:nine_fuse/features/game/presentation/widgets/saga_map.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
+import 'package:nine_fuse/features/game/domain/daily_ad_count.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
 
 /// Armazenamento que sempre falha, para verificar que o menu não trava.
 class _BrokenStorage implements GameStorage {
+  @override
+  Future<DailyAdCount> readHammerAdGrants() async =>
+      throw StateError('sem disco');
+  @override
+  Future<void> writeHammerAdGrants(DailyAdCount value) async =>
+      throw StateError('sem disco');
+
   @override
   Future<int> readCampaignProgress() async =>
       throw StateError('disco indisponível');
