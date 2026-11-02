@@ -141,7 +141,7 @@
   "hammerOfferBalance": "Você tem {coins} 🪙",
   "hammerOfferEarnCoins": "Ganhar +{reward} 🪙 (Assistir Vídeo)",
   "hammerOfferEarnedCoins": "+{reward} 🪙 creditadas no seu saldo!",
-  "continueOfferTitle": "Sem movimentos",
+  "continueOfferTitle": "SEM JOGADAS",
   "continueOfferBody": "Assista a um anúncio curto ou gaste moedas para ganhar {bonus} movimentos extras e continuar.",
   "continueOfferWatch": "ASSISTIR (+{bonus})",
   "continueOfferBuy": "Comprar por {price} 🪙",
@@ -187,12 +187,15 @@
   "brushSemantics": "Pincel, {count} em estoque. Soma 1 ao valor de uma peça sem gastar movimento.",
 
   "dailySpinTitle": "Roleta Diária",
-  "dailySpinSubtitle": "Gire a roleta e ganhe um prêmio grátis hoje!",
+  "dailySpinSubtitle": "1 giro grátis por dia",
   "dailySpinSpinButton": "GIRAR",
   "dailySpinWatchAgainButton": "Girar de Novo (Assistir Vídeo)",
   "dailySpinCloseButton": "FECHAR",
-  "dailySpinPrizeWon": "Você ganhou {prize}!",
-  "dailySpinComeBackIn": "Volte em {hours}h para o próximo giro",
+  "dailySpinFreeButton": "GIRAR GRÁTIS",
+  "dailySpinNextFreeIn": "Próximo giro grátis em",
+  "dailySpinPrizeTitle": "VOCÊ GANHOU!",
+  "dailySpinCollectButton": "COLETAR",
+  "dailySpinStockFull": "Estoque cheio: +{coins} moedas",
 
   "movesOfferTitle": "Quase lá!",
   "movesOfferBody": "{count, plural, =1{Resta 1 movimento} other{Restam {count} movimentos}}. Assista a um anúncio curto e ganhe mais {reward}.",
@@ -214,5 +217,58 @@
   "privacyPolicyLink": "Política de Privacidade",
   "privacyAdOptions": "Opções de privacidade dos anúncios",
   "privacyClose": "FECHAR",
-  "privacyTooltip": "Privacidade"
+  "privacyTooltip": "Privacidade",
+  "outcomeWonHeadline": "CONCLUÍDA!",
+  "continueOfferResume": "CONTINUAR DE ONDE PAROU",
+  "continueOfferBonus": "{bonus, plural, =1{+1 JOGADA} other{+{bonus} JOGADAS}}",
+  "@continueOfferBonus": {
+    "placeholders": { "bonus": { "type": "int" } }
+  },
+  "objectiveMissingDigit": "{count, plural, =1{Faltou pouco: 1 peça {digit}.} other{Faltou pouco: {count} peças {digit}.}}",
+  "@objectiveMissingDigit": {
+    "placeholders": { "count": { "type": "int" }, "digit": { "type": "int" } }
+  },
+  "objectiveMissingObstacle": "Faltou pouco: {count} {obstacle}.",
+  "@objectiveMissingObstacle": {
+    "placeholders": { "count": { "type": "int" }, "obstacle": { "type": "String" } }
+  },
+  "mapChapterStars": "CAPÍTULO {number} · {earned}/{total}",
+  "@mapChapterStars": {
+    "placeholders": { "number": { "type": "int" }, "earned": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "mapYouAreHere": "VOCÊ ESTÁ AQUI",
+  "mapPlayLevel": "JOGAR FASE {number}",
+  "@mapPlayLevel": {
+    "placeholders": { "number": { "type": "int" } }
+  },
+  "mapNewObstacle": "Novo obstáculo na fase {level}: {obstacle}",
+  "@mapNewObstacle": {
+    "placeholders": { "level": { "type": "int" }, "obstacle": { "type": "String" } }
+  },
+  "mapDailySpinTooltip": "Roleta diária",
+  "homeShop": "LOJA",
+  "homeSpin": "ROLETA",
+  "homeMap": "MAPA",
+  "homeChapterLevel": "CAPÍTULO {chapter} · FASE {level}",
+  "@homeChapterLevel": {
+    "placeholders": { "chapter": { "type": "int" }, "level": { "type": "int" } }
+  },
+  "homeStarsSemantics": "{count, plural, =1{1 estrela na campanha} other{{count} estrelas na campanha}}",
+  "@homeStarsSemantics": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "shopTitle": "LOJA",
+  "shopBoosters": "BOOSTERS",
+  "shopCoins": "MOEDAS",
+  "shopStock": "Você tem {count}",
+  "@shopStock": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "shopVideoTitle": "+{coins} moedas",
+  "@shopVideoTitle": {
+    "placeholders": { "coins": { "type": "int" } }
+  },
+  "shopVideoSubtitle": "Assista a um vídeo curto",
+  "shopWatch": "ASSISTIR",
+  "shopBuyFailed": "Não deu para concluir a compra. Suas moedas não foram gastas."
 }

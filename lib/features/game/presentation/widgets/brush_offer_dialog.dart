@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/theme/app_fonts.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
+import 'package:nine_fuse/core/widgets/sprite_icon.dart';
 import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/coin_sources_card.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
@@ -22,7 +25,8 @@ const Key brushOfferDeclineKey = Key('brush_offer_decline');
 /// Unidade própria de anúncio para o Pincel — mesma razão de todas as outras:
 /// é por unidade que a rede reporta receita.
 final brushAdProvider = Provider<Future<bool> Function()>(
-  (ref) => () async => true,
+  (ref) =>
+      () async => true,
 );
 
 /// Convite de aquisição do Pincel, aberto quando o jogador mira sem estoque —
@@ -91,26 +95,38 @@ class _BrushOfferDialogState extends ConsumerState<BrushOfferDialog> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.brush_rounded, color: AppColors.digit5, size: 44),
+          // A arte do booster, a mesma do dock: o convite fala do item que o
+          // jogador acabou de tocar, e um ícone de fonte seria outro objeto.
+          const SpriteIcon(
+            asset: 'assets/images/ic_brush.png',
+            fallback: Icons.brush_rounded,
+            size: 76,
+            color: AppColors.digit5,
+          ),
           const SizedBox(height: 12),
           Text(
             l10n.brushOfferBody,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70, fontSize: 15),
+            style: const TextStyle(
+              fontFamily: AppFonts.display,
+              color: NfColors.textSoft,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           if (_failed) ...[
             const SizedBox(height: 10),
             Text(
               l10n.brushOfferFailed,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.digit0, fontSize: 13),
+              style: const TextStyle(color: NfColors.alert, fontSize: 13),
             ),
           ],
           const SizedBox(height: 18),
           GameButton(
             key: brushOfferWatchKey,
             label: l10n.brushOfferWatch,
-            color: AppColors.digit5,
+            color: NfColors.gem,
             icon: Icons.play_circle_fill_rounded,
             onPressed: _watch,
           ),
@@ -119,7 +135,6 @@ class _BrushOfferDialogState extends ConsumerState<BrushOfferDialog> {
             key: brushOfferBuyKey,
             label: l10n.brushOfferBuy(kBrushCoinPrice),
             color: canAfford ? AppColors.uiGold : AppColors.darkSurface,
-            foreground: canAfford ? Colors.black : Colors.white38,
             icon: Icons.shopping_bag_rounded,
             onPressed: canAfford ? _buy : null,
           ),
@@ -130,8 +145,10 @@ class _BrushOfferDialogState extends ConsumerState<BrushOfferDialog> {
                 : '${l10n.brushOfferNoCoins} · ${l10n.brushOfferBalance(wallet.coins)}',
             textAlign: TextAlign.center,
             style: TextStyle(
+              fontFamily: AppFonts.display,
               color: canAfford ? Colors.white54 : Colors.white38,
               fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 14),
@@ -141,7 +158,6 @@ class _BrushOfferDialogState extends ConsumerState<BrushOfferDialog> {
             key: brushOfferDeclineKey,
             label: l10n.brushOfferDecline,
             color: AppColors.darkSurface,
-            foreground: Colors.white70,
             onPressed: widget.onDecline,
           ),
         ],

@@ -1752,3 +1752,89 @@ mudança de identidade com goldens a regerar, para uma rodada própria. Saíram
 `tool/prepare_icons.dart` ainda os menciona, mas é o pipeline do SVG, já
 legado desde 2026-09-10.
 
+
+### Direção visual "Observatório Real": as 7 telas do Claude Design (2026-11-01)
+
+Referência: `Nine Fuse Telas.dc.html` no projeto do Claude Design (telas 01-07).
+Céu azul-noite, moldura de ouro e gema roxa. **Ouro marca o que é tocável e
+valioso, roxo marca o que é mágico.** Tokens em `core/theme/nf_tokens.dart`
+(`NfColors`, `NfRadii`, `NfDurations`, `NfDecorations`); widgets novos leem
+dali, não de hex solto.
+
+**Tipografia em três vozes, todas empacotadas.** Lilita One (títulos, botões
+grandes), Baloo 2 (números do HUD — a família dos números dos tiles) e Nunito
+(texto corrido). A Baloo 2 entrou como **subconjunto latino** dos pesos 700/800
+(72 KB cada, contra 410 KB com o devanágari da fonte original). Lilita One tem
+um peso só: passar `fontWeight` faz o Flutter sintetizar negrito borrado.
+`NfText` dá as quatro variantes; o contorno de `NfText.number` é traço, não
+sombra, por isso vale dentro de `Transform` animado (o bug de sombra do
+Impeller continua valendo para os títulos).
+
+**Restilizar no lugar, não duplicar.** `GameButton` e `GameDialog` mudaram de
+cara sem mudar de API: `color: AppColors.uiGold` vira o botão de ouro e
+`AppColors.darkSurface` o secundário azul-noite. Os doze chamadores não foram
+tocados por isso. O botão afunda 8→3px com escala 0,96 e dá `lightImpact`.
+
+**Vídeo premiado é sempre gema (`NfColors.gem`).** Cada convite usava a cor
+da sua peça, e o mesmo gesto ("assistir") parecia cinco ações diferentes. O
+verde (`buyGreen`) fica reservado para compra com dinheiro real, que ainda não
+existe.
+
+**O que o design pedia e não entrou, por decisão do dono do produto:**
+- **Preços e prêmios do design** (900, 1.200, 1.500, roleta até 1.000) eram
+  placeholder; valem os do código. A fatia dourada da roleta é a de maior
+  valor de `kSpinWheelPrizes`, calculada, não fixa.
+- **Pacotes em R$ e "Baú Real"** na Loja: não há billing. A Loja vende
+  boosters por moeda e oferece o vídeo premiado.
+- **"DESAFIO" com timer e "MUNDO"** no menu: não existem no jogo. O botão
+  virou ROLETA e "Mundo" virou Capítulo.
+- **"RECORDE NOVO" e "+1 martelo"** na vitória: não há recorde por fase nem
+  item por vitória.
+
+**Fluxo novo: Splash → Menu → Mapa → Fase.** O JOGAR do menu abre o **mapa**,
+que abre a fase da vez (`autoOpenCurrent`) — não a fase direto, porque o
+cartão de desfecho diz "Voltar às fases" e voltar tem de cair na trilha. A
+auto-abertura da roleta diária e o `onAppOpened()` das notificações saíram do
+mapa para o menu (primeira tela).
+
+**Teto de 5 por booster só para prêmio grátis** (`capBoosterReward`,
+`kMaxBoosterStock`, `kCoinsPerOverflowBooster = 50`): o excedente da roleta
+vira moeda e o popup diz "Estoque cheio". Compra (Loja, anúncio, mini-loja do
+início de fase) não passa pelo teto: recusar o que o jogador acabou de pagar
+seria cobrar sem entregar. Estoque legado acima de 5 não é cortado.
+
+**O "+" das moedas depende de onde a pílula está.** No menu e no mapa abre a
+Loja (rota); dentro da fase e do Recorde continua abrindo a caixa de moedas,
+porque a Loja grava estoque direto no disco e, numa partida, a autoridade é o
+`GameState` — o HUD mostraria um número velho até o próximo `startLevel`.
+
+**Tela de fase.** HUD numa placa só com o medalhão de jogadas no centro;
+alerta de jogadas sobe de ≤3 para ≤5 (`kUrgentMovesLeft`, só visual — o
+pre-churn segue em `kPreChurnMovesLeft`). Os boosters desceram para **baixo**
+do tabuleiro, no alcance do polegar, revertendo a posição das "Diretrizes de
+UI/UX: Booster Martelo" — continuam fora do card de métricas, e
+`hud_layout_test` passou a travar "dock abaixo do tabuleiro, acima da área
+segura". Sem estoque: ícone dessaturado por `ColorFilter.matrix` (não
+`Opacity`) e selo verde "+"; o Modo Fantasma não mudou.
+
+**Roleta.** Ângulo final por função pura (`targetTurnsFor`): ≥5 voltas a
+partir de onde a roda parou, ±30% de jitter injetável, testado para todos os
+índices. `Curves.decelerate` em 4200ms. A contagem "Próximo giro grátis" usa
+`Timer.periodic` (cancelado no dispose), não animação — o `pumpAndSettle`
+termina com ela ligada. O X fica desativado durante o giro: fechar no meio
+descartaria a animação antes do crédito.
+
+**Armadilhas desta rodada:**
+- **Golden sem a fonte vira retângulos.** `test/support/game_fonts.dart`
+  (`loadNfFonts`) carrega Lilita One e Baloo 2 nos quatro testes de golden.
+  Todos os seis goldens foram regerados (`board`, `game_hud`,
+  `game_hud_urgent`, `juice_fusion`, `level_outcome`, `saga_map`).
+- **`dart format` em pasta inteira** reformatou arquivos fora do escopo numa
+  das etapas; foram devolvidos ao HEAD. Formate só o que mudou.
+- **Animações em loop**: o halo da fase atual no mapa já repetia antes (com
+  `debugDisableMapPulse`); todas as animações novas são finitas (raios da
+  vitória param em 1,8s, lâmpadas da roleta só piscam enquanto ela gira).
+
+**Não validado em aparelho:** as telas foram conferidas por capturas de teste
+de widget em 390x844, 375x667 e 1080x2400 (20:9); falta rodar no simulador e
+num Android real, sobretudo o desempenho do blur dos modais.

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/core/notifications/notification_port.dart';
-import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
+import 'package:nine_fuse/features/game/presentation/screens/home_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/splash_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
@@ -15,7 +15,7 @@ import 'package:nine_fuse/features/game/providers/game_storage.dart';
 
 import '../../../support/localized.dart';
 
-/// Porta de notificações que não faz nada — `LevelSelectScreen` chama
+/// Porta de notificações que não faz nada — `HomeScreen` chama
 /// `notificationService.onAppOpened()` no primeiro frame, e sem esta troca o
 /// teste bateria no plugin real de notificações (mesma classe mínima da
 /// Task 8/9).
@@ -31,8 +31,9 @@ class _FakeNotificationPort implements NotificationPort {
 }
 
 void main() {
-  testWidgets('chama onSplashComplete ao fim da animação, em vez de navegar',
-      (tester) async {
+  testWidgets('chama onSplashComplete ao fim da animação, em vez de navegar', (
+    tester,
+  ) async {
     var completed = false;
 
     await tester.pumpWidget(
@@ -55,52 +56,55 @@ void main() {
     await tester.pump(kSplashDuration + const Duration(milliseconds: 1));
 
     expect(completed, isTrue);
-    expect(find.byType(LevelSelectScreen), findsNothing);
+    expect(find.byType(HomeScreen), findsNothing);
   });
 
-  testWidgets('navega para LevelSelectScreen ao fim da animação por padrão',
-      (tester) async {
-    final storage = InMemoryGameStorage(lastSpinTimestamp: DateTime.now());
-    final container = ProviderContainer(
-      overrides: [
-        endlessProvider.overrideWith(
-          (ref) => EndlessNotifier(random: Random(1), storage: storage),
+  testWidgets(
+    'navega para o menu inicial (HomeScreen) ao fim da animação por padrão',
+    (tester) async {
+      final storage = InMemoryGameStorage(lastSpinTimestamp: DateTime.now());
+      final container = ProviderContainer(
+        overrides: [
+          endlessProvider.overrideWith(
+            (ref) => EndlessNotifier(random: Random(1), storage: storage),
+          ),
+          campaignProgressProvider.overrideWith(
+            (ref) => CampaignProgress(storage: storage),
+          ),
+          campaignRecordsProvider.overrideWith(
+            (ref) => CampaignRecords(storage: storage),
+          ),
+          endlessHighScoreProvider.overrideWith(
+            (ref) => EndlessHighScore(storage: storage),
+          ),
+          notificationPortProvider.overrideWithValue(_FakeNotificationPort()),
+          dailySpinStorageProvider.overrideWithValue(storage),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      tester.view.physicalSize = const Size(1200, 2600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: localizedApp(home: const SplashScreen(loaders: [])),
         ),
-        campaignProgressProvider.overrideWith(
-          (ref) => CampaignProgress(storage: storage),
-        ),
-        campaignRecordsProvider.overrideWith(
-          (ref) => CampaignRecords(storage: storage),
-        ),
-        endlessHighScoreProvider.overrideWith(
-          (ref) => EndlessHighScore(storage: storage),
-        ),
-        notificationPortProvider.overrideWithValue(_FakeNotificationPort()),
-        dailySpinStorageProvider.overrideWithValue(storage),
-      ],
-    );
-    addTearDown(container.dispose);
+      );
 
-    tester.view.physicalSize = const Size(1200, 2600);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
+      expect(find.byType(HomeScreen), findsNothing);
 
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: localizedApp(home: const SplashScreen(loaders: [])),
-      ),
-    );
+      await tester.pumpAndSettle();
 
-    expect(find.byType(LevelSelectScreen), findsNothing);
+      expect(find.byType(HomeScreen), findsOneWidget);
+    },
+  );
 
-    await tester.pumpAndSettle();
-
-    expect(find.byType(LevelSelectScreen), findsOneWidget);
-  });
-
-  testWidgets('segura a barra enquanto o carregamento não termina',
-      (tester) async {
+  testWidgets('segura a barra enquanto o carregamento não termina', (
+    tester,
+  ) async {
     var completed = false;
     final loading = Completer<void>();
 
@@ -126,8 +130,9 @@ void main() {
     expect(completed, isTrue);
   });
 
-  testWidgets('etapa que falha não prende o jogador na abertura',
-      (tester) async {
+  testWidgets('etapa que falha não prende o jogador na abertura', (
+    tester,
+  ) async {
     var completed = false;
 
     await tester.pumpWidget(

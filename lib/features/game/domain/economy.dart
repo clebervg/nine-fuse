@@ -80,3 +80,36 @@ const int kContinueBonusMoves = 5;
 /// ao vídeo. Mesmo preço do Martelo — mesma ordem de grandeza de "um item
 /// avulso caro".
 const int kContinueCoinPrice = 100;
+
+/// Teto de estoque de cada booster (Martelo, Bomba, Pincel) para prêmios
+/// gratuitos — roleta e recompensa diária.
+///
+/// Sem teto, a roleta diária acumularia booster indefinidamente e o jogador
+/// chegaria às fases hard com uma pilha que dispensa jogar. Compra e anúncio
+/// dentro da partida não passam por aqui: ali o jogador pediu o item
+/// naquele instante, e recusar a entrega seria cobrar sem pagar.
+const int kMaxBoosterStock = 5;
+
+/// Moedas pagas por unidade de booster que não coube no [kMaxBoosterStock].
+///
+/// Metade do preço do Martelo: o prêmio não some (um giro que "não paga"
+/// ensina a não girar), mas vale menos do que o item que o jogador já tem
+/// de sobra.
+const int kCoinsPerOverflowBooster = 50;
+
+/// Resultado de creditar um prêmio de booster respeitando o teto.
+typedef BoosterCredit = ({int count, int overflowCoins});
+
+/// Credita [amount] unidades sobre [current] até [kMaxBoosterStock]; o que
+/// sobra vira moeda.
+///
+/// Estoque acima do teto (salvo antes de o teto existir) não é cortado — tirar
+/// item que o jogador já tinha seria pior do que o problema que o teto
+/// resolve. Ele só não cresce mais por prêmio.
+BoosterCredit capBoosterReward({required int current, required int amount}) {
+  final room = (kMaxBoosterStock - current).clamp(0, amount);
+  return (
+    count: current + room,
+    overflowCoins: (amount - room) * kCoinsPerOverflowBooster,
+  );
+}

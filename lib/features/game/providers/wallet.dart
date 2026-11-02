@@ -3,12 +3,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 
+/// Os boosters que a loja vende por moeda, cada um com o preço do código.
+///
+/// Mora aqui, e não no domínio, porque só existe para a compra **fora** de uma
+/// partida: dentro dela cada booster tem o seu mixin e o seu `grant*`.
+enum BoosterKind {
+  hammer(kHammerCoinPrice),
+  bomb(kBombCoinPrice),
+  brush(kBrushCoinPrice);
+
+  const BoosterKind(this.coinPrice);
+
+  final int coinPrice;
+}
+
 /// O que o jogador tem, visto de fora de uma partida.
 @immutable
 class Wallet {
   const Wallet({
     this.coins = 0,
     this.hammers = 0,
+    this.bombs = 0,
+    this.brushes = 0,
     this.claimedChests = const <int>{},
   });
 
@@ -22,15 +38,36 @@ class Wallet {
   /// qualquer partida e não tem `GameState` de onde ler.
   final int hammers;
 
+  /// Espelhos de bomba e pincel, pela mesma razão do [hammers]: a loja vive
+  /// fora de qualquer partida e precisa mostrar quanto o jogador já tem antes
+  /// de ele decidir comprar mais.
+  final int bombs;
+  final int brushes;
+
   final Set<int> claimedChests;
 
   bool canAfford(int price) => coins >= price;
 
+  /// Estoque espelhado de [kind].
+  int stockOf(BoosterKind kind) => switch (kind) {
+    BoosterKind.hammer => hammers,
+    BoosterKind.bomb => bombs,
+    BoosterKind.brush => brushes,
+  };
+
   bool hasClaimedChest(int chapter) => claimedChests.contains(chapter);
 
-  Wallet copyWith({int? coins, int? hammers, Set<int>? claimedChests}) => Wallet(
+  Wallet copyWith({
+    int? coins,
+    int? hammers,
+    int? bombs,
+    int? brushes,
+    Set<int>? claimedChests,
+  }) => Wallet(
     coins: coins ?? this.coins,
     hammers: hammers ?? this.hammers,
+    bombs: bombs ?? this.bombs,
+    brushes: brushes ?? this.brushes,
     claimedChests: claimedChests ?? this.claimedChests,
   );
 
@@ -40,14 +77,23 @@ class Wallet {
       other is Wallet &&
           coins == other.coins &&
           hammers == other.hammers &&
+          bombs == other.bombs &&
+          brushes == other.brushes &&
           setEquals(claimedChests, other.claimedChests);
 
   @override
-  int get hashCode =>
-      Object.hash(coins, hammers, Object.hashAllUnordered(claimedChests));
+  int get hashCode => Object.hash(
+    coins,
+    hammers,
+    bombs,
+    brushes,
+    Object.hashAllUnordered(claimedChests),
+  );
 
   @override
-  String toString() => 'Wallet($coins moedas, $hammers martelos)';
+  String toString() =>
+      'Wallet($coins moedas, $hammers martelos, $bombs bombas, '
+      '$brushes pincéis)';
 }
 
 /// Lê e move o saldo do jogador.
@@ -72,10 +118,18 @@ class WalletNotifier extends StateNotifier<Wallet> {
     try {
       final coins = await _storage.readCoins();
       final hammers = await _storage.readHammerCount();
+      final bombs = await _storage.readBombCount();
+      final brushes = await _storage.readBrushCount();
       final chests = await _storage.readClaimedChests();
       if (!mounted || state != before) return;
 
-      state = Wallet(coins: coins, hammers: hammers, claimedChests: chests);
+      state = Wallet(
+        coins: coins,
+        hammers: hammers,
+        bombs: bombs,
+        brushes: brushes,
+        claimedChests: chests,
+      );
     } catch (error, stack) {
       debugPrint('Falha ao ler a carteira: $error\n$stack');
     }
@@ -98,6 +152,73 @@ class WalletNotifier extends StateNotifier<Wallet> {
     _persistCoins();
     return true;
   }
+
+  /// Compras em andamento, encadeadas: duas compras simultâneas leriam o mesmo
+  /// estoque e gravariam o mesmo `estoque + 1` — o jogador pagaria duas vezes
+  /// e levaria um item só.
+  Future<bool> _purchases = Future.value(true);
+
+  /// Compra uma unidade de [kind] **fora de uma partida** (a loja). Devolve se
+  /// a compra aconteceu.
+  ///
+  /// Dentro da fase a compra não passa por aqui: lá a autoridade do estoque é o
+  /// `GameState`, e quem credita é o `grant*` do notifier da partida (a
+  /// mini-loja do cartão de início). Gravar no disco por baixo de uma partida
+  /// viva deixaria o HUD mostrando um estoque que o próximo `startLevel`
+  /// desmentiria.
+  ///
+  /// Sem o teto de [kMaxBoosterStock]: o teto vale para prêmio gratuito
+  /// (roleta). Aqui o jogador pagou pelo item, e recusar a entrega seria cobrar
+  /// sem pagar.
+  Future<bool> buyBooster(BoosterKind kind) {
+    final run = _purchases.then((_) => _buyBooster(kind));
+    _purchases = run.catchError((Object _) => false);
+    return run;
+  }
+
+  Future<bool> _buyBooster(BoosterKind kind) async {
+    if (!mounted || !state.canAfford(kind.coinPrice)) return false;
+
+    // Lê o estoque **antes** de debitar: se o disco falhar aqui, nada foi
+    // cobrado.
+    final int current;
+    try {
+      current = await _readStock(kind);
+    } catch (error, stack) {
+      debugPrint('Falha ao ler o estoque de ${kind.name}: $error\n$stack');
+      return false;
+    }
+    if (!mounted || !spendCoins(kind.coinPrice)) return false;
+
+    final next = current + 1;
+    try {
+      await _writeStock(kind, next);
+    } catch (error, stack) {
+      // O item não foi entregue: devolve a moeda, em vez de cobrar por nada.
+      debugPrint('Falha ao gravar o estoque de ${kind.name}: $error\n$stack');
+      if (mounted) creditCoins(kind.coinPrice);
+      return false;
+    }
+    if (!mounted) return true;
+    state = switch (kind) {
+      BoosterKind.hammer => state.copyWith(hammers: next),
+      BoosterKind.bomb => state.copyWith(bombs: next),
+      BoosterKind.brush => state.copyWith(brushes: next),
+    };
+    return true;
+  }
+
+  Future<int> _readStock(BoosterKind kind) => switch (kind) {
+    BoosterKind.hammer => _storage.readHammerCount(),
+    BoosterKind.bomb => _storage.readBombCount(),
+    BoosterKind.brush => _storage.readBrushCount(),
+  };
+
+  Future<void> _writeStock(BoosterKind kind, int count) => switch (kind) {
+    BoosterKind.hammer => _storage.writeHammerCount(count),
+    BoosterKind.bomb => _storage.writeBombCount(count),
+    BoosterKind.brush => _storage.writeBrushCount(count),
+  };
 
   /// Paga o baú de [chapter], uma vez só. Devolve se pagou agora.
   ///

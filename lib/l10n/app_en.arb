@@ -283,7 +283,7 @@
     "description": "Confirmation shown after the coin rewarded ad completes.",
     "placeholders": { "reward": { "type": "int" } }
   },
-  "continueOfferTitle": "Out of moves",
+  "continueOfferTitle": "OUT OF MOVES",
   "continueOfferBody": "Watch a short ad or spend coins to get {bonus} extra moves and keep going.",
   "@continueOfferBody": {
     "placeholders": { "bonus": { "type": "int" } }
@@ -365,17 +365,17 @@
   },
 
   "dailySpinTitle": "Daily Spin",
-  "dailySpinSubtitle": "Spin the wheel for a free daily prize!",
+  "dailySpinSubtitle": "1 free spin per day",
   "dailySpinSpinButton": "SPIN",
   "dailySpinWatchAgainButton": "Spin Again (Watch Ad)",
   "dailySpinCloseButton": "CLOSE",
-  "dailySpinPrizeWon": "You won {prize}!",
-  "@dailySpinPrizeWon": {
-    "placeholders": { "prize": { "type": "String" } }
-  },
-  "dailySpinComeBackIn": "Come back in {hours}h for your next spin",
-  "@dailySpinComeBackIn": {
-    "placeholders": { "hours": { "type": "int" } }
+  "dailySpinFreeButton": "FREE SPIN",
+  "dailySpinNextFreeIn": "Next free spin in",
+  "dailySpinPrizeTitle": "YOU WON!",
+  "dailySpinCollectButton": "COLLECT",
+  "dailySpinStockFull": "Stock full: +{coins} coins",
+  "@dailySpinStockFull": {
+    "placeholders": { "coins": { "type": "int" } }
   },
 
   "movesOfferTitle": "Almost there!",
@@ -407,5 +407,61 @@
   "privacyPolicyLink": "Privacy Policy",
   "privacyAdOptions": "Ad privacy options",
   "privacyClose": "CLOSE",
-  "privacyTooltip": "Privacy"
+  "privacyTooltip": "Privacy",
+  "outcomeWonHeadline": "COMPLETE!",
+  "continueOfferResume": "PICK UP WHERE YOU LEFT OFF",
+  "continueOfferBonus": "{bonus, plural, =1{+1 MOVE} other{+{bonus} MOVES}}",
+  "@continueOfferBonus": {
+    "placeholders": { "bonus": { "type": "int" } }
+  },
+  "objectiveMissingDigit": "{count, plural, =1{So close: 1 more {digit} piece.} other{So close: {count} more {digit} pieces.}}",
+  "@objectiveMissingDigit": {
+    "placeholders": { "count": { "type": "int" }, "digit": { "type": "int" } }
+  },
+  "objectiveMissingObstacle": "So close: {count} {obstacle} left.",
+  "@objectiveMissingObstacle": {
+    "placeholders": { "count": { "type": "int" }, "obstacle": { "type": "String" } }
+  },
+  "mapChapterStars": "CHAPTER {number} · {earned}/{total}",
+  "@mapChapterStars": {
+    "description": "Rótulo da placa do capítulo no mapa: número do capítulo e estrelas conquistadas nele.",
+    "placeholders": { "number": { "type": "int" }, "earned": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "mapYouAreHere": "YOU ARE HERE",
+  "mapPlayLevel": "PLAY LEVEL {number}",
+  "@mapPlayLevel": {
+    "placeholders": { "number": { "type": "int" } }
+  },
+  "mapNewObstacle": "New obstacle on level {level}: {obstacle}",
+  "@mapNewObstacle": {
+    "description": "Aviso do mapa quando um tipo de cobertura estreia nas próximas fases.",
+    "placeholders": { "level": { "type": "int" }, "obstacle": { "type": "String" } }
+  },
+  "mapDailySpinTooltip": "Daily spin",
+  "homeShop": "SHOP",
+  "homeSpin": "SPIN",
+  "homeMap": "MAP",
+  "homeChapterLevel": "CHAPTER {chapter} · LEVEL {level}",
+  "@homeChapterLevel": {
+    "description": "Pílula do menu inicial com o capítulo e a fase da vez.",
+    "placeholders": { "chapter": { "type": "int" }, "level": { "type": "int" } }
+  },
+  "homeStarsSemantics": "{count, plural, =1{1 star in the campaign} other{{count} stars in the campaign}}",
+  "@homeStarsSemantics": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "shopTitle": "SHOP",
+  "shopBoosters": "BOOSTERS",
+  "shopCoins": "COINS",
+  "shopStock": "You have {count}",
+  "@shopStock": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "shopVideoTitle": "+{coins} coins",
+  "@shopVideoTitle": {
+    "placeholders": { "coins": { "type": "int" } }
+  },
+  "shopVideoSubtitle": "Watch a short video",
+  "shopWatch": "WATCH",
+  "shopBuyFailed": "The purchase couldn't be completed. Your coins weren't spent."
 }

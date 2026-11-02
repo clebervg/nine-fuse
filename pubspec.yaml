@@ -106,12 +106,14 @@ flutter:
   # (ver core/theme/app_fonts.dart), como a OFL exige de quem redistribui.
   assets:
     - assets/fonts/OFL.txt
+    - assets/fonts/OFL-LilitaOne.txt
+    - assets/fonts/OFL-Baloo2.txt
     - assets/images/
     - assets/sprites/tiles/
     - assets/sprites/obstacles/
     - assets/splash/
 
-  # Nunito vem empacotada, não baixada em runtime: uma fonte que depende de
+  # As fontes vêm empacotadas, não baixadas em runtime: uma fonte que depende de
   # rede cai silenciosamente no padrão do sistema quando o aparelho está
   # offline, e o jogo muda de cara sem aviso.
   fonts:
@@ -123,6 +125,18 @@ flutter:
           weight: 800
         - asset: assets/fonts/Nunito-Black.ttf
           weight: 900
+    # Títulos e botões grandes (direção visual "Observatório Real").
+    - family: LilitaOne
+      fonts:
+        - asset: assets/fonts/LilitaOne-Regular.ttf
+    # Números do HUD: pontos, jogadas, moedas, contadores. Subconjunto latino
+    # dos pesos 700/800 (a fonte original traz devanágari e pesa 6x mais).
+    - family: Baloo2
+      fonts:
+        - asset: assets/fonts/Baloo2-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Baloo2-ExtraBold.ttf
+          weight: 800
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

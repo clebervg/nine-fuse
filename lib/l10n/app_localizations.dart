@@ -652,7 +652,7 @@ abstract class AppLocalizations {
   /// No description provided for @continueOfferTitle.
   ///
   /// In en, this message translates to:
-  /// **'Out of moves'**
+  /// **'OUT OF MOVES'**
   String get continueOfferTitle;
 
   /// No description provided for @continueOfferBody.
@@ -874,7 +874,7 @@ abstract class AppLocalizations {
   /// No description provided for @dailySpinSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Spin the wheel for a free daily prize!'**
+  /// **'1 free spin per day'**
   String get dailySpinSubtitle;
 
   /// No description provided for @dailySpinSpinButton.
@@ -895,17 +895,35 @@ abstract class AppLocalizations {
   /// **'CLOSE'**
   String get dailySpinCloseButton;
 
-  /// No description provided for @dailySpinPrizeWon.
+  /// No description provided for @dailySpinFreeButton.
   ///
   /// In en, this message translates to:
-  /// **'You won {prize}!'**
-  String dailySpinPrizeWon(String prize);
+  /// **'FREE SPIN'**
+  String get dailySpinFreeButton;
 
-  /// No description provided for @dailySpinComeBackIn.
+  /// No description provided for @dailySpinNextFreeIn.
   ///
   /// In en, this message translates to:
-  /// **'Come back in {hours}h for your next spin'**
-  String dailySpinComeBackIn(int hours);
+  /// **'Next free spin in'**
+  String get dailySpinNextFreeIn;
+
+  /// No description provided for @dailySpinPrizeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'YOU WON!'**
+  String get dailySpinPrizeTitle;
+
+  /// No description provided for @dailySpinCollectButton.
+  ///
+  /// In en, this message translates to:
+  /// **'COLLECT'**
+  String get dailySpinCollectButton;
+
+  /// No description provided for @dailySpinStockFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock full: +{coins} coins'**
+  String dailySpinStockFull(int coins);
 
   /// No description provided for @movesOfferTitle.
   ///
@@ -1020,6 +1038,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Privacy'**
   String get privacyTooltip;
+
+  /// No description provided for @outcomeWonHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'COMPLETE!'**
+  String get outcomeWonHeadline;
+
+  /// No description provided for @continueOfferResume.
+  ///
+  /// In en, this message translates to:
+  /// **'PICK UP WHERE YOU LEFT OFF'**
+  String get continueOfferResume;
+
+  /// No description provided for @continueOfferBonus.
+  ///
+  /// In en, this message translates to:
+  /// **'{bonus, plural, =1{+1 MOVE} other{+{bonus} MOVES}}'**
+  String continueOfferBonus(int bonus);
+
+  /// No description provided for @objectiveMissingDigit.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{So close: 1 more {digit} piece.} other{So close: {count} more {digit} pieces.}}'**
+  String objectiveMissingDigit(int count, int digit);
+
+  /// No description provided for @objectiveMissingObstacle.
+  ///
+  /// In en, this message translates to:
+  /// **'So close: {count} {obstacle} left.'**
+  String objectiveMissingObstacle(int count, String obstacle);
+
+  /// Rótulo da placa do capítulo no mapa: número do capítulo e estrelas conquistadas nele.
+  ///
+  /// In en, this message translates to:
+  /// **'CHAPTER {number} · {earned}/{total}'**
+  String mapChapterStars(int number, int earned, int total);
+
+  /// No description provided for @mapYouAreHere.
+  ///
+  /// In en, this message translates to:
+  /// **'YOU ARE HERE'**
+  String get mapYouAreHere;
+
+  /// No description provided for @mapPlayLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'PLAY LEVEL {number}'**
+  String mapPlayLevel(int number);
+
+  /// Aviso do mapa quando um tipo de cobertura estreia nas próximas fases.
+  ///
+  /// In en, this message translates to:
+  /// **'New obstacle on level {level}: {obstacle}'**
+  String mapNewObstacle(int level, String obstacle);
+
+  /// No description provided for @mapDailySpinTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily spin'**
+  String get mapDailySpinTooltip;
+
+  /// No description provided for @homeShop.
+  ///
+  /// In en, this message translates to:
+  /// **'SHOP'**
+  String get homeShop;
+
+  /// No description provided for @homeSpin.
+  ///
+  /// In en, this message translates to:
+  /// **'SPIN'**
+  String get homeSpin;
+
+  /// No description provided for @homeMap.
+  ///
+  /// In en, this message translates to:
+  /// **'MAP'**
+  String get homeMap;
+
+  /// Pílula do menu inicial com o capítulo e a fase da vez.
+  ///
+  /// In en, this message translates to:
+  /// **'CHAPTER {chapter} · LEVEL {level}'**
+  String homeChapterLevel(int chapter, int level);
+
+  /// No description provided for @homeStarsSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 star in the campaign} other{{count} stars in the campaign}}'**
+  String homeStarsSemantics(int count);
+
+  /// No description provided for @shopTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SHOP'**
+  String get shopTitle;
+
+  /// No description provided for @shopBoosters.
+  ///
+  /// In en, this message translates to:
+  /// **'BOOSTERS'**
+  String get shopBoosters;
+
+  /// No description provided for @shopCoins.
+  ///
+  /// In en, this message translates to:
+  /// **'COINS'**
+  String get shopCoins;
+
+  /// No description provided for @shopStock.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {count}'**
+  String shopStock(int count);
+
+  /// No description provided for @shopVideoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'+{coins} coins'**
+  String shopVideoTitle(int coins);
+
+  /// No description provided for @shopVideoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch a short video'**
+  String get shopVideoSubtitle;
+
+  /// No description provided for @shopWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'WATCH'**
+  String get shopWatch;
+
+  /// No description provided for @shopBuyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The purchase couldn\'t be completed. Your coins weren\'t spent.'**
+  String get shopBuyFailed;
 }
 
 class _AppLocalizationsDelegate

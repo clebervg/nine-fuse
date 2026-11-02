@@ -17,6 +17,7 @@ import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
+import '../../../support/game_fonts.dart';
 
 /// Porta de notificações que não faz nada — mesmo motivo de
 /// `saga_map_test.dart`: `LevelSelectScreen` chama `notificationService`
@@ -46,6 +47,7 @@ Future<void> _loadFonts() async {
     nunito.addFont(rootBundle.load('assets/fonts/Nunito-$weight.ttf'));
   }
   await nunito.load();
+  await loadNfFonts();
 
   // Sem a MaterialIcons, estrela, cadeado e coroa viram quadrados — e o mapa
   // é feito justamente desses símbolos. Diferente da Nunito, ela vem do pacote

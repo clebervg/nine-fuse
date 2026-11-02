@@ -405,7 +405,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get continueOfferTitle => 'Out of moves';
+  String get continueOfferTitle => 'OUT OF MOVES';
 
   @override
   String continueOfferBody(int bonus) {
@@ -544,7 +544,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dailySpinTitle => 'Daily Spin';
 
   @override
-  String get dailySpinSubtitle => 'Spin the wheel for a free daily prize!';
+  String get dailySpinSubtitle => '1 free spin per day';
 
   @override
   String get dailySpinSpinButton => 'SPIN';
@@ -556,13 +556,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dailySpinCloseButton => 'CLOSE';
 
   @override
-  String dailySpinPrizeWon(String prize) {
-    return 'You won $prize!';
-  }
+  String get dailySpinFreeButton => 'FREE SPIN';
 
   @override
-  String dailySpinComeBackIn(int hours) {
-    return 'Come back in ${hours}h for your next spin';
+  String get dailySpinNextFreeIn => 'Next free spin in';
+
+  @override
+  String get dailySpinPrizeTitle => 'YOU WON!';
+
+  @override
+  String get dailySpinCollectButton => 'COLLECT';
+
+  @override
+  String dailySpinStockFull(int coins) {
+    return 'Stock full: +$coins coins';
   }
 
   @override
@@ -636,4 +643,112 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyTooltip => 'Privacy';
+
+  @override
+  String get outcomeWonHeadline => 'COMPLETE!';
+
+  @override
+  String get continueOfferResume => 'PICK UP WHERE YOU LEFT OFF';
+
+  @override
+  String continueOfferBonus(int bonus) {
+    String _temp0 = intl.Intl.pluralLogic(
+      bonus,
+      locale: localeName,
+      other: '+$bonus MOVES',
+      one: '+1 MOVE',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String objectiveMissingDigit(int count, int digit) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'So close: $count more $digit pieces.',
+      one: 'So close: 1 more $digit piece.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String objectiveMissingObstacle(int count, String obstacle) {
+    return 'So close: $count $obstacle left.';
+  }
+
+  @override
+  String mapChapterStars(int number, int earned, int total) {
+    return 'CHAPTER $number · $earned/$total';
+  }
+
+  @override
+  String get mapYouAreHere => 'YOU ARE HERE';
+
+  @override
+  String mapPlayLevel(int number) {
+    return 'PLAY LEVEL $number';
+  }
+
+  @override
+  String mapNewObstacle(int level, String obstacle) {
+    return 'New obstacle on level $level: $obstacle';
+  }
+
+  @override
+  String get mapDailySpinTooltip => 'Daily spin';
+
+  @override
+  String get homeShop => 'SHOP';
+
+  @override
+  String get homeSpin => 'SPIN';
+
+  @override
+  String get homeMap => 'MAP';
+
+  @override
+  String homeChapterLevel(int chapter, int level) {
+    return 'CHAPTER $chapter · LEVEL $level';
+  }
+
+  @override
+  String homeStarsSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count stars in the campaign',
+      one: '1 star in the campaign',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shopTitle => 'SHOP';
+
+  @override
+  String get shopBoosters => 'BOOSTERS';
+
+  @override
+  String get shopCoins => 'COINS';
+
+  @override
+  String shopStock(int count) {
+    return 'You have $count';
+  }
+
+  @override
+  String shopVideoTitle(int coins) {
+    return '+$coins coins';
+  }
+
+  @override
+  String get shopVideoSubtitle => 'Watch a short video';
+
+  @override
+  String get shopWatch => 'WATCH';
+
+  @override
+  String get shopBuyFailed =>
+      'The purchase couldn\'t be completed. Your coins weren\'t spent.';
 }

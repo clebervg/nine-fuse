@@ -75,7 +75,10 @@ void main() {
     testWidgets('anuncia a fase concluída e oferece a próxima', (tester) async {
       await pumpCard(tester, status: GameStatus.won, moves: 8);
 
-      expect(find.text('FASE CONCLUÍDA!'), findsOneWidget);
+      // A vitória virou tela cheia: "FASE 4" no rótulo e "CONCLUÍDA!" no
+      // título dourado, em vez de "FASE CONCLUÍDA!" num selo só.
+      expect(find.text('CONCLUÍDA!'), findsOneWidget);
+      expect(find.text('FASE 4'), findsOneWidget);
       expect(find.byKey(const Key('next_level')), findsOneWidget);
       expect(find.text('PRÓXIMA FASE'), findsOneWidget);
     });
@@ -89,8 +92,15 @@ void main() {
         starsGained: 3,
       );
 
+      // A moeda é o sprite da ficha; o número vem ao lado dela, sem o emoji.
       expect(find.byKey(coinRewardKey), findsOneWidget);
-      expect(find.text('+${3 * kCoinsPerStar} 🪙'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(coinRewardKey),
+          matching: find.text('+${3 * kCoinsPerStar}'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('sem estrela nova não há selo de moedas', (tester) async {

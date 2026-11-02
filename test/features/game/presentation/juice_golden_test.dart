@@ -16,6 +16,7 @@ import 'package:nine_fuse/features/game/presentation/widgets/combo_banner.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/juice_overlay.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 import '../../../support/localized.dart';
+import '../../../support/game_fonts.dart';
 
 /// Referência visual dos efeitos de recompensa, congelados no meio da
 /// animação.
@@ -32,6 +33,7 @@ Future<void> _loadNunito() async {
     loader.addFont(rootBundle.load('assets/fonts/Nunito-$weight.ttf'));
   }
   await loader.load();
+  await loadNfFonts();
 }
 
 void main() {

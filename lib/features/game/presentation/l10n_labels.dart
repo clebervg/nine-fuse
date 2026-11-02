@@ -42,6 +42,19 @@ extension DomainLabels on AppLocalizations {
         }(),
       };
 
+  /// "Faltou pouco: 1 pedra." — o que separava o jogador da vitória.
+  ///
+  /// [remaining] vem de `objectiveTarget - objectiveProgress`, a mesma conta
+  /// que o prêmio de movimentos usa: a tela de derrota e o crédito falam do
+  /// mesmo número.
+  String objectiveMissing(Objective objective, int remaining) =>
+      objective.isObstacleGoal
+      ? objectiveMissingObstacle(
+          remaining,
+          obstacleName(objective.obstacle, remaining),
+        )
+      : objectiveMissingDigit(remaining, objective.digit!);
+
   /// "pedra" / "pedras", já flexionado para [count].
   ///
   /// Vem flexionado do ARB, e não concatenado com um "s" aqui: em inglês o
@@ -71,8 +84,12 @@ extension DomainLabels on AppLocalizations {
 
   /// "Capítulo 1: Fusões Primárias".
   String chapterTitle(CampaignChapter chapter) =>
-      chapterLabel(chapter.number, switch (chapter.name) {
-        ChapterName.primaryFusions => chapterPrimaryFusions,
-        ChapterName.towardNine => chapterTowardNine,
-      });
+      chapterLabel(chapter.number, chapterName(chapter));
+
+  /// Só o nome do capítulo, sem o número — a placa do mapa mostra o número
+  /// no rótulo de cima, junto das estrelas, e o nome sozinho como título.
+  String chapterName(CampaignChapter chapter) => switch (chapter.name) {
+    ChapterName.primaryFusions => chapterPrimaryFusions,
+    ChapterName.towardNine => chapterTowardNine,
+  };
 }

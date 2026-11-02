@@ -12,6 +12,7 @@ import 'package:nine_fuse/features/game/domain/tile.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 import '../../../support/localized.dart';
+import '../../../support/game_fonts.dart';
 
 /// Referência visual do tabuleiro.
 ///
@@ -32,6 +33,7 @@ Future<void> _loadNunito() async {
     loader.addFont(rootBundle.load('assets/fonts/Nunito-$weight.ttf'));
   }
   await loader.load();
+  await loadNfFonts();
 }
 
 void main() {

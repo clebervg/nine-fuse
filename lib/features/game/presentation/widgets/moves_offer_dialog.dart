@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/theme/app_fonts.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
+import 'package:nine_fuse/core/widgets/nf_text.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
@@ -106,30 +109,34 @@ class _MovesOfferDialogState extends ConsumerState<MovesOfferDialog> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.swap_horiz_rounded,
-            color: AppColors.digit2,
-            size: 44,
-          ),
-          const SizedBox(height: 12),
+          // O prêmio como herói, na mesma voz do "+5 JOGADAS" da derrota: o
+          // número é a proposta inteira, e é ele que tem de ser lido primeiro.
+          // Estático (sem entrada com escala), então a sombra empilhada vale.
+          NfText.titleGold('+${widget.reward}', size: 52),
+          const SizedBox(height: 10),
           Text(
             l10n.movesOfferBody(widget.movesLeft, widget.reward),
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70, fontSize: 15),
+            style: const TextStyle(
+              fontFamily: AppFonts.display,
+              color: NfColors.textSoft,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           if (_failed) ...[
             const SizedBox(height: 10),
             Text(
               l10n.movesOfferFailed,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.digit0, fontSize: 13),
+              style: const TextStyle(color: NfColors.alert, fontSize: 13),
             ),
           ],
           const SizedBox(height: 18),
           GameButton(
             key: movesOfferWatchKey,
             label: l10n.movesOfferWatch(widget.reward),
-            color: AppColors.digit2,
+            color: NfColors.gem,
             icon: Icons.play_circle_fill_rounded,
             onPressed: _watch,
           ),
@@ -138,7 +145,6 @@ class _MovesOfferDialogState extends ConsumerState<MovesOfferDialog> {
             key: movesOfferDeclineKey,
             label: l10n.movesOfferDecline,
             color: AppColors.darkSurface,
-            foreground: Colors.white70,
             onPressed: widget.onDecline,
           ),
         ],

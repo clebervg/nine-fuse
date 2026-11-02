@@ -56,8 +56,8 @@ void main() {
   // projetado, sem chave, sem número e sem semântica de botão) jamais
   // satisfaria — mas não distinguia isso explicitamente. Aqui o teste checa
   // o conteúdo **dentro** do card com a chave da fase: a fase 11 (a próxima a
-  // jogar, com progresso 10) traz o convite "JOGAR", e a 18 (bem à frente)
-  // traz cadeado — os dois estados que só um pin de verdade tem.
+  // jogar, com progresso 10) traz a etiqueta "você está aqui", e a 18 (bem à
+  // frente) traz cadeado — os dois estados que só um pin de verdade tem.
   testWidgets('fases geradas além da fase 10 aparecem como pins de verdade, '
       'não como nós projetados', (tester) async {
     await tester.pumpWidget(host(
@@ -66,16 +66,15 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    // O rótulo de "jogar" é `Positioned` **irmão** do card no `Stack` do pin
-    // (âncora fixa à borda do círculo, não ao tamanho do card) — por isso a
-    // busca é pela tela toda, e não `descendant` da chave. E aceita as duas
-    // traduções: o ambiente de teste resolve o locale do sistema, que varia
-    // com a máquina que roda a suíte.
+    // A etiqueta "você está aqui" é `Positioned` **irmã** do card no `Stack`
+    // do pin (âncora fixa à borda do círculo, não ao tamanho do card) — por
+    // isso a busca é pela chave na tela toda, e não `descendant` do card.
+    // Pela chave, e não pelo texto: o ambiente de teste resolve o locale do
+    // sistema, que varia com a máquina que roda a suíte.
     expect(find.byKey(levelCardKey(11)), findsOneWidget);
     expect(
-      find.text('JOGAR').evaluate().isNotEmpty ||
-          find.text('PLAY').evaluate().isNotEmpty,
-      isTrue,
+      find.byKey(youAreHereKey),
+      findsOneWidget,
       reason: 'fase 11 é a próxima a jogar com progresso 10',
     );
 

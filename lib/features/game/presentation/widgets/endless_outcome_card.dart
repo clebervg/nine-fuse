@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/theme/app_fonts.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
@@ -41,7 +43,12 @@ class EndlessOutcomeCard extends StatelessWidget {
           Text(
             l10n.endlessOverMessage,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            style: const TextStyle(
+              fontFamily: AppFonts.display,
+              color: NfColors.textSoft,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 16),
           _Line(label: l10n.endlessPoints, value: '${state.score}'),
@@ -58,7 +65,8 @@ class EndlessOutcomeCard extends StatelessWidget {
             key: const Key('endless_restart'),
             label: l10n.endlessRestart,
             icon: Icons.refresh,
-            color: accent,
+            // Ouro: a ação principal, como no desfecho da campanha.
+            color: AppColors.uiGold,
             onPressed: onRestart,
           ),
           const SizedBox(height: 8),
@@ -87,14 +95,20 @@ class _Line extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white54, fontSize: 13),
+          style: const TextStyle(
+            fontFamily: AppFonts.display,
+            color: NfColors.textMuted,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         Text(
           value,
           style: const TextStyle(
+            fontFamily: AppFonts.number,
             color: Colors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],

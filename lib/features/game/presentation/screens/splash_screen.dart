@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:nine_fuse/core/assets/tile_sprite_manager.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
-import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
+import 'package:nine_fuse/features/game/presentation/screens/home_screen.dart';
 
 /// Tempo mínimo de abertura: a barra leva isto para ir de 0 a 100% quando o
 /// carregamento já terminou. Sem um mínimo, num aparelho rápido a arte
@@ -23,7 +23,7 @@ const List<SplashLoader> kDefaultSplashLoaders = [
 ];
 
 /// Tela de carregamento, exibida uma única vez entre a splash nativa
-/// (`flutter_native_splash`, mesma cor de fundo) e o menu de fases.
+/// (`flutter_native_splash`, mesma cor de fundo) e o menu inicial.
 ///
 /// É a arte do pacote "candy pop" (`assets/splash/splash_1290x2796.png`) em
 /// tela cheia, com a barra de progresso preenchendo o trilho que **já vem
@@ -46,7 +46,7 @@ class SplashScreen extends StatefulWidget {
   });
 
   /// Chamado quando a barra chega ao fim. Por padrão navega para
-  /// [LevelSelectScreen]; testes podem substituir para observar o fim sem
+  /// [HomeScreen]; testes podem substituir para observar o fim sem
   /// depender de navegação.
   final VoidCallback? onSplashComplete;
 
@@ -93,7 +93,9 @@ class _SplashScreenState extends State<SplashScreen>
       ..forward();
     for (final load in widget.loaders) {
       unawaited(
-        Future<void>.sync(load).catchError((Object _) {}).whenComplete(_onLoaded),
+        Future<void>.sync(
+          load,
+        ).catchError((Object _) {}).whenComplete(_onLoaded),
       );
     }
   }
@@ -130,7 +132,7 @@ class _SplashScreenState extends State<SplashScreen>
     Navigator.of(context).pushReplacement(
       PageRouteBuilder<void>(
         transitionDuration: const Duration(milliseconds: 300),
-        pageBuilder: (_, _, _) => const LevelSelectScreen(),
+        pageBuilder: (_, _, _) => const HomeScreen(),
         transitionsBuilder: (_, animation, _, child) =>
             FadeTransition(opacity: animation, child: child),
       ),

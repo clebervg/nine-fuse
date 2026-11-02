@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
+import 'package:nine_fuse/core/widgets/coins_header_badge.dart';
 import 'package:nine_fuse/core/widgets/sprite_icon.dart';
-import 'package:nine_fuse/features/game/presentation/widgets/glass_panel.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 /// Chave do botão do martelo no HUD da campanha.
@@ -41,23 +41,37 @@ const Key boosterDockKey = Key('booster_dock');
 /// Chave da pílula com a dica de mira.
 const Key hammerAimHintKey = Key('hammer_aim_hint');
 
-/// Lado do slot do booster dentro do dock. Acima do alvo mínimo de toque das
-/// duas plataformas.
-const double kHammerButtonSize = 54;
+/// Diâmetro do slot circular de um booster. Bem acima do alvo mínimo de toque
+/// (48dp): é o controle que o polegar procura sem olhar.
+const double kHammerButtonSize = 78;
 
-/// Raio dos cantos do slot e do próprio dock.
-const double kBoosterDockRadius = 18;
+/// Altura da placa do dock. Fixa porque a dica de mira é posicionada pela tela
+/// a partir dela (ver [BoosterAimHint]).
+const double kBoosterDockHeight = 106;
 
-/// O slot do Martelo de Fusão dentro do dock: quadrado arredondado com o
-/// estoque em badge no canto.
+/// Raio dos cantos da placa do dock.
+const double kBoosterDockRadius = 30;
+
+/// Vão entre a placa do dock e a borda inferior da área segura.
+const double kBoosterDockBottomGap = 16;
+
+/// Lado do ícone dentro do slot: ~75% do diâmetro, como no design.
+const double _kIconSize = 58;
+
+/// Dessatura e apaga o ícone do booster sem estoque.
 ///
-/// **Era um disco roxo flutuando solto sobre o fundo da tela**, e o problema
-/// não era a cor: um controle sem chão não pertence a lugar nenhum da
-/// interface, então o olho o lia como sobreposição do sistema — algo que caiu
-/// por cima do jogo — em vez de como parte do equipamento do jogador. Dentro do
-/// dock ele passa a ser um item guardado numa prateleira, que é exatamente o
-/// que um booster é, e ganha vizinhos: o dia em que houver um segundo booster,
-/// ele entra ao lado sem redesenhar nada.
+/// Matriz de cor, e não `Opacity`: a suíte usa `Opacity` como marcador de
+/// efeitos da peça, e um a mais em qualquer lugar da tela de jogo é o tipo de
+/// coisa que quebra um `find` em silêncio. A última linha leva o alfa a 55%.
+const ColorFilter _emptyIconFilter = ColorFilter.matrix(<double>[
+  0.33, 0.59, 0.08, 0, 0, //
+  0.33, 0.59, 0.08, 0, 0, //
+  0.33, 0.59, 0.08, 0, 0, //
+  0, 0, 0, 0.55, 0, //
+]);
+
+/// O slot do Martelo de Fusão dentro do dock: disco com aro de ouro e o
+/// estoque em selo no canto.
 ///
 /// O mesmo slot é a saída: em mira ele vira um X vermelho. Um botão de cancelar
 /// em outro canto da tela obrigaria o jogador a procurar como desistir de uma
@@ -81,54 +95,21 @@ class HammerButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final color = targeting ? AppColors.digit0 : AppColors.digit5;
-
-    return Semantics(
-      button: true,
-      // O rótulo falado carrega o estoque, que o badge mostra em número: quem
+    return _BoosterSlot(
+      // O rótulo falado carrega o estoque, que o selo mostra em número: quem
       // ouve a tela precisa saber que o próximo toque pede um anúncio.
-      label: targeting ? l10n.hammerCancel : l10n.hammerSemantics(count),
-      excludeSemantics: true,
-      child: SizedBox(
-        // A caixa é maior que o slot para o badge caber sem ser recortado — ele
-        // avança sobre a borda de propósito, senão parece um segundo botão.
-        width: kHammerButtonSize + 10,
-        height: kHammerButtonSize + 10,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              left: 0,
-              top: 5,
-              child: _Slot(
-                color: color,
-                icon: targeting ? Icons.close_rounded : Icons.gavel_rounded,
-                // Só o martelo tem sprite planejado — o X de cancelar não tem
-                // arte própria no checklist de produção.
-                asset: targeting ? null : 'assets/images/ic_hammer.png',
-                onPressed: onPressed,
-              ),
-            ),
-            Positioned(
-              right: 0,
-              top: 0,
-              // Em mira o badge sai: o botão não é mais o martelo, é o cancelar,
-              // e um estoque pendurado no X diria que o X custa um martelo.
-              child: targeting
-                  ? const SizedBox.shrink()
-                  : _Badge(key: hammerBadgeKey, count: count),
-            ),
-          ],
-        ),
-      ),
+      semantics: targeting ? l10n.hammerCancel : l10n.hammerSemantics(count),
+      targeting: targeting,
+      count: count,
+      asset: 'assets/images/ic_hammer.png',
+      fallback: Icons.gavel_rounded,
+      badgeKey: hammerBadgeKey,
+      onPressed: onPressed,
     );
   }
 }
 
-/// O botão da Bomba: mesmo slot, mesmo badge do Martelo, mesma saída em X
-/// durante a mira — a diferença é só a cor (âmbar, não roxo) e a ausência de
-/// Modo Fantasma: estoque zero mostra `0`, não `+`, porque não há convite de
-/// aquisição atrás do toque.
+/// O slot da Bomba: mesmo disco, mesmo selo e mesma saída em X do Martelo.
 class BombButton extends StatelessWidget {
   const BombButton({
     super.key,
@@ -144,100 +125,19 @@ class BombButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final color = targeting ? AppColors.digit0 : AppColors.digit4;
-
-    return Semantics(
-      button: true,
-      label: targeting ? l10n.hammerCancel : l10n.bombSemantics(count),
-      excludeSemantics: true,
-      child: SizedBox(
-        width: kHammerButtonSize + 10,
-        height: kHammerButtonSize + 10,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              left: 0,
-              top: 5,
-              child: _Slot(
-                color: color,
-                icon: targeting
-                    ? Icons.close_rounded
-                    : Icons.local_fire_department_rounded,
-                asset: targeting ? null : 'assets/images/ic_bomb.png',
-                onPressed: onPressed,
-              ),
-            ),
-            Positioned(
-              right: 0,
-              top: 0,
-              child: targeting
-                  ? const SizedBox.shrink()
-                  : _Badge(
-                      key: bombBadgeKey,
-                      count: count,
-                      showPlusWhenEmpty: false,
-                    ),
-            ),
-          ],
-        ),
-      ),
+    return _BoosterSlot(
+      semantics: targeting ? l10n.hammerCancel : l10n.bombSemantics(count),
+      targeting: targeting,
+      count: count,
+      asset: 'assets/images/ic_bomb.png',
+      fallback: Icons.local_fire_department_rounded,
+      badgeKey: bombBadgeKey,
+      onPressed: onPressed,
     );
   }
 }
 
-/// O slot em si: vidro fosco tingido pela cor do booster.
-///
-/// Mesmo material das pílulas do HUD — vidro, não mais o preenchimento em
-/// degradê sólido de antes —, e o mesmo **formato** das peças do tabuleiro: um
-/// quadrado arredondado do tamanho de uma célula. É o que faz o booster ler
-/// como algo que age sobre as peças, e não como um controle de sistema
-/// operacional pousado sobre o jogo.
-class _Slot extends StatelessWidget {
-  const _Slot({
-    required this.color,
-    required this.icon,
-    required this.onPressed,
-    this.asset,
-  });
-
-  final Color color;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  /// Caminho do sprite do booster, ou nulo para os estados sem arte própria
-  /// (o X de cancelar da mira).
-  final String? asset;
-
-  @override
-  Widget build(BuildContext context) => SizedBox.square(
-    dimension: kHammerButtonSize,
-    child: GlassPanel(
-      padding: EdgeInsets.zero,
-      borderRadius: kBoosterDockRadius,
-      tint: color,
-      emphasis: true,
-      // O respingo é recortado no mesmo raio do slot: um `InkWell` retangular
-      // vazaria pelos cantos arredondados.
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(kBoosterDockRadius),
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(kBoosterDockRadius),
-          child: Center(
-            child: asset == null
-                ? Icon(icon, color: Colors.white, size: 26)
-                : SpriteIcon(asset: asset!, fallback: icon, size: 32),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-/// O botão do Pincel: mesmo slot dos outros dois, cor própria (ciano) e sem
-/// funil de aquisição — estoque zero mostra `0`, como a Bomba.
+/// O slot do Pincel: mesmo disco, mesmo selo e mesma saída em X do Martelo.
 class BrushButton extends StatelessWidget {
   const BrushButton({
     super.key,
@@ -253,39 +153,142 @@ class BrushButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final color = targeting ? AppColors.digit0 : AppColors.digit7;
+    return _BoosterSlot(
+      semantics: targeting ? l10n.hammerCancel : l10n.brushSemantics(count),
+      targeting: targeting,
+      count: count,
+      asset: 'assets/images/ic_brush.png',
+      fallback: Icons.brush_rounded,
+      badgeKey: brushBadgeKey,
+      onPressed: onPressed,
+    );
+  }
+}
+
+/// O disco de um booster, nos três estados: com estoque, sem estoque e em mira.
+///
+/// **Com estoque**: gema roxa em aro de ouro — ouro é o que se toca, roxo é o
+/// que é mágico. **Sem estoque**: azul apagado, aro neutro e o ícone
+/// dessaturado, com o selo verde de `+` no lugar do número. O toque continua
+/// funcionando igual (Modo Fantasma: mira primeiro, convite depois — decisão de
+/// produto); só o visual avisa que o próximo uso passa pelo convite.
+/// **Em mira**: aro e miolo vermelhos com o X, e o selo sai — um estoque
+/// pendurado no X diria que o X custa um item.
+class _BoosterSlot extends StatelessWidget {
+  const _BoosterSlot({
+    required this.semantics,
+    required this.targeting,
+    required this.count,
+    required this.asset,
+    required this.fallback,
+    required this.badgeKey,
+    required this.onPressed,
+  });
+
+  final String semantics;
+  final bool targeting;
+  final int count;
+  final String asset;
+  final IconData fallback;
+  final Key badgeKey;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final empty = count <= 0;
+
+    final Gradient core;
+    final Color rim;
+    final Color base;
+    if (targeting) {
+      core = const RadialGradient(
+        center: Alignment(-0.2, -0.4),
+        colors: [Color(0xFF8A1F33), Color(0xFF3A0A18)],
+        stops: [0, 0.72],
+      );
+      rim = NfColors.alert;
+      base = const Color(0xFF4A0A14);
+    } else if (empty) {
+      core = const RadialGradient(
+        center: Alignment(-0.2, -0.4),
+        colors: [Color(0xFF2A3060), Color(0xFF141838)],
+        stops: [0, 0.7],
+      );
+      rim = const Color(0xFF4A5080);
+      base = const Color(0xFF05081C);
+    } else {
+      core = const RadialGradient(
+        center: Alignment(-0.2, -0.4),
+        colors: [Color(0xFF4A34A8), Color(0xFF1E1260)],
+        stops: [0, 0.72],
+      );
+      rim = NfColors.goldDeep;
+      base = const Color(0xFF4A2A00);
+    }
+
+    final Widget icon;
+    if (targeting) {
+      icon = const Icon(Icons.close_rounded, color: Colors.white, size: 40);
+    } else {
+      final sprite = SpriteIcon(
+        asset: asset,
+        fallback: fallback,
+        size: _kIconSize,
+      );
+      icon = empty
+          ? ColorFiltered(colorFilter: _emptyIconFilter, child: sprite)
+          : sprite;
+    }
 
     return Semantics(
       button: true,
-      label: targeting ? l10n.hammerCancel : l10n.brushSemantics(count),
+      label: semantics,
       excludeSemantics: true,
-      child: SizedBox(
-        width: kHammerButtonSize + 10,
-        height: kHammerButtonSize + 10,
+      child: SizedBox.square(
+        dimension: kHammerButtonSize,
         child: Stack(
+          // O selo avança sobre a borda do disco de propósito: dentro dele
+          // pareceria um segundo botão.
           clipBehavior: Clip.none,
           children: [
-            Positioned(
-              left: 0,
-              top: 5,
-              child: _Slot(
-                color: color,
-                icon: targeting ? Icons.close_rounded : Icons.brush_rounded,
-                asset: targeting ? null : 'assets/images/ic_brush.png',
-                onPressed: onPressed,
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: core,
+                  border: Border.all(color: rim, width: 3),
+                  boxShadow: [
+                    // Blur zero: é a espessura do disco, não uma sombra.
+                    BoxShadow(color: base, offset: const Offset(0, 6)),
+                  ],
+                ),
+                // O respingo é recortado no círculo: um `InkWell` retangular
+                // vazaria pela borda redonda.
+                child: Material(
+                  color: Colors.transparent,
+                  shape: const CircleBorder(),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: onPressed,
+                    customBorder: const CircleBorder(),
+                    child: Center(child: icon),
+                  ),
+                ),
               ),
             ),
-            Positioned(
-              right: 0,
-              top: 0,
-              child: targeting
-                  ? const SizedBox.shrink()
-                  : _Badge(
-                      key: brushBadgeKey,
-                      count: count,
-                      showPlusWhenEmpty: false,
-                    ),
-            ),
+            if (!targeting)
+              Positioned(
+                right: -6,
+                bottom: -4,
+                child: IgnorePointer(
+                  child: empty
+                      ? KeyedSubtree(
+                          key: badgeKey,
+                          child: const PlusSeal(size: 30),
+                        )
+                      : _CountBadge(key: badgeKey, count: count),
+                ),
+              ),
           ],
         ),
       ),
@@ -293,71 +296,50 @@ class BrushButton extends StatelessWidget {
   }
 }
 
-/// Badge de quantidade, ou o convite quando não há nenhum.
-///
-/// Com estoque zero ele mostra `+`, e não `0`: o botão continua servindo para
-/// algo — mirar, e trocar a mira por um anúncio —, então o número que anuncia
-/// "não faço nada" mentiria. O `+` é a promessa de que dá para conseguir mais.
-class _Badge extends StatelessWidget {
-  const _Badge({super.key, required this.count, this.showPlusWhenEmpty = true});
+/// Selo de quantidade: gema roxa com aro de ouro e o número em branco.
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({super.key, required this.count});
 
   final int count;
 
-  /// O Martelo mostra `+` no estoque zero — a promessa de que o Modo
-  /// Fantasma e o convite de aquisição dão um jeito de conseguir mais. A
-  /// Bomba não tem esse funil hoje, e um `+` sem convite nenhum atrás
-  /// prometeria algo que o toque não cumpre — por isso ela mostra `0` puro.
-  final bool showPlusWhenEmpty;
-
   @override
-  Widget build(BuildContext context) {
-    final empty = count <= 0;
-    final showPlus = empty && showPlusWhenEmpty;
-
-    return Container(
-      constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
-      padding: const EdgeInsets.symmetric(horizontal: 5),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        // Verde no convite, escuro no saldo: um badge que muda de papel também
-        // muda de cor, senão o `+` parece um `1` estilizado.
-        color: showPlus ? AppColors.digit2 : const Color(0xFF17171D),
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.35),
-          width: 1.5,
-        ),
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+    padding: const EdgeInsets.symmetric(horizontal: 7),
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      gradient: NfDecorations.gemFill,
+      borderRadius: BorderRadius.circular(15),
+      border: Border.all(color: NfColors.goldDeep, width: 2.5),
+      boxShadow: const [
+        BoxShadow(color: NfColors.gemDeep, offset: Offset(0, 2)),
+      ],
+    ),
+    child: Text(
+      '$count',
+      style: const TextStyle(
+        fontFamily: AppFonts.number,
+        color: Colors.white,
+        fontSize: 15,
+        fontWeight: FontWeight.w800,
+        height: 1.1,
       ),
-      child: Text(
-        showPlus ? '+' : '$count',
-        style: const TextStyle(
-          fontFamily: AppFonts.display,
-          color: Colors.white,
-          fontSize: 13,
-          fontWeight: FontWeight.w900,
-          height: 1,
-        ),
-      ),
-    );
-  }
+    ),
+  );
 }
 
 /// O dock de boosters: a prateleira onde os itens do jogador moram.
 ///
-/// Fica **entre** o card de métricas e o tabuleiro, e fora dos dois: o card
-/// informa, o dock age. Dentro da moldura das métricas o booster lia como uma
-/// quarta métrica — mais uma coisa a *saber*, quando é a única coisa ali a
-/// *fazer* —, e solto sobre o fundo lia como sobreposição de sistema. A barra
-/// com cantos arredondados e chão próprio é o que o faz pertencer ao jogo.
+/// **Fica abaixo do tabuleiro, no alcance do polegar.** Antes ele ficava entre
+/// o card de métricas e o tabuleiro; com o HUD compactado numa placa só e o
+/// tabuleiro em moldura própria, o fundo da tela ficou livre — e é ali que o
+/// polegar já está quando o jogador segura o celular com uma mão. Continua
+/// **fora** do card de métricas, pela regra de sempre: o card informa, o dock
+/// age.
 ///
-/// Também é onde a dica de mira cabe. O véu diz "o resto da tela está fora";
-/// ele não diz "toque numa célula". Sem a frase, o modo de mira mudava o
-/// significado do toque no tabuleiro sem nada na tela dizer isso.
-///
-/// **A dica é uma pílula, e não texto solto.** Ela nasce exatamente quando o véu
-/// escurece o fundo: um cinza sobre preto desfocado é a única coisa da tela que o
-/// jogador *precisa* ler naquele instante e a que menos se destaca. A pílula lhe
-/// dá fundo próprio, então a legibilidade não depende do que ficou atrás.
+/// A dica de mira não mora mais aqui: o véu da mira cobre o dock, e uma pílula
+/// desenhada por baixo dele ficava desfocada justamente quando precisa ser
+/// lida. Ela é o [BoosterAimHint], que a tela monta **por cima** do véu.
 class HammerBar extends StatelessWidget {
   const HammerBar({
     super.key,
@@ -397,74 +379,69 @@ class HammerBar extends StatelessWidget {
   final Key brushButtonKey;
 
   @override
-  Widget build(BuildContext context) {
-    // Um véu de mira suprime os outros: os três boosters miram no mesmo
-    // tabuleiro, e mostrar mais de uma dica ao mesmo tempo não pode
-    // acontecer — `toggle*Targeting` já se excluem no notifier, então nunca
-    // dois `targeting` chegam `true` juntos aqui.
-    final anyTargeting = targeting || bombTargeting || brushTargeting;
-
-    return GlassPanel(
-      key: boosterDockKey,
-      padding: const EdgeInsets.fromLTRB(14, 6, 8, 6),
-      borderRadius: kBoosterDockRadius + 4,
-      child: Row(
-        children: [
-          // A sobra à esquerda é da dica em mira, e do rótulo fora dela: sem o
-          // `Expanded` o texto empurraria os slots para fora da direita em
-          // telas estreitas.
-          Expanded(
-            child: anyTargeting
-                ? const Align(
-                    alignment: Alignment.center,
-                    child: _AimHintPill(),
-                  )
-                : const _DockLabel(),
-          ),
-          BrushButton(
-            key: brushButtonKey,
-            targeting: brushTargeting,
-            count: brushCount,
-            onPressed: onBrushPressed,
-          ),
-          const SizedBox(width: 8),
-          BombButton(
-            key: bombButtonKey,
-            targeting: bombTargeting,
-            count: bombCount,
-            onPressed: onBombPressed,
-          ),
-          const SizedBox(width: 8),
-          HammerButton(
-            key: buttonKey,
-            targeting: targeting,
-            count: count,
-            onPressed: onPressed,
-          ),
-        ],
+  Widget build(BuildContext context) => Container(
+    key: boosterDockKey,
+    height: kBoosterDockHeight,
+    decoration: BoxDecoration(
+      color: NfColors.night1.withValues(alpha: 0.7),
+      borderRadius: BorderRadius.circular(kBoosterDockRadius),
+      border: Border.all(
+        color: const Color(0xFFC98A18).withValues(alpha: 0.35),
+        width: 2,
       ),
-    );
-  }
+    ),
+    child: FittedBox(
+      // Em tela muito estreita os três discos encolhem juntos, em vez de o
+      // último ser empurrado para fora da placa.
+      fit: BoxFit.scaleDown,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            BrushButton(
+              key: brushButtonKey,
+              targeting: brushTargeting,
+              count: brushCount,
+              onPressed: onBrushPressed,
+            ),
+            const SizedBox(width: 28),
+            BombButton(
+              key: bombButtonKey,
+              targeting: bombTargeting,
+              count: bombCount,
+              onPressed: onBombPressed,
+            ),
+            const SizedBox(width: 28),
+            HammerButton(
+              key: buttonKey,
+              targeting: targeting,
+              count: count,
+              onPressed: onPressed,
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
-/// O que a prateleira é, dito uma vez e em voz baixa.
+/// A dica de mira, assentada na borda de cima do dock e **acima** do véu.
 ///
-/// Um dock com um item só e nenhuma legenda pode ser lido como um botão avulso
-/// com moldura — que é justamente o que ele deixou de ser. O rótulo é discreto
-/// porque não é informação de jogo: ele nomeia a área, e sai de cena assim que
-/// a mira começa e a dica assume o espaço.
-class _DockLabel extends StatelessWidget {
-  const _DockLabel();
+/// Vai como filho direto do `Stack` da tela, depois da camada de mira: o véu
+/// escurece e desfoca tudo menos o tabuleiro, e a frase "toque numa célula" é a
+/// única coisa da tela que o jogador precisa ler naquele instante. A posição é
+/// medida do fundo da área segura, com a mesma folga com que a tela assenta o
+/// dock. Ignora toques: quem decide o destino do dedo é a camada de mira.
+class BoosterAimHint extends StatelessWidget {
+  const BoosterAimHint({super.key});
 
   @override
-  Widget build(BuildContext context) => Text(
-    AppLocalizations.of(context).boostersLabel.toUpperCase(),
-    style: TextStyle(
-      color: Colors.white.withValues(alpha: 0.45),
-      fontSize: 11,
-      fontWeight: FontWeight.w800,
-      letterSpacing: 1.2,
-    ),
+  Widget build(BuildContext context) => Positioned(
+    left: 16,
+    right: 16,
+    bottom: kBoosterDockBottomGap + kBoosterDockHeight - 18,
+    child: const IgnorePointer(child: Center(child: _AimHintPill())),
   );
 }
 
@@ -481,12 +458,12 @@ class _AimHintPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     key: hammerAimHintKey,
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
     decoration: BoxDecoration(
-      color: const Color(0xE60E0E13),
+      color: NfColors.night0.withValues(alpha: 0.92),
       borderRadius: BorderRadius.circular(999),
       border: Border.all(
-        color: AppColors.digit0.withValues(alpha: 0.55),
+        color: NfColors.alert.withValues(alpha: 0.7),
         width: 1.5,
       ),
       boxShadow: const [BoxShadow(color: Color(0x99000000), blurRadius: 8)],
@@ -496,9 +473,11 @@ class _AimHintPill extends StatelessWidget {
       maxLines: 2,
       textAlign: TextAlign.center,
       style: const TextStyle(
+        fontFamily: AppFonts.number,
         color: Colors.white,
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: FontWeight.w700,
+        height: 1.15,
       ),
     ),
   );

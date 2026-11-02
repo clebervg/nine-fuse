@@ -19,6 +19,9 @@ Key tileVisualKey(String tileId) => Key('tile_visual_$tileId');
 /// Chave do rastro de uma peça que está saindo do tabuleiro.
 Key tileExitKey(String tileId) => Key('tile_exit_$tileId');
 
+/// Raio dos cantos do poço do tabuleiro (dentro da moldura de ouro).
+const double kBoardWellRadius = 22;
+
 /// Duração da queda e do deslize das peças.
 const Duration kTileMoveDuration = Duration(milliseconds: 220);
 
@@ -315,26 +318,17 @@ class _BoardGridWidgetState extends State<BoardGridWidget>
           child: Container(
             width: side,
             height: side,
+            // O poço do tabuleiro: azul-noite com o centro um pouco mais claro,
+            // como o céu atrás. A moldura de ouro é da tela ([BoardFrame]), e
+            // não daqui, para a geometria das células continuar sendo a mesma
+            // conta que a camada de efeitos e a de mira usam.
             decoration: BoxDecoration(
-              // Moldura com leve degradê e sombra externa: separa o tabuleiro
-              // do fundo em vez de deixá-lo flutuando num retângulo chapado.
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF23262B), Color(0xFF15171A)],
+              gradient: const RadialGradient(
+                center: Alignment(0, -0.4),
+                radius: 1.1,
+                colors: [Color(0xFF1A2560), Color(0xFF0B1236)],
               ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.06),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+              borderRadius: BorderRadius.circular(kBoardWellRadius),
             ),
             child: Stack(
               children: [
@@ -347,16 +341,17 @@ class _BoardGridWidgetState extends State<BoardGridWidget>
                       top: geometry.top(row),
                       width: tileSize,
                       height: tileSize,
-                      // Célula vazia rebaixada: parece um encaixe onde a peça
+                      // Célula vazia marcada: parece um encaixe onde a peça
                       // se apoia, e dá ao tabuleiro textura mesmo quando uma
                       // peça está no ar durante a queda.
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.28),
-                          borderRadius: BorderRadius.circular(11),
-                          border: Border.all(
-                            color: Colors.black.withValues(alpha: 0.35),
-                          ),
+                          // Lilás quase transparente sobre o navy: o encaixe
+                          // aparece sem competir com a arte da peça.
+                          color: const Color(
+                            0xFF788CFF,
+                          ).withValues(alpha: 0.07),
+                          borderRadius: BorderRadius.circular(9),
                         ),
                       ),
                     ),
