@@ -24,9 +24,9 @@ IDs de produção já criados no AdMob (Android), para passar no build:
 
 ## Pendente: bloqueia a publicação
 
-- [ ] **Gerar a keystore de release** e criar `android/key.properties`
-  (passos no `key.properties.example`). Fazer backup fora do repositório.
-  Sem ela o release cai na chave de debug, que a Play Store recusa.
+- [x] **Keystore de release** criada (`~/upload-keystore.jks`) e
+  `android/key.properties` apontando para ela; conferido em 2026-11-02 que o
+  `app-release.aab` sai assinado com ela. Fazer backup fora do repositório.
 - [ ] **Unidades de produção que faltam (Android):** *movimentos extras* e
   *moedas*. Criar em AdMob > NineFuse (Android) > Unidades de anúncio >
   Premiado e passar em `ADMOB_MOVES_REWARDED` / `ADMOB_COINS_REWARDED`.
