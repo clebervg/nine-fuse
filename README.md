@@ -79,7 +79,16 @@ lib/
 1. **Keystore de upload** e `android/key.properties` preenchido (modelo em `android/key.properties.example`). Sem ele o release cai na chave de **debug**, que a Play Store recusa.
 2. **IDs das unidades de anúncio de produção**, uma por funil, criados no AdMob (tipo *Premiado*, e uma do tipo *Intersticial*).
 
-### Comando
+### Jeito recomendado
+```bash
+cp tool/release.env.example.json release.env.json   # uma vez; o arquivo fica fora do git
+# preencha os IDs e o PRIVACY_POLICY_URL em release.env.json
+tool/build_release.sh                  # produção: recusa unidade vazia, ID de teste ou URL faltando
+tool/build_release.sh --allow-missing  # teste interno: o que faltar vira aviso
+```
+O script compila com `--dart-define-from-file`, roda o guard abaixo e confere a assinatura do `.aab`.
+
+### Comando manual (equivalente)
 ```bash
 flutter build appbundle --release \
   --dart-define=ADMOB_HAMMER_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
