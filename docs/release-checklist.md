@@ -13,7 +13,7 @@ Origem: auditoria técnica de 2026-09-30. Branch de trabalho:
 - [x] **1.3 parcial, App ID Android** (`c802343`): `manifestPlaceholders` por
   build. Debug = ID de teste; release = `ca-app-pub-5525495238538539~6427370565`.
 - [x] **1.4 IDs por `--dart-define`**: as unidades de produção saíram do código;
-  `ad_ids.dart` lê `ADMOB_{HAMMER,MOVES,COINS,SPIN,BOMB,BRUSH}_REWARDED` e
+  `ad_ids.dart` lê `ADMOB_{HAMMER,MOVES,COINS,SPIN,BOMB,BRUSH,CONTINUE}_REWARDED` e
   `ADMOB_INTERSTITIAL`. Sem a variável:
   teste em debug/profile e vazio (sem anúncio) em release. Comando no README.
 - [x] **1.4 Guard** `tool/check_admob_ids.sh` (`--strict` antes de enviar o iOS).
@@ -34,6 +34,9 @@ IDs de produção já criados no AdMob (Android), para passar no build:
 - [ ] **Unidades da Bomba e do Pincel (Android):** criar duas unidades
   *Premiado* e passar em `ADMOB_BOMB_REWARDED` / `ADMOB_BRUSH_REWARDED`. Sem
   elas, esses dois funis ficam **sem anúncio** no release.
+- [ ] **Unidade do resgate de derrota (Android):** criar uma unidade
+  *Premiado* e passar em `ADMOB_CONTINUE_REWARDED`. Sem ela, o "+5 jogadas"
+  por vídeo fica **sem anúncio** no release.
 - [ ] **Unidade do intersticial (Android):** criar em AdMob > Unidades de
   anúncio > **Intersticial** e passar em `ADMOB_INTERSTITIAL`. Sem ela o
   release não mostra intersticial (o jogo segue normal).

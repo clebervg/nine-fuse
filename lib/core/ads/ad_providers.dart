@@ -11,6 +11,7 @@ import 'package:nine_fuse/core/ads/rewarded_ad_service.dart';
 import 'package:nine_fuse/core/audio/audio_service.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/bomb_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/brush_offer_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/continue_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/moves_offer_dialog.dart';
@@ -113,6 +114,22 @@ final brushAdServiceProvider = Provider<RewardedAdService>((ref) {
   return service;
 });
 
+/// Serviço do anúncio que paga o resgate de derrota.
+///
+/// Mesmo defeito que a Bomba e o Pincel tinham: `continueAdProvider` nunca
+/// entrava em [admobOverrides], então no release o "+5 jogadas" por vídeo saía
+/// de graça, sem anúncio nenhum.
+final continueAdServiceProvider = Provider<RewardedAdService>((ref) {
+  final service = RewardedAdService(
+    port: ref.watch(rewardedAdPortProvider),
+    unitId: AdIds.continueRewarded,
+    onShowStart: _pauseMusicForAd,
+    onShowEnd: _resumeMusicAfterAd,
+  );
+  ref.onDispose(service.dispose);
+  return service;
+});
+
 // A música do jogo cala enquanto um anúncio de tela cheia está no ar: o áudio
 // dos dois junto é ruído, e o do anúncio é o que o jogador escolheu ouvir.
 void _pauseMusicForAd() => unawaited(GameAudio.service.pauseForAd());
@@ -182,6 +199,7 @@ void preloadRewardedAds(WidgetRef ref) {
   ref.read(spinAdServiceProvider).preload();
   ref.read(bombAdServiceProvider).preload();
   ref.read(brushAdServiceProvider).preload();
+  ref.read(continueAdServiceProvider).preload();
 }
 
 /// Liga os funis de anúncio ao AdMob.
@@ -200,6 +218,9 @@ List<Override> admobOverrides() => [
   spinAdProvider.overrideWith((ref) => ref.watch(spinAdServiceProvider).show),
   bombAdProvider.overrideWith((ref) => ref.watch(bombAdServiceProvider).show),
   brushAdProvider.overrideWith((ref) => ref.watch(brushAdServiceProvider).show),
+  continueAdProvider.overrideWith(
+    (ref) => ref.watch(continueAdServiceProvider).show,
+  ),
   interstitialAdPortProvider.overrideWith(
     (ref) => AdMobInterstitialPort(consent: ref.watch(consentServiceProvider)),
   ),

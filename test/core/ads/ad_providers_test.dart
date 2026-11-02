@@ -4,6 +4,7 @@ import 'package:nine_fuse/core/ads/ad_providers.dart';
 import 'package:nine_fuse/core/ads/rewarded_ad_service.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/bomb_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/brush_offer_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/continue_offer_dialog.dart';
 
 class _Ad implements RewardedAdHandle {
   @override
@@ -49,4 +50,21 @@ void main() {
       expect(port.requested, containsAllInOrder(['bomba', 'pincel']));
     },
   );
+
+  test('com o AdMob ligado, o resgate de derrota pede a sua unidade', () async {
+    // Sem o override, o "+5 jogadas" por vídeo saía de graça no release.
+    final port = _RecordingPort();
+    final container = ProviderContainer(
+      overrides: [
+        ...admobOverrides(),
+        continueAdServiceProvider.overrideWith(
+          (ref) => RewardedAdService(port: port, unitId: 'resgate'),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    expect(await container.read(continueAdProvider)(), isTrue);
+    expect(port.requested, contains('resgate'));
+  });
 }

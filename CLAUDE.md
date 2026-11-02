@@ -2103,9 +2103,10 @@ jogador procurar o vídeo que usou ontem). O teto é contado **antes** do
 entravam em `admobOverrides()`**, então o padrão de teste — pagar sem anúncio —
 valia também no release, e os dois boosters saíam de graça pelo botão de
 vídeo. Há teste travando que, com o AdMob ligado, cada um pede a própria
-unidade. **Ainda fora, e é o mesmo defeito:** `continueAdProvider` (resgate de
-derrota) também não está em `admobOverrides()` e paga sem anúncio no release;
-não foi tocado por estar fora do escopo desta rodada.
+unidade. O mesmo defeito existia no `continueAdProvider` (resgate de derrota) e foi
+fechado logo em seguida: unidade própria `ADMOB_CONTINUE_REWARDED`,
+`continueAdServiceProvider`, preload e override em `admobOverrides()`, com
+teste.
 
 **O mapa virou janela deslizante de verdade — a dívida registrada na Fase 15
 está fechada.** `mapWindowFor(progress)` devolve `(first, last)`:
