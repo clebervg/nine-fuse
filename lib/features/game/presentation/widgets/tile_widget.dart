@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:nine_fuse/core/assets/tile_sprite_manager.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/constants/tile_shape.dart';
+import 'package:nine_fuse/core/theme/app_fonts.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
+import 'package:nine_fuse/features/game/domain/special_tile.dart';
 import 'package:nine_fuse/features/game/domain/tile.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/obstacle_overlay.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/strike_shake.dart';
@@ -34,6 +37,15 @@ const int kPeakGlowMaxTiles = 3;
 /// `ScaleTransition` — sem chave, um teste que procura pelo tipo acharia os
 /// dois e não saberia qual é qual.
 const Key tilePopKey = Key('tile_pop');
+
+/// Chave do aro roxo-dourado que distingue o Super 9 de um 9 comum.
+const Key superNineRingKey = Key('super_nine_ring');
+
+/// Chave do selo com as jogadas que faltam para o Super 9 reverter.
+const Key superNineTurnsKey = Key('super_nine_turns');
+
+/// Duração do pulso único do aro do Super 9 ao nascer.
+const Duration kSuperNineBirthDuration = Duration(milliseconds: 520);
 
 /// Renderiza uma peça: número, cor do dígito e realce de seleção.
 ///
@@ -85,8 +97,7 @@ class TileWidget extends StatefulWidget {
   State<TileWidget> createState() => _TileWidgetState();
 }
 
-class _TileWidgetState extends State<TileWidget>
-    with TickerProviderStateMixin {
+class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: kTilePopDuration,
@@ -155,6 +166,17 @@ class _TileWidgetState extends State<TileWidget>
     }
   }
 
+  /// Pulso **único** do aro do Super 9 ao nascer: um anel que se expande e
+  /// apaga. Finito de propósito — o 9 em repouso já respira, e um segundo
+  /// loop na mesma peça deixaria `pumpAndSettle` sem fim.
+  late final AnimationController _superBirth = AnimationController(
+    vsync: this,
+    duration: kSuperNineBirthDuration,
+    value: 1,
+  );
+
+  bool get _isSuperNine => widget.tile.specialType == SpecialTileType.superNine;
+
   /// Clarão branco que some junto com o pulo. Só em combinação grande.
   late final Animation<double> _flash = Tween<double>(
     begin: 1,
@@ -170,6 +192,7 @@ class _TileWidgetState extends State<TileWidget>
     } else {
       _controller.value = _controller.upperBound;
     }
+    if (_isSuperNine && widget.animateEntrance) _superBirth.forward(from: 0);
     _syncApexPulse();
   }
 
@@ -211,6 +234,12 @@ class _TileWidgetState extends State<TileWidget>
       _obstacleDamageSerial++;
     }
 
+    // Peça que **virou** Super 9 nesta reconstrução: pulsa uma vez.
+    if (_isSuperNine &&
+        oldWidget.tile.specialType != SpecialTileType.superNine) {
+      _superBirth.forward(from: 0);
+    }
+
     _syncApexPulse();
   }
 
@@ -218,6 +247,7 @@ class _TileWidgetState extends State<TileWidget>
   void dispose() {
     _controller.dispose();
     _squash.dispose();
+    _superBirth.dispose();
     _apexPulse?.dispose();
     super.dispose();
   }
@@ -263,7 +293,16 @@ class _TileWidgetState extends State<TileWidget>
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOut,
           child: _apexPulse == null
-              ? _body(value, color, textColor, isTop, glow, radius, widget.side, 0)
+              ? _body(
+                  value,
+                  color,
+                  textColor,
+                  isTop,
+                  glow,
+                  radius,
+                  widget.side,
+                  0,
+                )
               : AnimatedBuilder(
                   animation: _apexPulse!,
                   builder: (context, child) => Transform.scale(
@@ -357,6 +396,15 @@ class _TileWidgetState extends State<TileWidget>
               blurRadius: widget.isPeak ? 13 : 7,
               offset: const Offset(0, 3),
             ),
+          // O Super 9 soma um halo de gema ao ouro do ápice: é a cor do que
+          // é mágico no jogo, e o que separa a peça especial do 9 comum já
+          // de canto de olho.
+          if (_isSuperNine)
+            BoxShadow(
+              color: NfColors.gem.withValues(alpha: 0.75),
+              blurRadius: 14,
+              spreadRadius: 1,
+            ),
           // Nada de halo externo para seleção nem para dica: `BoxShadow`
           // desenha **fora** da caixa e a mancha invadia as células vizinhas,
           // parecendo defeito de renderização em vez de destaque. O realce
@@ -417,6 +465,34 @@ class _TileWidgetState extends State<TileWidget>
                 ),
               ),
             ),
+          // Aro e selo do Super 9. Sem `Opacity`/`FadeTransition` (os testes
+          // os usam como marcadores de outros efeitos da peça): o apagar do
+          // pulso de nascimento é alfa de cor dentro do pintor.
+          if (_isSuperNine) ...[
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _superBirth,
+                  builder: (context, _) => CustomPaint(
+                    key: superNineRingKey,
+                    painter: _SuperNineRingPainter(
+                      radius: radius,
+                      side: side,
+                      birth: _superBirth.value,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: side * 0.02,
+              right: side * 0.02,
+              child: _SuperNineTurns(
+                turns: widget.tile.specialTurnsLeft ?? kSpecialTileLifespan,
+                side: side,
+              ),
+            ),
+          ],
           // Por cima de tudo, inclusive do clarão: a cobertura é o que está
           // fisicamente entre o jogador e a peça.
           if (widget.tile.isBlocked)
@@ -441,6 +517,102 @@ class _TileWidgetState extends State<TileWidget>
                     widget.tile.position.row * 31 + widget.tile.position.col,
               ),
         ],
+      ),
+    );
+  }
+}
+
+/// O aro do Super 9: traço com degradê de varredura gema → ouro, e o anel
+/// do pulso de nascimento se expandindo e apagando por cima.
+class _SuperNineRingPainter extends CustomPainter {
+  const _SuperNineRingPainter({
+    required this.radius,
+    required this.side,
+    required this.birth,
+  });
+
+  final BorderRadius radius;
+  final double side;
+
+  /// Andamento do pulso de nascimento, de 0 a 1 (1 = em repouso).
+  final double birth;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = side * 0.075;
+    final rect = (Offset.zero & size).deflate(stroke / 2);
+    final rrect = radius.toRRect(rect);
+    final sweep = const SweepGradient(
+      colors: [
+        NfColors.gem,
+        NfColors.gold,
+        NfColors.gem,
+        NfColors.gold,
+        NfColors.gem,
+      ],
+    ).createShader(Offset.zero & size);
+
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..shader = sweep,
+    );
+
+    if (birth < 1) {
+      final t = Curves.easeOut.transform(birth);
+      canvas.drawRRect(
+        radius.toRRect(rect.inflate(side * 0.28 * t)),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = stroke * (1.4 - t)
+          ..color = NfColors.gem.withValues(alpha: 0.85 * (1 - t)),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SuperNineRingPainter old) =>
+      old.birth != birth || old.side != side || old.radius != radius;
+}
+
+/// Selo com as jogadas que faltam para o Super 9 voltar a ser um 9 comum.
+///
+/// Sem ele a regra de `kSpecialTileLifespan` era invisível: o jogador via a
+/// peça especial sumir "do nada" na terceira jogada. Número sem sombra — ele
+/// vive dentro das transformações animadas da peça (ver [_OutlinedDigit]).
+class _SuperNineTurns extends StatelessWidget {
+  const _SuperNineTurns({required this.turns, required this.side});
+
+  final int turns;
+  final double side;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = side * 0.36;
+    return Container(
+      key: superNineTurnsKey,
+      width: d,
+      height: d,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: NfColors.gemDeep,
+        border: Border.all(color: NfColors.gold, width: side * 0.03),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          '$turns',
+          style: TextStyle(
+            fontFamily: AppFonts.number,
+            fontWeight: FontWeight.w800,
+            fontSize: d * 0.6,
+            height: 1,
+            color: Colors.white,
+          ),
+        ),
       ),
     );
   }

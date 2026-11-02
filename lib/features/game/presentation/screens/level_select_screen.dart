@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/ads/ad_providers.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
@@ -12,6 +13,7 @@ import 'package:nine_fuse/core/widgets/nf_square_button.dart';
 import 'package:nine_fuse/core/widgets/sprite_icon.dart';
 import 'package:nine_fuse/core/widgets/privacy_dialog.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/level_catalog.dart';
 import 'package:nine_fuse/features/game/domain/level_generator.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
@@ -21,6 +23,7 @@ import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/shop_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/campaign_header.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/chapter_chest.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_highlight.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
@@ -372,6 +375,10 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
                             revealTo: _reveal.isAnimating ? _revealTo : null,
                             revealProgress: _reveal.value,
                             onTapLevel: (level) => _openLevel(level, unlocked),
+                            claimedChests: ref.watch(
+                              walletProvider.select((w) => w.claimedChests),
+                            ),
+                            onTapChest: _onTapChest,
                           ),
                         ),
                       ),
@@ -424,6 +431,38 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
       // no disco.
       ref.read(walletProvider.notifier).refresh();
     });
+  }
+
+  /// Toque num baú da trilha.
+  ///
+  /// Pronto: paga e anuncia. Trancado: diz o que falta. Aberto: nada — o
+  /// cinza dele já é a resposta.
+  Future<void> _onTapChest(CampaignChapter chapter, ChestState state) async {
+    switch (state) {
+      case ChestState.locked:
+        await showNfModal<void>(
+          context,
+          builder: (_) => ChestLockedPopup(chapter: chapter.number),
+        );
+      case ChestState.ready:
+        final wallet = ref.read(walletProvider.notifier);
+        // Relê o disco **antes** de pagar. A carteira nasce zerada e a
+        // leitura do mapa é assíncrona: um toque que chegasse antes dela
+        // veria o baú como não pago (e o repagaria) e gravaria um saldo
+        // montado sobre zero por cima das moedas de verdade. Com a carteira
+        // já carregada a releitura não muda nada; `claimChapterChest` segue
+        // sendo a trava de "uma vez só", inclusive contra toque duplo.
+        await wallet.refresh();
+        if (!mounted || !wallet.claimChapterChest(chapter.number)) return;
+        HapticFeedback.mediumImpact();
+        await showNfModal<void>(
+          context,
+          elastic: true,
+          builder: (_) => const ChestRewardPopup(coins: kChapterChestReward),
+        );
+      case ChestState.opened:
+        break;
+    }
   }
 
   void _openDailySpin() {

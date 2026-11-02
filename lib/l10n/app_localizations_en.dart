@@ -751,4 +751,36 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get shopBuyFailed =>
       'The purchase couldn\'t be completed. Your coins weren\'t spent.';
+
+  @override
+  String get chestReadyTitle => 'Chapter chest!';
+
+  @override
+  String get chestCollect => 'COLLECT';
+
+  @override
+  String get chestLockedTitle => 'Chest locked';
+
+  @override
+  String chestLockedHint(int chapter) {
+    return 'Beat every level of chapter $chapter to open it.';
+  }
+
+  @override
+  String get chestOk => 'OK';
+
+  @override
+  String semanticsChestLocked(int chapter) {
+    return 'Chapter $chapter chest, locked.';
+  }
+
+  @override
+  String semanticsChestReady(int chapter) {
+    return 'Chapter $chapter chest, ready to open.';
+  }
+
+  @override
+  String semanticsChestOpened(int chapter) {
+    return 'Chapter $chapter chest, already opened.';
+  }
 }

@@ -463,5 +463,25 @@
   },
   "shopVideoSubtitle": "Watch a short video",
   "shopWatch": "WATCH",
-  "shopBuyFailed": "The purchase couldn't be completed. Your coins weren't spent."
+  "shopBuyFailed": "The purchase couldn't be completed. Your coins weren't spent.",
+  "chestReadyTitle": "Chapter chest!",
+  "chestCollect": "COLLECT",
+  "chestLockedTitle": "Chest locked",
+  "chestLockedHint": "Beat every level of chapter {chapter} to open it.",
+  "@chestLockedHint": {
+    "placeholders": { "chapter": { "type": "int" } }
+  },
+  "chestOk": "OK",
+  "semanticsChestLocked": "Chapter {chapter} chest, locked.",
+  "@semanticsChestLocked": {
+    "placeholders": { "chapter": { "type": "int" } }
+  },
+  "semanticsChestReady": "Chapter {chapter} chest, ready to open.",
+  "@semanticsChestReady": {
+    "placeholders": { "chapter": { "type": "int" } }
+  },
+  "semanticsChestOpened": "Chapter {chapter} chest, already opened.",
+  "@semanticsChestOpened": {
+    "placeholders": { "chapter": { "type": "int" } }
+  }
 }

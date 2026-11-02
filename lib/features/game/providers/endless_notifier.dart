@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/endless_progression.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/nova_event.dart';
@@ -378,11 +379,7 @@ class EndlessNotifier extends StateNotifier<EndlessState>
           novaStrikes: state.novaStrikes + 1,
           novaCoinsGranted: state.novaCoinsGranted + coinsGained,
         );
-        if (_random.nextBool()) {
-          grantBomb();
-        } else {
-          grantBrush();
-        }
+        _grantNovaBooster();
       }
 
       await _delay(JuiceTimings.fusion);
@@ -394,6 +391,23 @@ class EndlessNotifier extends StateNotifier<EndlessState>
 
     if (!mounted) return;
     _finishMove(engine, resolution, extraScore: 0, countsAsMove: countsAsMove);
+  }
+
+  /// O booster grátis da Nova, com o mesmo teto da campanha (ver
+  /// `GameNotifier._grantNovaBooster`): estoque cheio vira
+  /// [kCoinsPerOverflowBooster] moedas em `novaCoinsGranted`.
+  void _grantNovaBooster() {
+    final isBomb = _random.nextBool();
+    final current = isBomb ? state.bombCount : state.brushCount;
+    final credit = capBoosterReward(current: current, amount: 1);
+    if (credit.count > current) {
+      isBomb ? grantBomb() : grantBrush();
+    }
+    if (credit.overflowCoins > 0) {
+      state = state.copyWith(
+        novaCoinsGranted: state.novaCoinsGranted + credit.overflowCoins,
+      );
+    }
   }
 
   /// Batida forte da explosão do dígito máximo.

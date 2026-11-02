@@ -10,6 +10,7 @@ import 'package:nine_fuse/core/widgets/nf_text.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/presentation/l10n_labels.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/chapter_chest.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 /// Chave do pin de uma fase.
@@ -141,6 +142,8 @@ class SagaMapWidget extends StatelessWidget {
     required this.onTapLevel,
     this.revealTo,
     this.revealProgress = 1,
+    this.claimedChests = const <int>{},
+    this.onTapChest,
   });
 
   final List<GameLevel> levels;
@@ -159,6 +162,13 @@ class SagaMapWidget extends StatelessWidget {
 
   /// Andamento do preenchimento do último trecho, de 0 a 1.
   final double revealProgress;
+
+  /// Capítulos cujo baú já foi pago (`Wallet.claimedChests`).
+  final Set<int> claimedChests;
+
+  /// Toque no baú de um capítulo. Nulo não desenha baú nenhum — o mapa
+  /// continua usável sem carteira (golden antigo, testes de trilha pura).
+  final void Function(CampaignChapter chapter, ChestState state)? onTapChest;
 
   /// A fase que o jogador deve jogar agora: a primeira ainda não vencida.
   int get currentLevelNumber {
@@ -217,6 +227,7 @@ class SagaMapWidget extends StatelessWidget {
               // de que a trilha continua.
               for (int i = levels.length; i <= geometry.lastIndex; i++)
                 _positionedPin(geometry, i, child: const _FuturePin()),
+              if (onTapChest != null) ..._chests(geometry),
             ],
           ),
         );
@@ -231,6 +242,57 @@ class SagaMapWidget extends StatelessWidget {
       if (levels[i].number <= progress) last = i;
     }
     return last;
+  }
+
+  /// Um baú no fim de cada capítulo pagável cuja última fase já está na
+  /// trilha.
+  ///
+  /// O baú não ganha nó próprio na geometria: entrar na sequência de pins
+  /// empurraria todas as fases seguintes e desalinharia a rolagem que
+  /// centraliza a fase da vez. Ele pousa **ao lado** da trilha, a meio
+  /// caminho entre a última fase do capítulo e a primeira do seguinte, do
+  /// lado oposto ao da curva — longe da etiqueta "VOCÊ ESTÁ AQUI", do tile 9
+  /// e da coroa de estrelas, que vivem colados nos pins.
+  List<Widget> _chests(SagaGeometry geometry) {
+    final chests = <Widget>[];
+    var chapter = chapterOf(1);
+    while (chapterHasChest(chapter)) {
+      final index = levels.indexWhere((l) => l.number == chapter.lastLevel);
+      if (index < 0) break;
+
+      final a = geometry.centerOf(index);
+      final b = geometry.centerOf(index + 1);
+      final midX = (a.dx + b.dx) / 2;
+      final side = midX > geometry.width / 2 ? -1 : 1;
+      final centre = Offset(
+        geometry.width / 2 + side * geometry.amplitude,
+        (a.dy + b.dy) / 2,
+      );
+      final state = chestStateFor(
+        chapter,
+        progress: progress,
+        claimedChests: claimedChests,
+      );
+      final current = chapter;
+      const box = ChapterChestNode.size + 16;
+      chests.add(
+        Positioned(
+          left: centre.dx - box / 2,
+          top: centre.dy - box / 2,
+          width: box,
+          height: box,
+          child: Center(
+            child: ChapterChestNode(
+              chapter: current.number,
+              state: state,
+              onTap: () => onTapChest!(current, state),
+            ),
+          ),
+        ),
+      );
+      chapter = chapterOf(chapter.lastLevel + 1);
+    }
+    return chests;
   }
 
   Widget _pinFor(GameLevel level, {required bool tagOnLeft}) => _LevelPin(

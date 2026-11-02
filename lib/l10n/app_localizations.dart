@@ -1176,6 +1176,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The purchase couldn\'t be completed. Your coins weren\'t spent.'**
   String get shopBuyFailed;
+
+  /// No description provided for @chestReadyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter chest!'**
+  String get chestReadyTitle;
+
+  /// No description provided for @chestCollect.
+  ///
+  /// In en, this message translates to:
+  /// **'COLLECT'**
+  String get chestCollect;
+
+  /// No description provided for @chestLockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Chest locked'**
+  String get chestLockedTitle;
+
+  /// No description provided for @chestLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Beat every level of chapter {chapter} to open it.'**
+  String chestLockedHint(int chapter);
+
+  /// No description provided for @chestOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get chestOk;
+
+  /// No description provided for @semanticsChestLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter {chapter} chest, locked.'**
+  String semanticsChestLocked(int chapter);
+
+  /// No description provided for @semanticsChestReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter {chapter} chest, ready to open.'**
+  String semanticsChestReady(int chapter);
+
+  /// No description provided for @semanticsChestOpened.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter {chapter} chest, already opened.'**
+  String semanticsChestOpened(int chapter);
 }
 
 class _AppLocalizationsDelegate

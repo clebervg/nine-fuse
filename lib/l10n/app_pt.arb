@@ -270,5 +270,13 @@
   },
   "shopVideoSubtitle": "Assista a um vídeo curto",
   "shopWatch": "ASSISTIR",
-  "shopBuyFailed": "Não deu para concluir a compra. Suas moedas não foram gastas."
+  "shopBuyFailed": "Não deu para concluir a compra. Suas moedas não foram gastas.",
+  "chestReadyTitle": "Baú do capítulo!",
+  "chestCollect": "COLETAR",
+  "chestLockedTitle": "Baú trancado",
+  "chestLockedHint": "Vença as fases do capítulo {chapter} para abrir.",
+  "chestOk": "OK",
+  "semanticsChestLocked": "Baú do capítulo {chapter}, trancado.",
+  "semanticsChestReady": "Baú do capítulo {chapter}, pronto para abrir.",
+  "semanticsChestOpened": "Baú do capítulo {chapter}, já aberto."
 }

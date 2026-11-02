@@ -753,4 +753,36 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get shopBuyFailed =>
       'Não deu para concluir a compra. Suas moedas não foram gastas.';
+
+  @override
+  String get chestReadyTitle => 'Baú do capítulo!';
+
+  @override
+  String get chestCollect => 'COLETAR';
+
+  @override
+  String get chestLockedTitle => 'Baú trancado';
+
+  @override
+  String chestLockedHint(int chapter) {
+    return 'Vença as fases do capítulo $chapter para abrir.';
+  }
+
+  @override
+  String get chestOk => 'OK';
+
+  @override
+  String semanticsChestLocked(int chapter) {
+    return 'Baú do capítulo $chapter, trancado.';
+  }
+
+  @override
+  String semanticsChestReady(int chapter) {
+    return 'Baú do capítulo $chapter, pronto para abrir.';
+  }
+
+  @override
+  String semanticsChestOpened(int chapter) {
+    return 'Baú do capítulo $chapter, já aberto.';
+  }
 }

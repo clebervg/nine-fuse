@@ -21,7 +21,10 @@ import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
 /// Orquestra o estado da fase. Toda a regra de Match-3 e fusão vive no
 /// [MatchEngine]; aqui só decidimos o que fazer com o resultado.
 class GameNotifier extends StateNotifier<GameState>
-    with HammerBooster<GameState>, BombBooster<GameState>, BrushBooster<GameState> {
+    with
+        HammerBooster<GameState>,
+        BombBooster<GameState>,
+        BrushBooster<GameState> {
   GameNotifier({
     Random? random,
     Future<void> Function(Duration)? delay,
@@ -516,11 +519,7 @@ class GameNotifier extends StateNotifier<GameState>
           novaStrikes: state.novaStrikes + 1,
           novaCoinsGranted: state.novaCoinsGranted + coinsGained,
         );
-        if (_random.nextBool()) {
-          grantBomb();
-        } else {
-          grantBrush();
-        }
+        _grantNovaBooster();
       }
 
       await _delay(JuiceTimings.fusion);
@@ -534,6 +533,28 @@ class GameNotifier extends StateNotifier<GameState>
     if (!mounted) return;
     // A pontuação já subiu quadro a quadro durante a encenação.
     _finishMove(engine, resolution, extraScore: 0, countsAsMove: countsAsMove);
+  }
+
+  /// O booster grátis da Nova (Bomba ou Pincel, sorteado), respeitando o
+  /// teto de [kMaxBoosterStock].
+  ///
+  /// É prêmio, não compra: com o estoque cheio o item vira
+  /// [kCoinsPerOverflowBooster] moedas, somadas a `novaCoinsGranted` — o
+  /// mesmo caminho da moeda da Nova, que a tela credita na carteira. Sem o
+  /// teto a Nova seria a única torneira grátis a empilhar booster sem fim,
+  /// exatamente o que o teto da roleta existe para impedir.
+  void _grantNovaBooster() {
+    final isBomb = _random.nextBool();
+    final current = isBomb ? state.bombCount : state.brushCount;
+    final credit = capBoosterReward(current: current, amount: 1);
+    if (credit.count > current) {
+      isBomb ? grantBomb() : grantBrush();
+    }
+    if (credit.overflowCoins > 0) {
+      state = state.copyWith(
+        novaCoinsGranted: state.novaCoinsGranted + credit.overflowCoins,
+      );
+    }
   }
 
   /// Batida forte da explosão do dígito máximo.

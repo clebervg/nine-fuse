@@ -1838,3 +1838,49 @@ descartaria a animação antes do crédito.
 **Não validado em aparelho:** as telas foram conferidas por capturas de teste
 de widget em 390x844, 375x667 e 1080x2400 (20:9); falta rodar no simulador e
 num Android real, sobretudo o desempenho do blur dos modais.
+
+
+### Correções: baú de capítulo, teto do booster da Nova e visual do Super 9 (2026-11-01)
+
+**O baú de capítulo finalmente paga.** `Wallet.claimChapterChest` existia, com
+teste, e nenhuma tela o chamava — o cartão "Como ganhar moedas" prometia uma
+torneira que não abria. Agora há um nó de baú (`ChapterChestNode`, em
+`chapter_chest.dart`) no fim de cada capítulo pagável (1..`kChapterChestPayableCount`)
+na trilha, em três estados: trancado (azul-noite com cadeado no canto), pronto
+(ouro com halo **parado**) e aberto (bronze com ✓). Pronto credita e abre o
+popup "+200" com a moeda; trancado abre a dica "Vença as fases do capítulo N".
+
+- **O baú não entra na geometria da trilha.** Um nó a mais na sequência
+  empurraria todas as fases seguintes e quebraria a conta que centraliza a fase
+  da vez. Ele pousa ao lado, a meio caminho entre a última fase do capítulo e a
+  primeira do seguinte, do lado oposto ao da curva — longe da etiqueta "VOCÊ
+  ESTÁ AQUI", do tile 9 e das coroas de estrelas, que vivem colados nos pins.
+- **"Concluído" lê o progresso, não o histórico de estrelas.** A campanha só
+  destrava em ordem, então `progress >= lastLevel` já garante todas as fases
+  vencidas — e continua certo depois da poda (`prunedBelow`), quando contar
+  registros diria "capítulo vazio".
+- **O toque relê a carteira antes de pagar.** A carteira nasce zerada e a
+  leitura do mapa é assíncrona: um toque antes dela veria o baú como não pago
+  e gravaria um saldo montado sobre zero por cima das moedas reais.
+  `claimChapterChest` continua sendo a trava de "uma vez só".
+- **O halo do baú pronto não pulsa.** O mapa já tem um elemento pulsante (a
+  fase da vez), e um segundo loop quebraria `pumpAndSettle`.
+- O golden `saga_map.png` **não mudou**: no recorte dele (fase 4) o primeiro
+  baú fica acima da área visível.
+
+**A Nova respeita o teto de booster.** O booster grátis da Nova chamava
+`grantBomb`/`grantBrush` direto e furava o `kMaxBoosterStock` que a roleta já
+respeitava. `_grantNovaBooster` (nos dois notifiers) passa por
+`capBoosterReward`: com o estoque cheio, o item vira `kCoinsPerOverflowBooster`
+somado a `novaCoinsGranted` — o mesmo caminho que a tela já usa para creditar a
+moeda da Nova. O sorteio Bomba/Pincel continua sendo **um** `nextBool`, para
+não mudar a sequência aleatória das partidas com semente.
+
+**O Super 9 ganhou cara própria.** Antes ele era desenhado igual a um 9 comum:
+a peça especial existia só na regra, e a reversão em `kSpecialTileLifespan`
+jogadas era invisível — o jogador via o poder sumir "do nada". Agora tem aro com
+degradê de varredura gema/ouro, halo de gema somado ao ouro do ápice e um selo
+no canto com as jogadas restantes (3, 2, 1). Ao nascer, o aro dá **um** pulso
+(anel que se expande e apaga, alfa de cor dentro do pintor — nada de
+`Opacity`/`FadeTransition` na peça). O número do selo é texto sem sombra,
+porque vive dentro das transformações animadas da peça.

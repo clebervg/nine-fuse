@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/nova_event.dart';
@@ -54,7 +55,11 @@ void main() {
     // Sem binding de plataforma neste teste puro (`test`, não `testWidgets`):
     // o haptic de verdade estouraria por falta de `TestWidgetsFlutterBinding`.
     GameNotifier.explosionFeedback = () {};
-    notifier = GameNotifier(random: Random(7), delay: instant, storage: InMemoryGameStorage());
+    notifier = GameNotifier(
+      random: Random(7),
+      delay: instant,
+      storage: InMemoryGameStorage(),
+    );
     notifier.startLevel(
       GameLevel(
         number: 96,
@@ -124,23 +129,48 @@ void main() {
     expect(notifier.state.novaCoinsGranted, before + kNovaCoinsTier1);
   });
 
-  test('a Nova credita +1 booster, Bomba ou Pincel — nunca o Martelo', () async {
-    final bombBefore = notifier.state.bombCount;
-    final brushBefore = notifier.state.brushCount;
-    final hammerBefore = notifier.state.hammerCount;
+  test(
+    'a Nova credita +1 booster, Bomba ou Pincel — nunca o Martelo',
+    () async {
+      final bombBefore = notifier.state.bombCount;
+      final brushBefore = notifier.state.brushCount;
+      final hammerBefore = notifier.state.hammerCount;
+
+      await playTrio();
+
+      final bombGained = notifier.state.bombCount - bombBefore;
+      final brushGained = notifier.state.brushCount - brushBefore;
+
+      expect(
+        bombGained + brushGained,
+        1,
+        reason: 'exatamente um dos dois boosters ganha +1',
+      );
+      expect(bombGained, anyOf(0, 1));
+      expect(brushGained, anyOf(0, 1));
+      expect(
+        notifier.state.hammerCount,
+        hammerBefore,
+        reason: 'nunca o martelo',
+      );
+    },
+  );
+
+  test('com o estoque no teto, o booster da Nova vira kCoinsPerOverflowBooster '
+      'moedas', () async {
+    // Prêmio grátis passa pelo teto (`capBoosterReward`), como a roleta:
+    // os dois boosters cheios garantem o caso qualquer que seja o sorteio.
+    notifier.grantBomb(count: kMaxBoosterStock);
+    notifier.grantBrush(count: kMaxBoosterStock);
+    final coinsBefore = notifier.state.novaCoinsGranted;
 
     await playTrio();
 
-    final bombGained = notifier.state.bombCount - bombBefore;
-    final brushGained = notifier.state.brushCount - brushBefore;
-
+    expect(notifier.state.bombCount, kMaxBoosterStock);
+    expect(notifier.state.brushCount, kMaxBoosterStock);
     expect(
-      bombGained + brushGained,
-      1,
-      reason: 'exatamente um dos dois boosters ganha +1',
+      notifier.state.novaCoinsGranted,
+      coinsBefore + kNovaCoinsTier1 + kCoinsPerOverflowBooster,
     );
-    expect(bombGained, anyOf(0, 1));
-    expect(brushGained, anyOf(0, 1));
-    expect(notifier.state.hammerCount, hammerBefore, reason: 'nunca o martelo');
   });
 }
