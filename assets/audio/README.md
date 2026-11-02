@@ -63,3 +63,14 @@ vai para o segundo plano.
 Só arquivos com licença que permita uso comercial e redistribuição dentro do
 app. Registre a origem e a licença de cada arquivo nos Créditos
 (`creditsBody` em `lib/l10n/app_*.arb`).
+
+## Efeitos atuais: sintéticos (protótipo)
+
+Os 17 efeitos de `sfx/` foram gerados por código com `tool/gen_sfx.py`
+(ondas senoidais/triangulares, ruído filtrado, sem amostra externa) e
+convertidos com `ffmpeg -codec:a libmp3lame -b:a 128k -ac 1`. Servem para o
+jogo não ficar mudo; troque-os por efeitos de verdade (ex.: Kenney.nl, CC0)
+mantendo os mesmos nomes. Mapeamento dos nomes do gerador: `tap→select`,
+`invalid→invalid_swap`, `nine→nine_born`, `win→victory`, `lose→defeat`,
+`swap→button_tap`, `coin→coins`; os demais têm o mesmo nome. A música
+(`music/`) continua vazia.
