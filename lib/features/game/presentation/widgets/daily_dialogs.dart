@@ -200,7 +200,15 @@ class _DailyRewardDialogState extends ConsumerState<DailyRewardDialog> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          NfText.titleGold(l10n.dailyRewardTitle.toUpperCase(), size: 28),
+          // Folga dos dois lados do tamanho do X: sem ela o título corria
+          // por baixo do botão de fechar (visto no aparelho).
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 34),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: NfText.titleGold(l10n.dailyRewardTitle.toUpperCase(), size: 28),
+            ),
+          ),
           const SizedBox(height: 6),
           Text(
             l10n.dailyRewardSubtitle,
@@ -413,7 +421,15 @@ class _MissionsDialogState extends ConsumerState<MissionsDialog> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          NfText.titleGold(l10n.missionsTitle.toUpperCase(), size: 28),
+          // Folga dos dois lados do tamanho do X: sem ela o título corria
+          // por baixo do botão de fechar (visto no aparelho).
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 34),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: NfText.titleGold(l10n.missionsTitle.toUpperCase(), size: 28),
+            ),
+          ),
           const SizedBox(height: 6),
           Text(
             l10n.missionsSubtitle,

@@ -571,8 +571,11 @@ class _Orbit {
 const List<_Orbit> _orbits = [
   _Orbit(5, Offset(96, 22), 48, -14 * math.pi / 180),
   _Orbit(3, Offset(262, 30), 42, 12 * math.pi / 180),
-  _Orbit(1, Offset(92, 200), 44, 10 * math.pi / 180),
-  _Orbit(6, Offset(258, 188), 50, -8 * math.pi / 180),
+  // As duas de baixo ficam para dentro da coluna dos botões laterais: com o
+  // DIÁRIO e as MISSÕES na segunda fileira, nas posições do design elas
+  // pousavam por cima dos dois botões (visto no aparelho).
+  _Orbit(1, Offset(112, 210), 44, 10 * math.pi / 180),
+  _Orbit(6, Offset(232, 200), 50, -8 * math.pi / 180),
 ];
 
 /// A órbita tracejada e o pedestal elíptico (sombra, aro de ouro e o brilho
