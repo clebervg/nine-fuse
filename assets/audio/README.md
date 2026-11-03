@@ -64,13 +64,30 @@ Só arquivos com licença que permita uso comercial e redistribuição dentro do
 app. Registre a origem e a licença de cada arquivo nos Créditos
 (`creditsBody` em `lib/l10n/app_*.arb`).
 
-## Efeitos atuais: sintéticos (protótipo)
+## Origem dos efeitos atuais
 
-Os 17 efeitos de `sfx/` foram gerados por código com `tool/gen_sfx.py`
-(ondas senoidais/triangulares, ruído filtrado, sem amostra externa) e
-convertidos com `ffmpeg -codec:a libmp3lame -b:a 128k -ac 1`. Servem para o
-jogo não ficar mudo; troque-os por efeitos de verdade (ex.: Kenney.nl, CC0)
-mantendo os mesmos nomes. Mapeamento dos nomes do gerador: `tap→select`,
-`invalid→invalid_swap`, `nine→nine_born`, `win→victory`, `lose→defeat`,
-`swap→button_tap`, `coin→coins`; os demais têm o mesmo nome. A música
-(`music/`) continua vazia.
+**Do Kenney.nl (CC0, domínio público)**: oito efeitos de interface e impacto.
+Convertidos de `.ogg` com silêncio inicial cortado, mono 44,1 kHz, pico
+normalizado em -1,5 dBFS, MP3 160 kbps.
+
+| arquivo              | pacote Kenney      | arquivo original           |
+|----------------------|--------------------|----------------------------|
+| `select.mp3`         | Interface Sounds   | `select_001.ogg`           |
+| `invalid_swap.mp3`   | Interface Sounds   | `error_007.ogg`            |
+| `button_tap.mp3`     | Interface Sounds   | `click_001.ogg`            |
+| `brush.mp3`          | Interface Sounds   | `scratch_002.ogg`          |
+| `spin_tick.mp3`      | Interface Sounds   | `tick_002.ogg`             |
+| `obstacle_break.mp3` | Impact Sounds      | `impactGlass_light_002.ogg`|
+| `hammer.mp3`         | Impact Sounds      | `impactPunch_heavy_001.ogg`|
+| `coins.mp3`          | Casino Audio       | `chips-collide-2.ogg`      |
+
+**Sintéticos (protótipo)**: os outros nove — `fusion`, `combo`, `nine_born`,
+`super_nine`, `nova`, `bomb`, `spin_prize`, `victory`, `defeat`. São os sons
+musicais e a explosão, que os três pacotes acima não cobrem (o candidato é o
+pacote Kenney **Music Jingles**). Foram gerados por `tool/gen_sfx.py` (ondas e
+ruído filtrado, sem amostra externa) e convertidos com
+`ffmpeg -codec:a libmp3lame -b:a 128k -ac 1`. Mapeamento dos nomes do gerador:
+`nine→nine_born`, `win→victory`, `lose→defeat`; os demais têm o mesmo nome.
+Rodar o gerador de novo sobrescreveria os do Kenney: converta só os nove.
+
+A música (`music/`) continua vazia.

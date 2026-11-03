@@ -507,7 +507,7 @@
   "settingsCredits": "Credits",
   "settingsLicenses": "Open source licenses",
   "creditsTitle": "Credits",
-  "creditsBody": "Nunito, Lilita One and Baloo 2 fonts under the SIL Open Font License (OFL).\nTiles, obstacles and icons: NineFuse \"candy pop\" art pack.\nMade with Flutter.",
+  "creditsBody": "Nunito, Lilita One and Baloo 2 fonts under the SIL Open Font License (OFL).\nTiles, obstacles and icons: NineFuse \"candy pop\" art pack.\nSound effects: Kenney (kenney.nl), CC0.\nMade with Flutter.",
   "creditsClose": "CLOSE",
 
   "tutorialFirstSwap": "Swap these two pieces to line up three of a kind.",

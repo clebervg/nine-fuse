@@ -848,7 +848,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creditsBody =>
-      'Nunito, Lilita One and Baloo 2 fonts under the SIL Open Font License (OFL).\nTiles, obstacles and icons: NineFuse \"candy pop\" art pack.\nMade with Flutter.';
+      'Nunito, Lilita One and Baloo 2 fonts under the SIL Open Font License (OFL).\nTiles, obstacles and icons: NineFuse \"candy pop\" art pack.\nSound effects: Kenney (kenney.nl), CC0.\nMade with Flutter.';
 
   @override
   String get creditsClose => 'CLOSE';
