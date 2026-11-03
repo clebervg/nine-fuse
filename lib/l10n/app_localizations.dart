@@ -1546,8 +1546,8 @@ abstract class AppLocalizations {
   /// No description provided for @missionsBonus.
   ///
   /// In en, this message translates to:
-  /// **'Complete all three to earn a booster'**
-  String get missionsBonus;
+  /// **'Complete all three: +{coins} coins'**
+  String missionsBonus(int coins);
 
   /// No description provided for @missionsAllDone.
   ///

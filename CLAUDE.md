@@ -2242,9 +2242,8 @@ local (`localDayKey`), sem relógio nem disco, como a roleta e o teto do
 martelo. Coletou ontem: a sequência continua. Pulou um dia: volta ao dia 1 —
 perder a sequência é o que dá peso a ela. A véspera vem do **calendário**
 (`previousDayKey`), não de "agora menos 24 h", que erra na virada do horário
-de verão. O ciclo (`kDailyRewardCycle`) paga 20, 30, Martelo, 50, Pincel, 80
-e Bomba + 150 no dia 7: 330 moedas e um de cada booster por semana, abaixo de
-um capítulo em três estrelas mais o baú (500). Os prêmios reaproveitam
+de verão. O ciclo (`kDailyRewardCycle`) paga 10, 15, 20, Martelo, 25, 30 e
+Bomba + 50 no dia 7 (valores da recalibragem logo abaixo). Os prêmios reaproveitam
 `SpinPrize`, e a sequência é gravada **antes** do crédito: morrer entre as
 duas escritas perde um prêmio uma vez; na ordem inversa, pagaria de novo a
 cada reabertura.
@@ -2256,9 +2255,8 @@ são **gravadas** ao virar o dia, e não recalculadas a cada leitura: a escolha
 depende do progresso na campanha, e uma missão que muda no meio do dia porque
 o jogador venceu uma fase é o pior defeito possível ali. Antes da fase 10
 (`kAdvancedMissionsFromProgress`) não sai missão de 9, Nova nem cobertura —
-pedir o que o jogador ainda não viu. Coletar as três paga um booster
-(`missionsBonusFor`, que roda pelo dia). O progresso para no alvo ("61/60" lê
-como erro).
+pedir o que o jogador ainda não viu. Coletar as três paga um bônus em moeda
+(`kMissionsBonusCoins`). O progresso para no alvo ("61/60" lê como erro).
 
 **De onde vêm os números.** `GameNotifier` e `EndlessNotifier` recebem um
 `MissionSink` opcional (uma função, não o notifier: a regra de partida segue
@@ -2288,3 +2286,43 @@ duas juntas seriam uma fila de caixas no primeiro segundo do app.
 **Ainda não feito:** notificação própria da sequência (o lembrete da roleta em
 24 h já leva o jogador ao menu); conquistas; e missões que dependem do Modo
 Recorde (pontuação), que pediriam um acontecimento a mais.
+
+
+### Recalibragem da economia de moedas (2026-11-03)
+
+**O dono do produto suspeitou que ficou fácil comprar booster, e a conta
+confirmou.** `tool/economy_income_model.py` soma o que cada torneira paga por
+dia para três perfis (2, 5 e 12 fases vencidas por dia). Com a recompensa
+diária e as missões recém-entradas, o jogador de 5 fases/dia levava ~460
+moedas e ~1,8 booster grátis por dia: **~5,8 boosters por dia, mais de um por
+fase**. E o problema era anterior a elas: estrela (10) e baú (200) foram
+calibrados quando a campanha tinha 10 fases ("a campanha inteira rende 300
+moedas"); com a campanha infinita, só os dois já davam ~0,5 booster por fase.
+
+**Opção escolhida (B: menos ganho e preço maior):**
+
+| | antes | agora |
+|---|---|---|
+| `kCoinsPerStar` | 10 | 5 |
+| `kChapterChestReward` | 200 | 100 |
+| Martelo / Pincel / Bomba | 100 / 100 / 150 | 150 / 150 / 200 |
+| Recompensa diária (7 dias) | 20, 30, M, 50, P, 80, B+150 | 10, 15, 20, M, 25, 30, B+50 |
+| Missões (fácil/média/difícil) | 25 / 45-50 / 65-75 | 10 / 15 / 25 |
+| Bônus das três missões | 1 booster | 20 moedas |
+
+Resultado no modelo: **2,2 boosters/dia para quem vence 5 fases (0,44 por
+fase)**, 1,4 para o casual e 3,3 para o intenso. O bônus das missões deixou
+de ser booster porque um booster grátis por dia, somado à roleta e à diária,
+era a maior torneira de booster do jogo.
+
+**Ficaram como estavam, de propósito:** o vídeo de moedas (25, **sem limite
+diário**: é receita de anúncio, e cada um agora vale um sexto de Martelo), o
+resgate de derrota (100 moedas por +5 jogadas), o excedente de booster grátis
+(50) e as moedas da Nova. Limitar o vídeo foi oferecido e recusado.
+
+**Isto é estimativa, não medição.** As premissas (estrelas por vitória, fases
+por dia) são chute até haver analytics; o modelo existe para a próxima
+recalibragem trocar o chute por dado real sem refazer a conta. O golden
+`level_outcome.png` foi regerado: o selo de moedas do cartão de vitória passou
+de +30 para +15, e nada mais mudou na imagem.
+

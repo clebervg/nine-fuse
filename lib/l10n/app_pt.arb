@@ -336,7 +336,7 @@
   "missionsTitle": "Missões diárias",
   "missionsSubtitle": "Três missões novas todo dia.",
   "missionsCollect": "COLETAR",
-  "missionsBonus": "Complete as três e ganhe um booster",
+  "missionsBonus": "Complete as três: +{coins} moedas",
   "missionsAllDone": "Tudo feito! Novas missões amanhã.",
   "missionWinLevels": "{count, plural, =1{Vença 1 fase} other{Vença {count} fases}}",
   "missionFusions": "Faça {count} fusões",

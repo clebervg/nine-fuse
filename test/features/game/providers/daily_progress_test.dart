@@ -5,6 +5,7 @@ import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/daily_ad_count.dart';
 import 'package:nine_fuse/features/game/domain/daily_missions.dart';
 import 'package:nine_fuse/features/game/domain/daily_reward.dart';
+import 'package:nine_fuse/features/game/domain/daily_spin.dart';
 import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
@@ -50,12 +51,16 @@ void main() {
     });
 
     test('booster do dia respeita o teto de estoque grátis', () async {
-      // Dia 3 do ciclo paga um Martelo; com o estoque no teto ele vira moeda.
+      // O dia do ciclo que paga um Martelo; com o estoque no teto ele vira
+      // moeda. Achado na tabela, e não fixo: o ciclo é recalibrado.
+      final hammerDay = kDailyRewardCycle.indexWhere(
+        (prizes) => prizes.any((p) => p.type == SpinPrizeType.hammer),
+      );
       final yesterday = DateTime(2026, 11, 2, 10);
       final storage = InMemoryDailyProgressStorage(
         streak: DailyStreak(
           lastClaimDay: localDayKey(yesterday),
-          claimedDays: 2,
+          claimedDays: hammerDay,
         ),
       );
       final credit = InMemoryGameStorage()..hammerCount = kMaxBoosterStock;

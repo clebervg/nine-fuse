@@ -9,29 +9,34 @@ library;
 ///
 /// Só estrela nova paga: `CampaignRecords.record()` já devolve o ganho com as
 /// que o jogador tinha descontadas, então refazer a fase 1 não farma.
-const int kCoinsPerStar = 10;
+///
+/// Era 10, calibrado quando a campanha tinha 10 fases. Com a campanha
+/// infinita, estrela e baú sozinhos davam ~0,5 booster por fase vencida, e
+/// somados à recompensa diária e às missões passavam de um por fase
+/// (recalibragem de 2026-11-03, ver `CLAUDE.md`).
+const int kCoinsPerStar = 5;
 
 /// Preço de um Martelo de Fusão em moedas.
 ///
-/// Deliberadamente caro: a campanha inteira com três estrelas em tudo rende 300
-/// moedas, mais 200 por baú de capítulo. O anúncio recompensado continua sendo o
+/// Deliberadamente caro: um capítulo em três estrelas rende 150 moedas, mais
+/// 100 do baú — um Martelo e pouco. O anúncio recompensado continua sendo o
 /// caminho principal de aquisição — a moeda é o consolo de quem não quer vê-lo,
-/// não um substituto.
-const int kHammerCoinPrice = 100;
+/// não um substituto. Subiu de 100 para 150 na recalibragem de 2026-11-03.
+const int kHammerCoinPrice = 150;
 
 /// Preço avulso da Bomba em moedas.
 ///
-/// Mais cara que Martelo e Pincel (100): a Bomba afeta uma área 3x3 inteira
+/// Mais cara que Martelo e Pincel (150): a Bomba afeta uma área 3x3 inteira
 /// de uma vez, não uma célula única — o preço reflete o poder, não só a
 /// categoria "booster avulso".
-const int kBombCoinPrice = 150;
+const int kBombCoinPrice = 200;
 
-/// Preço avulso do Pincel em moedas. Mesma ordem do Martelo (100): afeta uma
+/// Preço avulso do Pincel em moedas. Mesmo do Martelo (150): afeta uma
 /// célula só, sem a área da Bomba.
-const int kBrushCoinPrice = 100;
+const int kBrushCoinPrice = 150;
 
 /// O que o baú de fim de capítulo paga, uma única vez por capítulo.
-const int kChapterChestReward = 200;
+const int kChapterChestReward = 100;
 
 /// Último capítulo que ainda paga baú. Acima disto, `claimChapterChest`
 /// não credita nada — sem este teto, a campanha gerada (infinita, Fase
@@ -40,12 +45,12 @@ const int kChapterChestReward = 200;
 /// Capítulos 1-2 são os artesanais (fases 1-10); capítulos 3-20 são os
 /// primeiros 18 capítulos gerados (10 fases cada, `kBlockSize` em
 /// `level_generator.dart`) — cobre até a fase ~190. Teto de moeda
-/// vitalícia via baú: 20 * kChapterChestReward = 4000.
+/// vitalícia via baú: 20 * kChapterChestReward = 2000.
 const int kChapterChestPayableCount = 20;
 
 /// Moedas por anúncio premiado assistido até o fim.
 ///
-/// Vinte e cinco é um quarto do martelo: quatro vídeos compram o item que um
+/// Vinte e cinco é um sexto do martelo: seis vídeos compram o item que um
 /// vídeo já daria direto. É de propósito — o vídeo que paga o martelo continua
 /// sendo o caminho curto, e este é a torneira de quem prefere juntar. Um valor
 /// alto demais aqui esvaziaria o funil do martelo; um valor baixo demais faria

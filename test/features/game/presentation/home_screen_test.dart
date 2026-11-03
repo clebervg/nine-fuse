@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/core/notifications/notification_port.dart';
 import 'package:nine_fuse/core/widgets/coins_header_badge.dart';
+import 'package:nine_fuse/features/game/domain/daily_reward.dart';
 import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/home_screen.dart';
@@ -225,7 +226,7 @@ void main() {
 
       await tester.tap(find.byKey(dailyRewardCollectKey));
       await tester.pumpAndSettle();
-      expect(storage.coins, 20);
+      expect(storage.coins, kDailyRewardCycle.first.first.amount);
       expect(find.byKey(dailyRewardCollectKey), findsNothing);
 
       // Fechou a diária: agora sim a roleta, que estava esperando.

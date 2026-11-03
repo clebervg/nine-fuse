@@ -280,9 +280,9 @@ Endless.
 
 | Booster | Efeito | Preço (moedas) | Outras fontes |
 |---|---|---|---|
-| **Martelo** | destrói 1 célula (peça + cobertura); não gasta jogada | 100 | vídeo (máx. 3 por dia), roleta |
-| **Bomba** | destrói uma área 3x3 | 150 | vídeo, roleta, Nova |
-| **Pincel** | +1 no valor de uma peça | 100 | vídeo, roleta, Nova |
+| **Martelo** | destrói 1 célula (peça + cobertura); não gasta jogada | 150 | vídeo (máx. 3 por dia), roleta |
+| **Bomba** | destrói uma área 3x3 | 200 | vídeo, roleta, Nova |
+| **Pincel** | +1 no valor de uma peça | 150 | vídeo, roleta, Nova |
 
 - Cada booster tem modo de mira:
   - véu com blur e célula destacada;
@@ -302,11 +302,11 @@ Endless.
 
 | Constante | Valor | Significado |
 |---|---|---|
-| `kCoinsPerStar` | 10 | por estrela nova |
-| `kChapterChestReward` | 200 | baú por capítulo, capítulos 1-20, uma vez cada |
+| `kCoinsPerStar` | 5 | por estrela nova |
+| `kChapterChestReward` | 100 | baú por capítulo, capítulos 1-20, uma vez cada |
 | `kCoinsPerRewardedAd` | 25 | vídeo de moedas |
-| `kHammerCoinPrice` / `kBrushCoinPrice` | 100 | preço |
-| `kBombCoinPrice` | 150 | preço |
+| `kHammerCoinPrice` / `kBrushCoinPrice` | 150 | preço |
+| `kBombCoinPrice` | 200 | preço |
 | `kContinueCoinPrice` / `kContinueBonusMoves` | 100 / +5 | resgate na derrota |
 | Pre-churn (DEM) | 4 a 10 jogadas | 3 por alvo restante; abre com 2 jogadas restantes, uma vez por tentativa |
 | `kMaxBoosterStock` / `kCoinsPerOverflowBooster` | 5 / 50 | teto de prêmio grátis |
@@ -315,7 +315,9 @@ Endless.
 
 - **Roleta diária:** um giro a cada 24 h. As 8 fatias são:
   10, Martelo, 25, Bomba, 50, Pincel, 100 e 200 moedas.
-- **Teto de moeda vitalícia via baú:** 20 × 200 = 4000.
+- **Teto de moeda vitalícia via baú:** 20 × 100 = 2000.
+- **Recalibrada em 2026-11-03** (ver `CLAUDE.md`); modelo de renda em
+  `tool/economy_income_model.py`.
 
 ## 9. Anúncios, consentimento, notificações e privacidade
 

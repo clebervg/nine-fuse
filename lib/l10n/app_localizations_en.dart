@@ -997,7 +997,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get missionsCollect => 'COLLECT';
 
   @override
-  String get missionsBonus => 'Complete all three to earn a booster';
+  String missionsBonus(int coins) {
+    return 'Complete all three: +$coins coins';
+  }
 
   @override
   String get missionsAllDone => 'All done! New missions tomorrow.';

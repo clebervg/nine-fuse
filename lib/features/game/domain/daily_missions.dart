@@ -82,29 +82,29 @@ class Mission {
 /// garante que ninguém fecha o app com zero missões, a difícil é o motivo
 /// para jogar mais uma fase.
 ///
-/// Recompensas pensadas contra a economia existente: as três somam 125-170
-/// moedas, mais um booster pelas três juntas — na ordem de uma roleta boa,
-/// abaixo de um capítulo em três estrelas.
+/// Recompensas pequenas de propósito: a missão existe para dar um motivo de
+/// jogar hoje, não para ser a fonte de moeda. As três somam ~50 moedas, mais 20
+/// pelas três juntas — um terço de Martelo por dia.
 const List<Mission> _easy = [
-  Mission(MissionKind.fusions, 25, 25),
-  Mission(MissionKind.winLevels, 1, 25),
-  Mission(MissionKind.useBoosters, 1, 25),
+  Mission(MissionKind.fusions, 25, 10),
+  Mission(MissionKind.winLevels, 1, 10),
+  Mission(MissionKind.useBoosters, 1, 10),
 ];
 
 const List<Mission> _medium = [
-  Mission(MissionKind.fusions, 60, 45),
-  Mission(MissionKind.winLevels, 3, 50),
-  Mission(MissionKind.earnStars, 5, 50),
-  Mission(MissionKind.createNines, 3, 45),
-  Mission(MissionKind.breakObstacles, 10, 45),
+  Mission(MissionKind.fusions, 60, 15),
+  Mission(MissionKind.winLevels, 3, 15),
+  Mission(MissionKind.earnStars, 5, 15),
+  Mission(MissionKind.createNines, 3, 15),
+  Mission(MissionKind.breakObstacles, 10, 15),
 ];
 
 const List<Mission> _hard = [
-  Mission(MissionKind.triggerNova, 1, 70),
-  Mission(MissionKind.createNines, 8, 65),
-  Mission(MissionKind.breakObstacles, 25, 65),
-  Mission(MissionKind.winLevels, 5, 75),
-  Mission(MissionKind.earnStars, 10, 75),
+  Mission(MissionKind.triggerNova, 1, 25),
+  Mission(MissionKind.createNines, 8, 25),
+  Mission(MissionKind.breakObstacles, 25, 25),
+  Mission(MissionKind.winLevels, 5, 25),
+  Mission(MissionKind.earnStars, 10, 25),
 ];
 
 /// A partir de qual fase vencida as missões de 9, Nova e cobertura entram no
@@ -119,13 +119,13 @@ const Set<MissionKind> _advancedKinds = {
   MissionKind.breakObstacles,
 };
 
-/// O prêmio por coletar as três missões do dia: um booster, que roda pelo
-/// dia. Passa pelo teto de estoque dos prêmios grátis como a roleta.
-SpinPrize missionsBonusFor(String day) => const [
-  SpinPrize(SpinPrizeType.hammer, 1),
-  SpinPrize(SpinPrizeType.brush, 1),
-  SpinPrize(SpinPrizeType.bomb, 1),
-][_seedOf(day) % 3];
+/// O prêmio por coletar as três missões do dia: moedas, e não um booster. Um
+/// booster grátis por dia, somado à roleta e à recompensa diária, era a maior
+/// torneira de booster do jogo (recalibragem de 2026-11-03).
+const int kMissionsBonusCoins = 20;
+
+SpinPrize missionsBonusFor(String day) =>
+    const SpinPrize(SpinPrizeType.coins, kMissionsBonusCoins);
 
 /// Semente estável da data. Não usa `String.hashCode`, que o Dart não promete
 /// estável entre execuções.

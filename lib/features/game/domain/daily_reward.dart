@@ -17,17 +17,17 @@ import 'package:nine_fuse/features/game/domain/daily_spin.dart';
 /// dos prêmios grátis) já existe para ela.
 ///
 /// A curva sobe devagar e o dia 7 é o salto: é ele que dá ao jogador motivo
-/// para não quebrar a sequência no dia 5. Somado, o ciclo inteiro paga 330
-/// moedas e um de cada booster — menos que um capítulo em três estrelas mais
-/// o baú (500), para a sequência ser um bônus, não a fonte principal.
+/// para não quebrar a sequência no dia 5. Somado, o ciclo paga 150 moedas, um
+/// Martelo e uma Bomba por semana — menos que um capítulo em três estrelas
+/// mais o baú (250), para a sequência ser um bônus, não a fonte principal.
 const List<List<SpinPrize>> kDailyRewardCycle = [
+  [SpinPrize(SpinPrizeType.coins, 10)],
+  [SpinPrize(SpinPrizeType.coins, 15)],
   [SpinPrize(SpinPrizeType.coins, 20)],
-  [SpinPrize(SpinPrizeType.coins, 30)],
   [SpinPrize(SpinPrizeType.hammer, 1)],
-  [SpinPrize(SpinPrizeType.coins, 50)],
-  [SpinPrize(SpinPrizeType.brush, 1)],
-  [SpinPrize(SpinPrizeType.coins, 80)],
-  [SpinPrize(SpinPrizeType.bomb, 1), SpinPrize(SpinPrizeType.coins, 150)],
+  [SpinPrize(SpinPrizeType.coins, 25)],
+  [SpinPrize(SpinPrizeType.coins, 30)],
+  [SpinPrize(SpinPrizeType.bomb, 1), SpinPrize(SpinPrizeType.coins, 50)],
 ];
 
 /// O que fica gravado entre aberturas do app.

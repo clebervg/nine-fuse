@@ -630,7 +630,7 @@ class _BonusRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  l10n.missionsBonus,
+                  l10n.missionsBonus(prize.amount),
                   style: const TextStyle(
                     fontFamily: AppFonts.number,
                     fontWeight: FontWeight.w800,
