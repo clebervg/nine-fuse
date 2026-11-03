@@ -68,7 +68,7 @@ IDs de produção já criados no AdMob (Android), para passar no build:
 
 - [ ] Firebase (projeto próprio, separado do AdMob): analytics e crash
   reporting. Nada no `pubspec.yaml` ainda.
-- [ ] Onboarding nas fases 1 a 3.
+- [x] Onboarding nas fases 1 a 3 (`c635eab`, tutorial interativo).
 
 ## Dívida conhecida, anterior ao trabalho
 
