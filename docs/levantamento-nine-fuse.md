@@ -104,7 +104,7 @@ Configurações saem do Menu.
      o marcador "Fases 1–N concluídas" no pé da trilha;
    - caminho dourado no que já foi vencido;
    - fase atual em gema roxa com "VOCÊ ESTÁ AQUI";
-   - **baú no fim de cada capítulo** (capítulos 1 a 20), em três estados:
+   - **baú no fim de cada capítulo** (100 moedas até o 20, 50 depois), em três estados:
      trancado, pronto (dourado) ou aberto. Tocar no pronto paga 200 moedas
      uma única vez;
    - cabeçalho do capítulo com a barra de estrelas do capítulo;
@@ -304,6 +304,7 @@ Endless.
 |---|---|---|
 | `kCoinsPerStar` | 5 | por estrela nova |
 | `kChapterChestReward` | 100 | baú por capítulo, capítulos 1-20, uma vez cada |
+| `kLateChapterChestReward` | 50 | baú dos capítulos 21 em diante |
 | `kCoinsPerRewardedAd` | 25 | vídeo de moedas |
 | `kHammerCoinPrice` / `kBrushCoinPrice` | 150 | preço |
 | `kBombCoinPrice` | 200 | preço |
@@ -315,7 +316,7 @@ Endless.
 
 - **Roleta diária:** um giro a cada 24 h. As 8 fatias são:
   10, Martelo, 25, Bomba, 50, Pincel, 100 e 200 moedas.
-- **Teto de moeda vitalícia via baú:** 20 × 100 = 2000.
+- **Baú em todo capítulo:** 100 até o capítulo 20, 50 depois.
 - **Recalibrada em 2026-11-03** (ver `CLAUDE.md`); modelo de renda em
   `tool/economy_income_model.py`.
 

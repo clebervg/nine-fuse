@@ -38,15 +38,36 @@ const int kBrushCoinPrice = 150;
 /// O que o baú de fim de capítulo paga, uma única vez por capítulo.
 const int kChapterChestReward = 100;
 
-/// Último capítulo que ainda paga baú. Acima disto, `claimChapterChest`
-/// não credita nada — sem este teto, a campanha gerada (infinita, Fase
-/// 15) imprimiria moeda para sempre, um capítulo de cada vez.
+/// Último capítulo do baú **grande** ([kChapterChestReward]). Acima dele o
+/// baú continua, menor ([kLateChapterChestReward]) — ver
+/// [chapterChestReward].
+///
+/// Até 2026-11-03 acima disto não havia baú nenhum, para a campanha infinita
+/// não imprimir moeda para sempre. O dono do produto pediu o baú de volta
+/// depois do capítulo 20 (o jogador da fase 200 em diante ficava sem nenhuma
+/// marca de fim de capítulo); a torneira continua contida pelo valor, não
+/// mais pelo teto.
 ///
 /// Capítulos 1-2 são os artesanais (fases 1-10); capítulos 3-20 são os
 /// primeiros 18 capítulos gerados (10 fases cada, `kBlockSize` em
 /// `level_generator.dart`) — cobre até a fase ~190. Teto de moeda
 /// vitalícia via baú: 20 * kChapterChestReward = 2000.
 const int kChapterChestPayableCount = 20;
+
+/// O baú dos capítulos depois do [kChapterChestPayableCount]: metade do grande.
+///
+/// Uma vez a cada 10 fases, isto rende ~5 moedas por fase — 3% de um Martelo.
+/// É a marca de "capítulo concluído", não uma fonte de moeda; a calibragem
+/// de 2026-11-03 (`tool/economy_income_model.py`) quase não se move com ele.
+const int kLateChapterChestReward = 50;
+
+/// O que o baú do capítulo [chapter] paga. Zero para capítulo não positivo.
+int chapterChestReward(int chapter) {
+  if (chapter < 1) return 0;
+  return chapter <= kChapterChestPayableCount
+      ? kChapterChestReward
+      : kLateChapterChestReward;
+}
 
 /// Moedas por anúncio premiado assistido até o fim.
 ///

@@ -62,12 +62,13 @@ void main() {
       );
     });
 
-    test('só os capítulos 1..kChapterChestPayableCount têm baú', () {
+    test('todo capítulo tem baú, inclusive depois do 20', () {
       expect(chapterHasChest(chapterOf(1)), isTrue);
       final last = chapterOf(190);
       expect(last.number, kChapterChestPayableCount);
       expect(chapterHasChest(last), isTrue);
-      expect(chapterHasChest(chapterOf(last.lastLevel + 1)), isFalse);
+      expect(chapterHasChest(chapterOf(last.lastLevel + 1)), isTrue);
+      expect(chapterHasChest(chapterOf(5000)), isTrue);
     });
   });
 
@@ -174,6 +175,27 @@ void main() {
       await tapChest(tester, 1);
       expect(find.byKey(chestRewardPopupKey), findsNothing);
       expect(storage.coins, kChapterChestReward);
+    });
+
+    testWidgets('depois do capítulo 20: baú menor na trilha, paga 50', (
+      tester,
+    ) async {
+      // Fase 210 vencida: o capítulo 21 (fases 191-200) está concluído e
+      // dentro da janela do mapa.
+      await pumpMap(tester, progress: 210);
+      const chapter = kChapterChestPayableCount + 1;
+
+      expect(stateOf(tester, chapter), ChestState.ready);
+      await tapChest(tester, chapter);
+      expect(
+        find.descendant(
+          of: find.byKey(chestRewardPopupKey),
+          matching: find.text('+$kLateChapterChestReward'),
+        ),
+        findsWidgets,
+      );
+      expect(storage.coins, kLateChapterChestReward);
+      expect(storage.claimedChests, contains(chapter));
     });
 
     testWidgets('já aberto vem do disco', (tester) async {

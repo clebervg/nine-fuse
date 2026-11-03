@@ -2326,3 +2326,27 @@ recalibragem trocar o chute por dado real sem refazer a conta. O golden
 `level_outcome.png` foi regerado: o selo de moedas do cartão de vitória passou
 de +30 para +15, e nada mais mudou na imagem.
 
+
+### Baú de capítulo depois do capítulo 20 (2026-11-03)
+
+**O teto de 20 baús foi revertido a pedido do dono do produto.** Era a
+defesa contra a campanha infinita imprimir moeda para sempre (ver Fase 15);
+o custo, notado agora, é que da fase ~190 em diante o fim de capítulo
+passava sem marca nenhuma — o jogador de teste estava na 198. Todo capítulo
+voltou a ter baú: o grande (`kChapterChestReward`, 100) até o 20, e um
+menor (`kLateChapterChestReward`, 50) depois. A regra vive em
+`chapterChestReward(chapter)`, lida pela carteira, pelo nó da trilha e pelo
+popup — três lugares que antes repetiam a comparação com o teto.
+
+**A torneira segue contida pelo valor.** Um baú a cada 10 fases rende ~5
+moedas por fase, 3% de um Martelo; `tool/economy_income_model.py` agora
+mostra os dois regimes (cap. 1-20 e 21+), e o de depois do 20 dá um pouco
+menos booster por fase que o de antes.
+
+**`claimedChests` deixou de ter teto.** Cresce um inteiro por capítulo pago:
+alguns KB na fase 10.000. Aceito por ora; a poda por marca d'água (como
+`CampaignRecords.prunedBelow`) fica para quando pesar. Quem passou do
+capítulo 20 antes desta mudança encontra os baús dos capítulos 21+ prontos
+na trilha, mas só os que caem na janela do mapa (30 fases para trás) —
+pagamento retroativo pequeno, de propósito.
+

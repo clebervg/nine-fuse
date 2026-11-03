@@ -34,10 +34,10 @@ enum ChestState {
   opened,
 }
 
-/// Se o capítulo tem baú. A campanha é infinita, o baú não
-/// (`kChapterChestPayableCount`): um nó que nunca paga seria promessa falsa.
+/// Se o capítulo tem baú: todo capítulo tem, o grande até o
+/// `kChapterChestPayableCount` e o menor depois (`chapterChestReward`).
 bool chapterHasChest(CampaignChapter chapter) =>
-    chapter.number >= 1 && chapter.number <= kChapterChestPayableCount;
+    chapterChestReward(chapter.number) > 0;
 
 /// Estado do baú de [chapter].
 ///

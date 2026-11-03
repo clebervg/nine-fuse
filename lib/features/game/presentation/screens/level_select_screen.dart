@@ -479,7 +479,8 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
         await showNfModal<void>(
           context,
           elastic: true,
-          builder: (_) => const ChestRewardPopup(coins: kChapterChestReward),
+          builder: (_) =>
+              ChestRewardPopup(coins: chapterChestReward(chapter.number)),
         );
       case ChestState.opened:
         break;
