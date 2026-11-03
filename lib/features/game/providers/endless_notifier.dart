@@ -15,6 +15,7 @@ import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/providers/bomb_booster.dart';
 import 'package:nine_fuse/features/game/providers/brush_booster.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
+import 'package:nine_fuse/features/game/providers/daily_progress.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
 import 'package:nine_fuse/features/game/providers/step_sounds.dart';
@@ -37,6 +38,7 @@ class EndlessNotifier extends StateNotifier<EndlessState>
     GameStorage? storage,
     Future<void> Function(Duration)? delay,
     this.progression = const EndlessProgression(),
+    this._missions,
   }) : _random = random ?? Random(),
        _delay = delay ?? ((d) => Future<void>.delayed(d)),
        _storage = storage ?? const PrefsGameStorage(),
@@ -44,6 +46,9 @@ class EndlessNotifier extends StateNotifier<EndlessState>
 
   final Random _random;
   final GameStorage _storage;
+
+  /// Para onde vão os acontecimentos das missões diárias (ver `GameNotifier`).
+  final MissionSink? _missions;
 
   /// Espera entre os quadros da encenação, injetável para os testes.
   final Future<void> Function(Duration) _delay;
@@ -491,6 +496,8 @@ class EndlessNotifier extends StateNotifier<EndlessState>
           state.apexCelebrated || resolution.producedDigits.contains(kMaxDigit),
     );
 
+    reportMissionResolution(_missions, resolution, boosterUsed: !countsAsMove);
+
     if (stuck) _saveIfRecord(score);
   }
 
@@ -512,7 +519,7 @@ class EndlessNotifier extends StateNotifier<EndlessState>
 final endlessProvider = StateNotifierProvider<EndlessNotifier, EndlessState>((
   ref,
 ) {
-  return EndlessNotifier();
+  return EndlessNotifier(missions: ref.read(missionsProvider.notifier).record);
 });
 
 /// O Endless abre depois da fase 5, como recomendaram os especialistas: até ali

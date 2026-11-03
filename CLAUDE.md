@@ -2229,3 +2229,62 @@ arquivos tocados (simulador, motor, gerador, dois testes, dois widgets) não
 estavam formatados no HEAD, e formatá-los misturou centenas de linhas de
 espaço com a mudança real. Foi desfeito com `git merge-file` (HEAD formatado
 como base, HEAD original como outro lado). Formate só arquivo novo.
+
+
+### Recompensa diária com sequência e missões diárias (2026-11-03)
+
+**O motivo de voltar amanhã era só a roleta.** Duas torneiras novas no menu,
+abaixo da Loja e da Roleta: **DIÁRIO** (calendário de 7 dias) e **MISSÕES**
+(três por dia), cada uma com selo vermelho quando há o que coletar.
+
+**Recompensa diária (`domain/daily_reward.dart`).** Regra pura sobre o dia
+local (`localDayKey`), sem relógio nem disco, como a roleta e o teto do
+martelo. Coletou ontem: a sequência continua. Pulou um dia: volta ao dia 1 —
+perder a sequência é o que dá peso a ela. A véspera vem do **calendário**
+(`previousDayKey`), não de "agora menos 24 h", que erra na virada do horário
+de verão. O ciclo (`kDailyRewardCycle`) paga 20, 30, Martelo, 50, Pincel, 80
+e Bomba + 150 no dia 7: 330 moedas e um de cada booster por semana, abaixo de
+um capítulo em três estrelas mais o baú (500). Os prêmios reaproveitam
+`SpinPrize`, e a sequência é gravada **antes** do crédito: morrer entre as
+duas escritas perde um prêmio uma vez; na ordem inversa, pagaria de novo a
+cada reabertura.
+
+**Missões (`domain/daily_missions.dart`).** Uma fácil, uma média e uma
+difícil por dia, de tipos diferentes, sorteadas com a **data como semente**
+(hash próprio: `String.hashCode` não é estável entre execuções). As escolhidas
+são **gravadas** ao virar o dia, e não recalculadas a cada leitura: a escolha
+depende do progresso na campanha, e uma missão que muda no meio do dia porque
+o jogador venceu uma fase é o pior defeito possível ali. Antes da fase 10
+(`kAdvancedMissionsFromProgress`) não sai missão de 9, Nova nem cobertura —
+pedir o que o jogador ainda não viu. Coletar as três paga um booster
+(`missionsBonusFor`, que roda pelo dia). O progresso para no alvo ("61/60" lê
+como erro).
+
+**De onde vêm os números.** `GameNotifier` e `EndlessNotifier` recebem um
+`MissionSink` opcional (uma função, não o notifier: a regra de partida segue
+testável sem Riverpod) e o chamam no fim de cada jogada
+(`reportMissionResolution`): fusões, 9 nascidos, Novas, coberturas quebradas
+e, quando a jogada não conta movimento, booster usado. A vitória conta fase e
+estrelas com a mesma `starRating` do cartão — inclusive a vitória pela
+ativação do Super 9, que não passa por `_finishMove`. A conversão do Super 9
+não conta como fusão (não é).
+
+**Armazenamento próprio (`DailyProgressStorage`), e não métodos novos em
+`GameStorage`:** nove arquivos de teste implementam `GameStorage` à mão e
+ganhariam dublês sem relação com o que testam. Desligado por padrão
+(`dailyProgressStorageProvider` nulo) e ligado no `main`, como o tutorial —
+senão toda a suíte de widget que monta o menu teria o calendário abrindo por
+cima. Acontecimento que chega antes de o disco responder fica numa fila e é
+aplicado **sobre** o que estava gravado.
+
+**O crédito dos prêmios grátis virou função compartilhada
+(`providers/prize_credit.dart`, `creditPrize`).** Era privado da roleta; agora
+roleta, recompensa diária e missões pagam pelo mesmo caminho, com o mesmo teto
+de 5 boosters grátis (o excedente vira moeda).
+
+**A diária abre antes da roleta, e a roleta só depois de ela fechar.** As
+duas juntas seriam uma fila de caixas no primeiro segundo do app.
+
+**Ainda não feito:** notificação própria da sequência (o lembrete da roleta em
+24 h já leva o jogador ao menu); conquistas; e missões que dependem do Modo
+Recorde (pontuação), que pediriam um acontecimento a mais.

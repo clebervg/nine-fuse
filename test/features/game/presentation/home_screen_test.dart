@@ -11,9 +11,11 @@ import 'package:nine_fuse/features/game/presentation/screens/home_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/settings_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/shop_screen.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/daily_dialogs.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
+import 'package:nine_fuse/features/game/providers/daily_progress.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
@@ -45,6 +47,7 @@ void main() {
     bool spinEligible = false,
     int progress = 0,
     Map<int, LevelRecord>? records,
+    InMemoryDailyProgressStorage? daily,
   }) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3.0;
@@ -78,6 +81,11 @@ void main() {
           endlessHighScoreProvider.overrideWith(
             (ref) => EndlessHighScore(storage: storage),
           ),
+          // Recompensa diária e missões só ligam nos testes que as pedem.
+          if (daily != null) ...[
+            dailyProgressStorageProvider.overrideWithValue(daily),
+            dailyCreditStorageProvider.overrideWithValue(storage),
+          ],
         ],
         child: localizedApp(home: const HomeScreen()),
       ),
@@ -191,5 +199,71 @@ void main() {
     await pumpHome(tester);
 
     expect(notifications.inactivityScheduled, 1);
+  });
+
+  group('recompensa diária e missões', () {
+    testWidgets('sem armazenamento diário, nada abre sozinho nem tem selo', (
+      tester,
+    ) async {
+      await pumpHome(tester);
+      expect(find.byKey(dailyRewardDialogKey), findsNothing);
+      expect(find.byKey(homeDailyBadgeKey), findsNothing);
+      expect(find.byKey(homeMissionsKey), findsOneWidget);
+    });
+
+    testWidgets('a recompensa abre sozinha, paga e não abre a roleta junto', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        spinEligible: true,
+        daily: InMemoryDailyProgressStorage(),
+      );
+
+      expect(find.byKey(dailyRewardDialogKey), findsOneWidget);
+      expect(find.byKey(dailySpinKey), findsNothing);
+
+      await tester.tap(find.byKey(dailyRewardCollectKey));
+      await tester.pumpAndSettle();
+      expect(storage.coins, 20);
+      expect(find.byKey(dailyRewardCollectKey), findsNothing);
+
+      // Fechou a diária: agora sim a roleta, que estava esperando.
+      await tester.tap(find.byKey(dailyRewardCloseKey));
+      await tester.pumpAndSettle();
+      expect(find.byKey(dailySpinKey), findsOneWidget);
+    });
+
+    testWidgets('missões: selo com o que espera coleta, e coletar paga', (
+      tester,
+    ) async {
+      final daily = InMemoryDailyProgressStorage();
+      await pumpHome(tester, daily: daily);
+      // Fecha a recompensa do dia, que abre sozinha.
+      await tester.tap(find.byKey(dailyRewardCloseKey));
+      await tester.pumpAndSettle();
+      expect(find.byKey(homeMissionsBadgeKey), findsNothing);
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(HomeScreen)),
+      );
+      final first = container.read(missionsProvider).missions.first;
+      container
+          .read(missionsProvider.notifier)
+          .record(first.kind, first.target);
+      await tester.pumpAndSettle();
+      expect(find.byKey(homeMissionsBadgeKey), findsOneWidget);
+
+      await tester.tap(find.byKey(homeMissionsKey));
+      await tester.pumpAndSettle();
+      expect(find.byKey(missionsDialogKey), findsOneWidget);
+
+      final before = storage.coins;
+      await tester.tap(find.byKey(missionClaimKey(0)));
+      await tester.pumpAndSettle();
+      expect(storage.coins, before + first.reward);
+      expect(find.byKey(missionClaimKey(0)), findsNothing);
+      expect(daily.missions.claimed.first, isTrue);
+    });
   });
 }

@@ -21,9 +21,11 @@ import 'package:nine_fuse/features/game/presentation/screens/level_select_screen
 import 'package:nine_fuse/features/game/presentation/screens/settings_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/shop_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/daily_dialogs.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
+import 'package:nine_fuse/features/game/providers/daily_progress.dart';
 import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
@@ -48,6 +50,14 @@ const Key homeStarsKey = Key('home_stars');
 /// Chave da engrenagem do topo, que abre as Configurações. (Era o botão de
 /// privacidade; a política agora mora dentro das Configurações.)
 const Key homeSettingsKey = Key('home_settings');
+
+/// Botão da recompensa diária e o selo de "prêmio esperando".
+const Key homeDailyKey = Key('home_daily');
+const Key homeDailyBadgeKey = Key('home_daily_badge');
+
+/// Botão das missões e o selo com quantas esperam coleta.
+const Key homeMissionsKey = Key('home_missions');
+const Key homeMissionsBadgeKey = Key('home_missions_badge');
 
 /// Duração da entrada do herói. Finita de propósito: uma órbita em repetição
 /// deixaria `pumpAndSettle` sem fim e derrubaria a suíte de widget.
@@ -99,7 +109,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         );
         eligible = false;
       }
-      if (!mounted || !eligible) return;
+      // A recompensa diária vem antes da roleta: é a que depende de voltar
+      // todo dia, e as duas juntas na tela seriam uma fila de caixas. A
+      // roleta só abre sozinha depois que a diária fecha.
+      await ref.read(dailyRewardProvider.notifier).ready;
+      if (!mounted) return;
+      final now = ref.read(dailyClockProvider)();
+      if (ref.read(dailyRewardProvider).availableAt(now)) {
+        await showDailyRewardDialog(context);
+        if (!mounted) return;
+      }
+      if (!eligible) return;
       _openDailySpin();
     });
   }
@@ -148,6 +168,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Falha de leitura vale como "sem giro": um aviso falso é pior que nenhum.
     final spinWaiting =
         ref.watch(dailySpinEligibleProvider).asData?.value ?? false;
+    final dailyWaiting = ref
+        .watch(dailyRewardProvider)
+        .availableAt(ref.read(dailyClockProvider)());
+    final missionsWaiting = ref.watch(missionsProvider).claimableCount;
     // Tela curta (iPhone SE): o logo encolhe para sobrar palco ao herói.
     final compact = MediaQuery.sizeOf(context).height < 740;
 
@@ -193,8 +217,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         child: _HeroStage(
                           entrance: _entrance,
                           spinWaiting: spinWaiting,
+                          dailyWaiting: dailyWaiting,
+                          missionsWaiting: missionsWaiting,
                           onShop: () => openShop(context),
                           onSpin: _openDailySpin,
+                          onDaily: () => showDailyRewardDialog(context),
+                          onMissions: () => showMissionsDialog(context),
                         ),
                       ),
                     ),
@@ -329,16 +357,24 @@ class _HeroStage extends StatelessWidget {
   const _HeroStage({
     required this.entrance,
     required this.spinWaiting,
+    required this.dailyWaiting,
+    required this.missionsWaiting,
     required this.onShop,
     required this.onSpin,
+    required this.onDaily,
+    required this.onMissions,
   });
 
   static const Size _size = Size(390, 316);
 
   final Animation<double> entrance;
   final bool spinWaiting;
+  final bool dailyWaiting;
+  final int missionsWaiting;
   final VoidCallback onShop;
   final VoidCallback onSpin;
+  final VoidCallback onDaily;
+  final VoidCallback onMissions;
 
   @override
   Widget build(BuildContext context) {
@@ -431,12 +467,51 @@ class _HeroStage extends StatelessWidget {
               child: _SideButton(
                 key: homeSpinKey,
                 label: l10n.homeSpin,
-                badge: spinWaiting,
+                badge: spinWaiting ? '1' : null,
+                badgeKey: homeSpinBadgeKey,
                 onTap: onSpin,
                 child: const Icon(
                   Icons.casino_rounded,
                   color: NfColors.gold,
                   size: 36,
+                ),
+              ),
+            ),
+          ),
+          // Abaixo da Loja e da Roleta, as duas torneiras diárias: o palco
+          // tem altura para a segunda fileira, e juntas elas formam o "o que
+          // tem para hoje" do menu.
+          Positioned(
+            left: 14,
+            top: 182,
+            child: _SideButton(
+              key: homeDailyKey,
+              label: l10n.homeDaily,
+              badge: dailyWaiting ? '1' : null,
+              badgeKey: homeDailyBadgeKey,
+              onTap: onDaily,
+              child: const Icon(
+                Icons.card_giftcard_rounded,
+                color: NfColors.gold,
+                size: 34,
+              ),
+            ),
+          ),
+          Positioned(
+            right: 10,
+            top: 182,
+            width: 96,
+            child: Center(
+              child: _SideButton(
+                key: homeMissionsKey,
+                label: l10n.homeMissions,
+                badge: missionsWaiting > 0 ? '$missionsWaiting' : null,
+                badgeKey: homeMissionsBadgeKey,
+                onTap: onMissions,
+                child: const Icon(
+                  Icons.task_alt_rounded,
+                  color: NfColors.gold,
+                  size: 34,
                 ),
               ),
             ),
@@ -558,13 +633,17 @@ class _SideButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     required this.child,
-    this.badge = false,
+    this.badge,
+    this.badgeKey,
   });
 
   final String label;
   final VoidCallback onTap;
   final Widget child;
-  final bool badge;
+
+  /// O número do selo vermelho, ou nulo sem selo.
+  final String? badge;
+  final Key? badgeKey;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -599,14 +678,14 @@ class _SideButton extends StatelessWidget {
                 ),
                 child: child,
               ),
-              // "1": um giro grátis esperando. Número, e não ponto, porque é
-              // literalmente quantos giros a roleta tem para dar.
-              if (badge)
+              // Número, e não ponto, porque é literalmente quantas coisas
+              // esperam: um giro, um prêmio do dia, N missões a coletar.
+              if (badge != null)
                 Positioned(
                   right: -8,
                   top: -8,
                   child: Container(
-                    key: homeSpinBadgeKey,
+                    key: badgeKey,
                     width: 26,
                     height: 26,
                     alignment: Alignment.center,
@@ -615,9 +694,9 @@ class _SideButton extends StatelessWidget {
                       color: const Color(0xFFFF3B5C),
                       border: Border.all(color: Colors.white, width: 2),
                     ),
-                    child: const Text(
-                      '1',
-                      style: TextStyle(
+                    child: Text(
+                      badge!,
+                      style: const TextStyle(
                         fontFamily: AppFonts.number,
                         fontWeight: FontWeight.w800,
                         fontSize: 13,

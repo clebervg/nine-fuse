@@ -477,7 +477,8 @@ Endless.
    - pacotes de moedas e o "Baú Real" do design;
    - a Loja já tem o espaço, e o verde (`NfColors.buyGreen`) está reservado.
    - Precisa de produtos cadastrados nas lojas.
-10. **Recompensa diária de login** além da roleta (se desejado).
+10. ~~Recompensa diária de login~~: feita (2026-11-03), com sequência de 7
+    dias e três missões diárias. Ver `CLAUDE.md`.
 
 ### P3: conteúdo, balanceamento e dívida técnica
 11. ~~Obstáculo ancorado~~: feito como a Corrente (2026-11-03), com sprite próprio.

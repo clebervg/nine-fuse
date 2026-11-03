@@ -11,6 +11,7 @@ import 'package:nine_fuse/core/audio/audioplayers_port.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/features/game/presentation/screens/splash_screen.dart';
+import 'package:nine_fuse/features/game/providers/daily_progress.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import 'package:nine_fuse/features/game/providers/settings.dart';
 import 'package:nine_fuse/features/game/providers/tutorial.dart';
@@ -46,6 +47,11 @@ void main() {
     overrides: [
       ...admobOverrides(),
       tutorialStorageProvider.overrideWithValue(const PrefsGameStorage()),
+      // Recompensa diária e missões: desligadas por padrão (a suíte de
+      // widget não as quer abrindo por cima), ligadas aqui.
+      dailyProgressStorageProvider.overrideWithValue(
+        const PrefsDailyProgressStorage(),
+      ),
     ],
   );
 

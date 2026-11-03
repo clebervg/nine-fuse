@@ -18,6 +18,9 @@ import 'package:nine_fuse/features/game/domain/tutorial.dart';
 import 'package:nine_fuse/features/game/providers/bomb_booster.dart';
 import 'package:nine_fuse/features/game/providers/brush_booster.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
+import 'package:nine_fuse/features/game/domain/daily_missions.dart';
+import 'package:nine_fuse/features/game/domain/star_rating.dart';
+import 'package:nine_fuse/features/game/providers/daily_progress.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
 import 'package:nine_fuse/features/game/providers/step_sounds.dart';
@@ -33,6 +36,7 @@ class GameNotifier extends StateNotifier<GameState>
     Random? random,
     Future<void> Function(Duration)? delay,
     GameStorage? storage,
+    this._missions,
   }) : _random = random ?? Random(),
        _delay = delay ?? _realDelay,
        _storage = storage ?? const PrefsGameStorage(),
@@ -45,6 +49,10 @@ class GameNotifier extends StateNotifier<GameState>
   static Future<void> _realDelay(Duration d) => Future<void>.delayed(d);
 
   final Random _random;
+
+  /// Para onde vão os acontecimentos que as missões diárias contam. Nulo em
+  /// teste e em qualquer notifier criado fora do provider.
+  final MissionSink? _missions;
 
   /// Onde o inventário de boosters mora entre aberturas do app.
   final GameStorage _storage;
@@ -695,6 +703,25 @@ class GameNotifier extends StateNotifier<GameState>
       // partida" acompanha a troca: ativar o Super 9 sempre produz um 9.
       apexCelebrated: state.apexCelebrated || produced == kMaxDigit,
     );
+    // A conversão não é fusão (não conta para "fusões" nem "crie 9"), mas
+    // pode fechar a fase — e a vitória conta.
+    if (outcome.status == GameStatus.won) _reportWin();
+  }
+
+  /// Uma fase vencida, com as estrelas que o cartão de vitória vai mostrar.
+  /// Lê o estado **já** atualizado: é a mesma conta de `starRating` que a
+  /// tela usa, e duas contas divergiriam no primeiro bônus de movimentos.
+  void _reportWin() {
+    final sink = _missions;
+    if (sink == null) return;
+    sink(MissionKind.winLevels, 1);
+    sink(
+      MissionKind.earnStars,
+      starRating(
+        movesLeft: state.movesLeft,
+        movesAvailable: state.movesAvailable,
+      ),
+    );
   }
 
   /// Quantas peças do tabuleiro têm o valor [value].
@@ -809,6 +836,9 @@ class GameNotifier extends StateNotifier<GameState>
       consecutiveLosses: consecutiveLosses,
       endlessOfferShown: endlessOfferShown,
     );
+
+    reportMissionResolution(_missions, resolution, boosterUsed: !countsAsMove);
+    if (outcome.status == GameStatus.won) _reportWin();
   }
 
   /// O quanto esta jogada rendeu ao objetivo da fase.
@@ -859,7 +889,7 @@ class GameNotifier extends StateNotifier<GameState>
 
 /// Provider do GameNotifier
 final gameProvider = StateNotifierProvider<GameNotifier, GameState>(
-  (ref) => GameNotifier(),
+  (ref) => GameNotifier(missions: ref.read(missionsProvider.notifier).record),
 );
 
 /// Número da fase mais alta já concluída. As fases seguintes ficam bloqueadas.

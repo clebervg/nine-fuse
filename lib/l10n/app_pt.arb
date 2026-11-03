@@ -322,5 +322,27 @@
   "tutorialGotIt": "ENTENDI",
   "tutorialSkip": "Pular tutorial",
   "settingsReplayTutorial": "Rever tutorial",
-  "settingsReplayTutorialDone": "O tutorial vai aparecer de novo nas próximas fases."
+  "settingsReplayTutorialDone": "O tutorial vai aparecer de novo nas próximas fases.",
+
+  "homeDaily": "DIÁRIO",
+  "homeMissions": "MISSÕES",
+  "dailyRewardTitle": "Recompensa diária",
+  "dailyRewardSubtitle": "Volte todo dia: quanto maior a sequência, maior o prêmio.",
+  "dailyRewardDay": "DIA {day}",
+  "dailyRewardStreak": "{count, plural, =1{Sequência: 1 dia} other{Sequência: {count} dias}}",
+  "dailyRewardCollect": "COLETAR",
+  "dailyRewardComeBack": "Volte amanhã para o próximo prêmio.",
+  "dailyRewardMissedHint": "Pular um dia recomeça a sequência.",
+  "missionsTitle": "Missões diárias",
+  "missionsSubtitle": "Três missões novas todo dia.",
+  "missionsCollect": "COLETAR",
+  "missionsBonus": "Complete as três e ganhe um booster",
+  "missionsAllDone": "Tudo feito! Novas missões amanhã.",
+  "missionWinLevels": "{count, plural, =1{Vença 1 fase} other{Vença {count} fases}}",
+  "missionFusions": "Faça {count} fusões",
+  "missionCreateNines": "{count, plural, =1{Crie 1 peça 9} other{Crie {count} peças 9}}",
+  "missionBreakObstacles": "Quebre {count} coberturas",
+  "missionUseBoosters": "{count, plural, =1{Use 1 booster} other{Use {count} boosters}}",
+  "missionEarnStars": "Ganhe {count} estrelas",
+  "missionTriggerNova": "{count, plural, =1{Dispare uma Nova (três 9 alinhados)} other{Dispare {count} Novas}}"
 }

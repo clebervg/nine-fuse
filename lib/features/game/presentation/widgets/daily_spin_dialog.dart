@@ -14,10 +14,10 @@ import 'package:nine_fuse/core/theme/app_fonts.dart';
 import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/core/widgets/nf_text.dart';
 import 'package:nine_fuse/features/game/domain/daily_spin.dart';
-import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/prize_wheel.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
+import 'package:nine_fuse/features/game/providers/prize_credit.dart';
 import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
@@ -135,7 +135,7 @@ String formatSpinCountdown(Duration remaining) {
 
 /// O que um giro efetivamente pagou: o prêmio da fatia e, se era booster com
 /// o estoque no teto, quanto dele virou moeda.
-typedef _SpinPayout = ({SpinPrize prize, int credited, int overflowCoins});
+typedef _SpinPayout = PrizePayout;
 
 /// A roleta de recompensa diária ("07 Roleta diária" do Observatório Real).
 ///
@@ -290,7 +290,7 @@ class _DailySpinDialogState extends ConsumerState<DailySpinDialog>
     final kick = _kickController.forward(from: 0);
 
     final storage = ref.read(dailySpinStorageProvider);
-    final payout = await _creditPrize(storage, prize);
+    final payout = await creditPrize(storage, prize);
 
     if (countsAsDailySpin) {
       final now = ref.read(dailySpinClockProvider)();
@@ -312,59 +312,6 @@ class _DailySpinDialogState extends ConsumerState<DailySpinDialog>
       _popupOpen = true;
       _spinning = false;
     });
-  }
-
-  Future<_SpinPayout> _creditPrize(GameStorage storage, SpinPrize prize) async {
-    switch (prize.type) {
-      case SpinPrizeType.coins:
-        await storage.writeCoins(await storage.readCoins() + prize.amount);
-        return (prize: prize, credited: prize.amount, overflowCoins: 0);
-      case SpinPrizeType.hammer:
-        return _creditBooster(
-          storage,
-          prize,
-          storage.readHammerCount,
-          storage.writeHammerCount,
-        );
-      case SpinPrizeType.bomb:
-        return _creditBooster(
-          storage,
-          prize,
-          storage.readBombCount,
-          storage.writeBombCount,
-        );
-      case SpinPrizeType.brush:
-        return _creditBooster(
-          storage,
-          prize,
-          storage.readBrushCount,
-          storage.writeBrushCount,
-        );
-    }
-  }
-
-  /// Booster de prêmio respeita o teto de estoque; o excedente vira moeda
-  /// (`capBoosterReward`), para o giro nunca "não pagar". Devolve o que foi
-  /// creditado de fato, para o popup não anunciar um martelo que virou moeda.
-  Future<_SpinPayout> _creditBooster(
-    GameStorage storage,
-    SpinPrize prize,
-    Future<int> Function() read,
-    Future<void> Function(int) write,
-  ) async {
-    final current = await read();
-    final credit = capBoosterReward(current: current, amount: prize.amount);
-    await write(credit.count);
-    if (credit.overflowCoins > 0) {
-      await storage.writeCoins(
-        await storage.readCoins() + credit.overflowCoins,
-      );
-    }
-    return (
-      prize: prize,
-      credited: credit.count - current,
-      overflowCoins: credit.overflowCoins,
-    );
   }
 
   Future<void> _watchAgain() async {

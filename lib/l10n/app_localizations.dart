@@ -1470,6 +1470,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The tutorial will show up again in your next levels.'**
   String get settingsReplayTutorialDone;
+
+  /// Rótulo do botão da recompensa diária no menu.
+  ///
+  /// In en, this message translates to:
+  /// **'DAILY'**
+  String get homeDaily;
+
+  /// Rótulo do botão das missões diárias no menu.
+  ///
+  /// In en, this message translates to:
+  /// **'MISSIONS'**
+  String get homeMissions;
+
+  /// No description provided for @dailyRewardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily reward'**
+  String get dailyRewardTitle;
+
+  /// No description provided for @dailyRewardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back every day: the longer the streak, the bigger the prize.'**
+  String get dailyRewardSubtitle;
+
+  /// No description provided for @dailyRewardDay.
+  ///
+  /// In en, this message translates to:
+  /// **'DAY {day}'**
+  String dailyRewardDay(int day);
+
+  /// No description provided for @dailyRewardStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Streak: 1 day} other{Streak: {count} days}}'**
+  String dailyRewardStreak(int count);
+
+  /// No description provided for @dailyRewardCollect.
+  ///
+  /// In en, this message translates to:
+  /// **'COLLECT'**
+  String get dailyRewardCollect;
+
+  /// No description provided for @dailyRewardComeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back tomorrow for the next prize.'**
+  String get dailyRewardComeBack;
+
+  /// No description provided for @dailyRewardMissedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipping a day restarts the streak.'**
+  String get dailyRewardMissedHint;
+
+  /// No description provided for @missionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily missions'**
+  String get missionsTitle;
+
+  /// No description provided for @missionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Three new missions every day.'**
+  String get missionsSubtitle;
+
+  /// No description provided for @missionsCollect.
+  ///
+  /// In en, this message translates to:
+  /// **'COLLECT'**
+  String get missionsCollect;
+
+  /// No description provided for @missionsBonus.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete all three to earn a booster'**
+  String get missionsBonus;
+
+  /// No description provided for @missionsAllDone.
+  ///
+  /// In en, this message translates to:
+  /// **'All done! New missions tomorrow.'**
+  String get missionsAllDone;
+
+  /// No description provided for @missionWinLevels.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Win 1 level} other{Win {count} levels}}'**
+  String missionWinLevels(int count);
+
+  /// No description provided for @missionFusions.
+  ///
+  /// In en, this message translates to:
+  /// **'Make {count} fusions'**
+  String missionFusions(int count);
+
+  /// No description provided for @missionCreateNines.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Create 1 nine} other{Create {count} nines}}'**
+  String missionCreateNines(int count);
+
+  /// No description provided for @missionBreakObstacles.
+  ///
+  /// In en, this message translates to:
+  /// **'Break {count} covers'**
+  String missionBreakObstacles(int count);
+
+  /// No description provided for @missionUseBoosters.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Use 1 booster} other{Use {count} boosters}}'**
+  String missionUseBoosters(int count);
+
+  /// No description provided for @missionEarnStars.
+  ///
+  /// In en, this message translates to:
+  /// **'Earn {count} stars'**
+  String missionEarnStars(int count);
+
+  /// No description provided for @missionTriggerNova.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Trigger a Nova (three 9s in a row)} other{Trigger {count} Novas}}'**
+  String missionTriggerNova(int count);
 }
 
 class _AppLocalizationsDelegate

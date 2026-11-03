@@ -950,4 +950,116 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get settingsReplayTutorialDone =>
       'O tutorial vai aparecer de novo nas próximas fases.';
+
+  @override
+  String get homeDaily => 'DIÁRIO';
+
+  @override
+  String get homeMissions => 'MISSÕES';
+
+  @override
+  String get dailyRewardTitle => 'Recompensa diária';
+
+  @override
+  String get dailyRewardSubtitle =>
+      'Volte todo dia: quanto maior a sequência, maior o prêmio.';
+
+  @override
+  String dailyRewardDay(int day) {
+    return 'DIA $day';
+  }
+
+  @override
+  String dailyRewardStreak(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sequência: $count dias',
+      one: 'Sequência: 1 dia',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dailyRewardCollect => 'COLETAR';
+
+  @override
+  String get dailyRewardComeBack => 'Volte amanhã para o próximo prêmio.';
+
+  @override
+  String get dailyRewardMissedHint => 'Pular um dia recomeça a sequência.';
+
+  @override
+  String get missionsTitle => 'Missões diárias';
+
+  @override
+  String get missionsSubtitle => 'Três missões novas todo dia.';
+
+  @override
+  String get missionsCollect => 'COLETAR';
+
+  @override
+  String get missionsBonus => 'Complete as três e ganhe um booster';
+
+  @override
+  String get missionsAllDone => 'Tudo feito! Novas missões amanhã.';
+
+  @override
+  String missionWinLevels(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Vença $count fases',
+      one: 'Vença 1 fase',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String missionFusions(int count) {
+    return 'Faça $count fusões';
+  }
+
+  @override
+  String missionCreateNines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Crie $count peças 9',
+      one: 'Crie 1 peça 9',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String missionBreakObstacles(int count) {
+    return 'Quebre $count coberturas';
+  }
+
+  @override
+  String missionUseBoosters(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Use $count boosters',
+      one: 'Use 1 booster',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String missionEarnStars(int count) {
+    return 'Ganhe $count estrelas';
+  }
+
+  @override
+  String missionTriggerNova(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Dispare $count Novas',
+      one: 'Dispare uma Nova (três 9 alinhados)',
+    );
+    return '$_temp0';
+  }
 }
