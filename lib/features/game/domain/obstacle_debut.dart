@@ -38,7 +38,12 @@ List<ObstacleDebut> obstacleDebuts({
 List<ObstacleDebut>? _campaignDebuts;
 
 List<ObstacleDebut> _scan(GameLevel Function(int) levelOf, int searchLimit) {
-  final pending = {ObstacleType.ice, ObstacleType.glass, ObstacleType.stone};
+  final pending = {
+    ObstacleType.ice,
+    ObstacleType.glass,
+    ObstacleType.stone,
+    ObstacleType.chain,
+  };
   final debuts = <ObstacleDebut>[];
 
   for (int n = 1; n <= searchLimit && pending.isNotEmpty; n++) {

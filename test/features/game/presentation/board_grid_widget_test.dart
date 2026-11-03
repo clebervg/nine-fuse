@@ -1037,4 +1037,30 @@ void main() {
       expect(far.right, lessThanOrEqualTo(frame.right));
     });
   });
+
+  testWidgets('casa fora do formato vira poço, sem peça e sem toque', (
+    tester,
+  ) async {
+    const hole = Position(row: 0, col: 0);
+    var board = Board.empty(voids: {hole});
+    for (int row = 0; row < Board.boardSize; row++) {
+      for (int col = 0; col < Board.boardSize; col++) {
+        final position = Position(row: row, col: col);
+        board = board.updateTile(
+          position,
+          Tile(id: 'r${row}c$col', value: (row + col) % 3, position: position),
+        );
+      }
+    }
+    final taps = <Position>[];
+
+    await tester.pumpWidget(host(board: board, onTileTap: taps.add));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(boardVoidKey(hole)), findsOneWidget);
+    expect(find.byKey(tileKey(hole)), findsNothing);
+    expect(find.byKey(tileVisualKey('r0c0')), findsNothing);
+    expect(find.byKey(tileKey(const Position(row: 0, col: 1))), findsOneWidget);
+    expect(taps, isEmpty);
+  });
 }

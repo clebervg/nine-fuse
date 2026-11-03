@@ -232,7 +232,10 @@ class GameNotifier extends StateNotifier<GameState>
       spawnMax: level.spawnMax,
     );
 
-    final board = _engine!.generateBoard(obstacles: level.obstacles);
+    final board = _engine!.generateBoard(
+      obstacles: level.obstacles,
+      voids: level.shape.voids,
+    );
 
     state = GameState(
       board: board,
@@ -819,6 +822,7 @@ class GameNotifier extends StateNotifier<GameState>
 
     return switch (objective.type) {
       ObjectiveType.reachDigit => resolution.countProduced(objective.digit!),
+      ObjectiveType.collectDigit => resolution.countCollected(objective.digit!),
       ObjectiveType.clearObstacles || ObjectiveType.clearAllObstacles =>
         resolution.countCleared(objective.obstacle),
     };

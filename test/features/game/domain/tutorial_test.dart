@@ -44,13 +44,63 @@ void main() {
       Set<TutorialStep> seen = const {},
       int boosters = 0,
       Set<ObstacleType> covered = const {},
+      bool collect = false,
+      bool shaped = false,
     }) => idleTutorialStep(
       levelNumber: level,
       movesMade: moves,
       pending: (step) => !seen.contains(step),
       boosterStock: boosters,
       coveredOnBoard: covered,
+      collectObjective: collect,
+      shapedBoard: shaped,
     );
+
+    test('primeira coleta e primeiro formato: objetivo antes do tabuleiro', () {
+      const done = {
+        TutorialStep.firstSwap,
+        TutorialStep.fusion,
+        TutorialStep.objective,
+        TutorialStep.movesMedallion,
+        TutorialStep.boosterDock,
+      };
+      expect(
+        next(level: 14, seen: done, collect: true, shaped: true),
+        TutorialStep.collectGoal,
+      );
+      expect(
+        next(
+          level: 14,
+          seen: {...done, TutorialStep.collectGoal},
+          collect: true,
+          shaped: true,
+        ),
+        TutorialStep.boardShape,
+      );
+      expect(
+        next(
+          level: 14,
+          seen: {...done, TutorialStep.collectGoal, TutorialStep.boardShape},
+          collect: true,
+          shaped: true,
+        ),
+        isNull,
+      );
+    });
+
+    test('a corrente estreia como as outras coberturas', () {
+      const done = {
+        TutorialStep.firstSwap,
+        TutorialStep.fusion,
+        TutorialStep.objective,
+        TutorialStep.movesMedallion,
+        TutorialStep.boosterDock,
+      };
+      expect(
+        next(level: 31, seen: done, covered: {ObstacleType.chain}),
+        TutorialStep.obstacleChain,
+      );
+    });
 
     test('fase 1 sem jogada: a mão da primeira troca', () {
       expect(next(), TutorialStep.firstSwap);
@@ -209,6 +259,10 @@ void main() {
     expect(
       obstacleTutorialStep(ObstacleType.stone),
       TutorialStep.obstacleStone,
+    );
+    expect(
+      obstacleTutorialStep(ObstacleType.chain),
+      TutorialStep.obstacleChain,
     );
     expect(obstacleTutorialStep(ObstacleType.none), isNull);
   });

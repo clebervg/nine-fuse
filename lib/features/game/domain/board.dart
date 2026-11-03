@@ -9,17 +9,26 @@ class Board {
 
   final List<List<Tile?>> grid; // Matriz [row][col] com tiles opcionais
 
-  const Board({required this.grid})
+  /// Casas que **não fazem parte** do tabuleiro desta fase (o formato).
+  ///
+  /// Não é o mesmo que casa vazia: vazia é buraco à espera de peça, e a
+  /// reposição a preenche; uma casa fora do formato nunca recebe peça, quebra
+  /// sequência como uma parede e a gravidade passa por cima dela. Tratá-la como
+  /// posição inválida ([isValidPosition]) é o que faz troca, combinação, dica,
+  /// booster e reposição a ignorarem sem que cada um precise de uma guarda.
+  final Set<Position> voids;
+
+  const Board({required this.grid, this.voids = const {}})
     : assert(boardSize == 8, 'Board deve ser 8x8');
 
-  /// Cria um Board vazio com tiles nulos
-  factory Board.empty() {
+  /// Cria um Board vazio com tiles nulos, no formato dado por [voids].
+  factory Board.empty({Set<Position> voids = const {}}) {
     final grid = List<List<Tile?>>.generate(
       boardSize,
       (_) => List<Tile?>.filled(boardSize, null, growable: false),
       growable: false,
     );
-    return Board(grid: grid);
+    return Board(grid: grid, voids: voids);
   }
 
   /// Obtém um tile em uma posição específica
@@ -38,8 +47,16 @@ class Board {
       position.col >= 0 &&
       position.col < boardSize;
 
-  /// Verifica se uma posição é válida no tabuleiro
-  bool isValidPosition(Position position) => contains(position);
+  /// A posição existe **neste** tabuleiro: dentro da matriz e dentro do
+  /// formato da fase.
+  bool isValidPosition(Position position) =>
+      contains(position) && !voids.contains(position);
+
+  /// A casa está fora do formato desta fase.
+  bool isVoid(Position position) => voids.contains(position);
+
+  /// Quantas casas o formato tem.
+  int get playableCount => boardSize * boardSize - voids.length;
 
   /// Cria um novo Board com um tile alterado em uma posição
   Board updateTile(Position position, Tile? tile) {
@@ -48,7 +65,7 @@ class Board {
     final newGrid = grid.map((row) => [...row]).toList();
     newGrid[position.row][position.col] = tile;
 
-    return Board(grid: newGrid);
+    return Board(grid: newGrid, voids: voids);
   }
 
   /// Cria um novo Board com múltiplos tiles alterados
@@ -118,15 +135,16 @@ class Board {
   bool get isEmpty => tileCount == 0;
 
   /// Verifica se o tabuleiro está cheio
-  bool get isFull => tileCount == (boardSize * boardSize);
+  bool get isFull => tileCount == playableCount;
 
   /// Retorna uma lista de posições vazias no tabuleiro
   List<Position> getEmptyPositions() {
     final empty = <Position>[];
     for (int row = 0; row < boardSize; row++) {
       for (int col = 0; col < boardSize; col++) {
-        if (grid[row][col] == null) {
-          empty.add(Position(row: row, col: col));
+        final position = Position(row: row, col: col);
+        if (grid[row][col] == null && !voids.contains(position)) {
+          empty.add(position);
         }
       }
     }
@@ -138,6 +156,8 @@ class Board {
       identical(this, other) ||
       other is Board &&
           runtimeType == other.runtimeType &&
+          voids.length == other.voids.length &&
+          voids.containsAll(other.voids) &&
           _gridEquals(grid, other.grid);
 
   @override
@@ -169,7 +189,11 @@ class Board {
     for (int row = 0; row < boardSize; row++) {
       for (int col = 0; col < boardSize; col++) {
         final tile = grid[row][col];
-        buffer.write(tile != null ? '[${tile.value}]' : '[ ]');
+        buffer.write(
+          voids.contains(Position(row: row, col: col))
+              ? '[#]'
+              : (tile != null ? '[${tile.value}]' : '[ ]'),
+        );
       }
       buffer.write('\n');
     }

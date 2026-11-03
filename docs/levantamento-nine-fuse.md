@@ -209,12 +209,17 @@ Configurações saem do Menu.
 - O dano é ortogonal, um impacto por passo.
 - Coberturas nunca nascem encostadas umas nas outras e nunca são postas se
   tirarem a última jogada possível.
-- **Hoje a peça coberta cai com a gravidade** (ancorar é decisão pendente).
+- **Gelo, vidro e pedra caem com a gravidade.** A **Corrente** (desde a fase 31)
+  é a cobertura ancorada: a peça combina, mas não troca e não cai; cede a uma
+  fusão encostada ou a entrar numa combinação.
+- **Formatos de tabuleiro** (desde a fase 12): 8 formatos com casas fora do
+  tabuleiro, que quebram sequência e por cima das quais as peças caem.
 
 ### 4.4 Objetivos de fase
 - `reachDigit`: crie N peças de dígito X.
 - `clearObstacles`: quebre N gelos, vidros ou pedras.
 - `clearAllObstacles`: limpe toda a cobertura de um tipo.
+- `collectDigit`: funda N peças de dígito X (conta a peça que entra na fusão).
 - Se a jogada final cumpre o objetivo, isso vale como vitória mesmo zerando
   as jogadas.
 
@@ -247,6 +252,10 @@ Configurações saem do Menu.
     16 nas fases de dígito pesado).
   - Aperto de 2% por bloco, com piso de 75%, e pacing alternado (±12%).
   - Anti-repetição: nenhuma fase repete o objetivo das 2 anteriores.
+  - Formato recortado nas posições 1, 4, 7 e no fecho; "Funda N" nas posições
+    3 e 6; fecho de capítulo rotativo (limpe tudo, coleta, dez 9, coleta acima
+    da janela); Corrente a partir da fase 31. Fases 200-1000: 118 contratos
+    distintos (eram 31).
   - **Fases "hard"** a partir da fase 30 (penúltima de cada bloco): 25% menos
     jogadas e o dobro de obstáculos.
 - **Capítulos:** fases 1-6 = cap. 1, 7-10 = cap. 2, e depois de 10 em 10.
@@ -471,8 +480,7 @@ Endless.
 10. **Recompensa diária de login** além da roleta (se desejado).
 
 ### P3: conteúdo, balanceamento e dívida técnica
-11. **Obstáculo ancorado** (que não cai com a gravidade). É o que permitiria
-    level design do tipo "quebre o gelo do canto". Mexe em `applyGravity`.
+11. ~~Obstáculo ancorado~~: feito como a Corrente (2026-11-03). Falta sprite.
 12. **Peça Curinga** (`wildcard`): reservada, sem efeito.
 13. **Fases de pedra em janela alta** (ex.: fases 108 e 1000) ficaram com
     35-40% de vitória para o bot depois da troca para o Bloco 9. Avaliar

@@ -2124,3 +2124,102 @@ montada. O pé da trilha ganhou o marcador "Fases 1–N concluídas"
 (`collapsedLevelsKey`): sem ele, uma trilha que começa na 470 terminaria num
 corte seco que lê como o começo do jogo. O golden `saga_map.png` não mudou
 (progresso 3: a janela ainda começa na 1).
+
+
+### Variedade da campanha longa: formatos, "Funda N", fechos rotativos e Corrente (2026-11-03)
+
+**O problema era medido, não impressão.** Da fase 200 à 1000 o gerador
+entregava **31 contratos de fase distintos em 801 fases** (objetivo +
+movimentos + janela + coberturas): a fase 200, a 500 e a 1000 eram a mesma
+"limpe toda a pedra, 25 jogadas", e a partir da 100 só restavam 11 objetivos.
+Hoje são **118 contratos**, travados em teste (`level_generator_test`,
+grupo "variedade da campanha longa", com piso de 110).
+
+**Formato de tabuleiro (`BoardShape`, `Board.voids`).** Casa fora do formato
+não é casa vazia: vazia espera reposição, a do formato nunca recebe peça. O
+truque que deixou a mudança pequena é `isValidPosition` passar a dizer
+`false` para ela — troca, combinação (o vão quebra a sequência como parede),
+dica, booster e reposição a ignoram sem nenhuma guarda nova. Só duas coisas
+precisaram saber do formato: o sorteio (`generateBoard(voids:)`) e a
+gravidade, que **passa por cima do vão** até a próxima casa que existe (o que
+o jogador de match-3 espera, e o que mantém a coluna alimentada pelo topo).
+Oito formatos, todos simétricos e sem coluna inteira apagada (teste). Na tela o
+vão é um poço escuro sem área de toque: só sem o encaixe ele leria como "casa
+esperando peça".
+
+- **Onde aparecem:** posições 1, 4 e 7 de cada bloco e todo fecho de capítulo,
+  a partir da fase 12 (`kFirstShapedLevel`, cantos cortados: o mais brando).
+  Recortar toda fase apagaria o contraste que faz o formato ser notado.
+- **Folga:** `kShapeMovesPerVoidFraction = 0.5` (losango, 37,5% de vão, ganha
+  19% de jogadas). Com 1.0 o losango saía em 100%.
+- **Pilares e ponte nunca em meta de cobertura.** Medido com o bot, "quebre 3
+  pedras" cai de ~80% na matriz inteira para 12% nos pilares e 34% na ponte
+  (cortam o miolo, onde a cobertura passa a fase). Nessas fases o formato vira
+  cantos cortados (90%). Os outros formatos ficam perto da matriz inteira.
+
+**Objetivo "Funda N peças X" (`ObjectiveType.collectDigit`).** O avesso de
+"Crie": conta peça que **entra** numa fusão (`Resolution.countCollected`),
+não a que nasce. Por isso o alvo pode ficar dentro da janela — e não satura em
+9, que era o motivo de as fases longas se repetirem. Exigiu um campo novo,
+`FusionEvent.matchedValue`: o valor consumido não sai de `value - 1`, porque a
+regra graduada faz o match-5 render V+2. Martelo, Bomba, Super 9 e Nova não
+contam (não são fusão). O HUD e o cartão de início já tratavam "objetivo sem
+cobertura" como dígito, então a meta nova herdou a vitrine sem tela nova.
+Posição 3 do bloco pede dentro da janela (`kCollectMovesPerPiece = 0.9`);
+posição 6, do bloco 1 em diante, pede o dígito logo acima dela, que tem de
+nascer antes de ser fundido (`kCollectAboveMovesPerPiece = 4.8`).
+
+**O fecho de capítulo roda entre quatro naturezas** (`block % 4`): limpe
+tudo, coleta grande do pé da janela, ápice "crie dez 9" e coleta acima da
+janela. O formato do fecho anda com `block + block ~/ 4`, senão cada natureza
+viria sempre no mesmo formato. Duas armadilhas medidas:
+- **A coleta do fecho pede o pé da janela, não o topo.** O topo é o que a
+  fusão gulosa já consome: pedido ali o fecho media 95-99%.
+- **O ápice tem régua própria** (`kApexClosingCount = 10`,
+  `kApexClosingMovesPerPiece = 1.4`, fora do aperto por bloco e do piso
+  pesado). Esse degrau do ciclo cai sempre na janela 5-8, onde o 9 está a uma
+  fusão do topo: o bot faz **cinco 9 em seis jogadas** 73% das vezes. Com o
+  piso de 10 qualquer contagem pequena dava 100%, e com o aperto por bloco a
+  mesma fase ia de 96% (bloco 3) a 20% (bloco 14), porque a curva é íngreme.
+
+**Corrente (`ObstacleType.chain`): o obstáculo ancorado.** A pendência da
+Fase 13 ("peça coberta cai com a gravidade") foi resolvida **sem** ancorar
+gelo, vidro e pedra, cuja calibragem inteira depende de eles caírem. A
+ancoragem entrou como cobertura nova, com regra oposta às outras três: a peça
+acorrentada **combina** normalmente, mas não troca e **não cai** — a coluna se
+parte em trechos e as peças de cima empilham sobre ela; abaixo dela só há
+reposição no lugar. Cede a uma fusão encostada (um impacto) ou a entrar ela
+mesma numa combinação. O segundo caminho tem o mesmo risco das três vezes já
+registradas neste arquivo (cobertura que some sem creditar o objetivo): depois
+da fusão a casa já está vazia e `_damageObstacles` não a vê, então o hit sai de
+`_applyFusions` (`FusionOutcome.obstacleHits`), e a peça que nasce de uma
+sobrevivente acorrentada nasce livre. Há teste para os dois.
+- Entra a partir do bloco 2 (fase 31, `kFirstChainBlock`): o bloco 0 já
+  estreia formato e coleta, e três novidades em dez fases é demais.
+- Fica **por cima** do teto `kMaxObstacles` das outras três, com teto próprio
+  (`kChainsPerLevel = 2`), e não dobra na fase hard: somá-la ao corte tiraria
+  gelo de fases já calibradas.
+- Blocos ímpares pedem "quebre 2 correntes" na posição 8
+  (`kChainMovesPerUnit = 7`, 65-73% com o bot).
+- Desenho em código (`ChainObstaclePainter`): não há sprite de corrente. O
+  cadeado fica no canto, não no cruzamento, para não tapar o dígito.
+
+**Três balões novos de estreia** (`TutorialStep.collectGoal`, `boardShape`,
+`obstacleChain`), pela primeira vez que a coisa aparece e não pelo número da
+fase, como as outras coberturas.
+
+**Calibragem (`--mode=generated --games=150`, amostra em `_generatedSample`;
+`--levels=` mede só as fases pedidas):** corpo do bloco 64-100%, coletas
+64-99%, fechos 52-99%, correntes 65-73%. Abaixo da faixa seguem os pisos já
+conhecidos de pedra (44-58%, bot que não mira cobertura) e a dívida do alvo
+`+2` das posições ímpares ("crie 2 peças 9" em janela baixa, ~40-64%), que
+nada aqui tocou.
+
+**Ainda não feito:** formatos no Modo Recorde (ele continua na matriz
+inteira); arte de sprite da corrente; e a dívida do `+2`.
+
+**Armadilha desta rodada: `dart format` reformata o arquivo inteiro.** Sete
+arquivos tocados (simulador, motor, gerador, dois testes, dois widgets) não
+estavam formatados no HEAD, e formatá-los misturou centenas de linhas de
+espaço com a mudança real. Foi desfeito com `git merge-file` (HEAD formatado
+como base, HEAD original como outro lado). Formate só arquivo novo.

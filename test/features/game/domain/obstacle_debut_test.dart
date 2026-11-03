@@ -24,7 +24,13 @@ void main() {
         ObstacleType.ice,
         ObstacleType.glass,
         ObstacleType.stone,
+        ObstacleType.chain,
       });
+      // A corrente estreia no primeiro bloco gerado que a espalha.
+      expect(
+        debuts.singleWhere((d) => d.type == ObstacleType.chain).level,
+        31,
+      );
     });
 
     test('sai ordenada por fase', () {

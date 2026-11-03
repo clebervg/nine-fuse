@@ -1,3 +1,4 @@
+import 'package:nine_fuse/features/game/domain/board_shape.dart';
 import 'package:nine_fuse/features/game/domain/level_objective.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
@@ -39,6 +40,7 @@ class GameLevel {
     this.spawnMin = kSpawnMin,
     this.spawnMax = kSpawnMax,
     this.obstacles = ObstacleLayout.none,
+    this.shape = BoardShape.full,
     this.teaches,
   }) : assert(moveLimit > 0),
        assert(
@@ -72,6 +74,12 @@ class GameLevel {
   /// (`MatchEngine.placeObstacles`), que garante tabuleiro jogável.
   final ObstacleLayout obstacles;
 
+  /// O formato do tabuleiro: quais casas da matriz existem nesta fase.
+  ///
+  /// Como as coberturas, é contrato da fase e não sorteio: as peças continuam
+  /// sorteadas a cada tentativa, o formato não.
+  final BoardShape shape;
+
   /// O que a fase ensina, mostrado como dica. Nulo quando não ensina nada novo.
   final LevelTip? teaches;
 
@@ -79,7 +87,8 @@ class GameLevel {
   String toString() =>
       'Fase $number (${objective.debugLabel}, '
       '$moveLimit mov, spawn $spawnMin-$spawnMax'
-      '${obstacles.isEmpty ? '' : ', $obstacles'})';
+      '${obstacles.isEmpty ? '' : ', $obstacles'}'
+      '${shape.isShaped ? ', ${shape.name}' : ''})';
 }
 
 /// As dez primeiras fases.

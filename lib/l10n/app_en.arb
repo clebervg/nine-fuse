@@ -25,6 +25,15 @@
     }
   },
 
+  "objectiveCollect": "{count, plural, =1{Fuse 1 {digit} tile} other{Fuse {count} {digit} tiles}}",
+  "@objectiveCollect": {
+    "description": "Objetivo de fundir (consumir em combinações) N peças de um dígito. Diferente de 'Crie': aqui conta a peça que entra na fusão, não a que nasce.",
+    "placeholders": {
+      "count": { "type": "int" },
+      "digit": { "type": "int" }
+    }
+  },
+
   "obstacleIceCount": "{count, plural, =1{ice block} other{ice blocks}}",
   "@obstacleIceCount": {
     "description": "Nome do gelo com a quantidade implícita. O plural fica em ICU porque cada idioma pluraliza a sua palavra.",
@@ -38,6 +47,11 @@
 
   "obstacleStoneCount": "{count, plural, =1{stone} other{stones}}",
   "@obstacleStoneCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "obstacleChainCount": "{count, plural, =1{chain} other{chains}}",
+  "@obstacleChainCount": {
     "placeholders": { "count": { "type": "int" } }
   },
 
@@ -533,6 +547,18 @@
   "tutorialObstacleIce": "Ice traps the piece. One fusion next to it breaks it.",
   "tutorialObstacleGlass": "Glass takes two fusions next to it before it breaks.",
   "tutorialObstacleStone": "Stone takes three fusions next to it, or gives way at once to a 9 born beside it.",
+  "tutorialObstacleChain": "A chain locks the piece in place: it can't be swapped and doesn't fall, but it still matches. Match with it or fuse next to it to set it free.",
+  "@tutorialObstacleChain": {
+    "description": "Balão de estreia da corrente (cobertura ancorada)."
+  },
+  "tutorialCollectGoal": "Here the piece that GOES INTO a fusion counts: line up three of them and that's three fewer to go.",
+  "@tutorialCollectGoal": {
+    "description": "Balão da primeira fase com objetivo 'Funda N peças X'."
+  },
+  "tutorialBoardShape": "Dark cells aren't part of the board. Pieces fall right past them.",
+  "@tutorialBoardShape": {
+    "description": "Balão do primeiro tabuleiro recortado (casas fora do formato)."
+  },
   "tutorialGotIt": "GOT IT",
   "tutorialSkip": "Skip tutorial",
   "settingsReplayTutorial": "Replay tutorial",

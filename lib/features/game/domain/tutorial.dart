@@ -30,6 +30,16 @@ enum TutorialStep {
   obstacleIce,
   obstacleGlass,
   obstacleStone,
+  obstacleChain,
+
+  /// Primeira fase com objetivo "funda N peças X": aponta o objetivo e diz
+  /// que conta a peça que **entra** na fusão, não a que nasce. Sem o balão,
+  /// "funda" e "crie" pareceriam a mesma meta com verbos diferentes.
+  collectGoal,
+
+  /// Primeiro tabuleiro recortado: as casas escuras não existem, e as peças
+  /// caem por cima delas.
+  boardShape,
 }
 
 /// O passo que apresenta a cobertura [type], ou nulo para [ObstacleType.none].
@@ -37,6 +47,7 @@ TutorialStep? obstacleTutorialStep(ObstacleType type) => switch (type) {
   ObstacleType.ice => TutorialStep.obstacleIce,
   ObstacleType.glass => TutorialStep.obstacleGlass,
   ObstacleType.stone => TutorialStep.obstacleStone,
+  ObstacleType.chain => TutorialStep.obstacleChain,
   ObstacleType.none => null,
 };
 
@@ -46,6 +57,7 @@ const List<ObstacleType> _obstacleOrder = [
   ObstacleType.ice,
   ObstacleType.glass,
   ObstacleType.stone,
+  ObstacleType.chain,
 ];
 
 /// Qual passo "de repouso" mostrar agora, ou nulo.
@@ -63,6 +75,8 @@ TutorialStep? idleTutorialStep({
   required bool Function(TutorialStep step) pending,
   required int boosterStock,
   required Set<ObstacleType> coveredOnBoard,
+  bool collectObjective = false,
+  bool shapedBoard = false,
 }) {
   if (levelNumber == 1 && movesMade == 0 && pending(TutorialStep.firstSwap)) {
     return TutorialStep.firstSwap;
@@ -77,6 +91,15 @@ TutorialStep? idleTutorialStep({
   }
   if (levelNumber == 2 && pending(TutorialStep.movesMedallion)) {
     return TutorialStep.movesMedallion;
+  }
+  // As duas novidades da campanha longa, também pela primeira vez que
+  // aparecem e não pelo número da fase. O objetivo vem antes do formato:
+  // entender o que se pede importa mais do que entender o tabuleiro.
+  if (collectObjective && pending(TutorialStep.collectGoal)) {
+    return TutorialStep.collectGoal;
+  }
+  if (shapedBoard && pending(TutorialStep.boardShape)) {
+    return TutorialStep.boardShape;
   }
   // A estreia da cobertura não olha o número da fase: vale a primeira vez que
   // o tipo aparece no tabuleiro, inclusive para quem "Reviu o tutorial" já

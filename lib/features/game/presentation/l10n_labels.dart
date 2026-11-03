@@ -29,6 +29,10 @@ extension DomainLabels on AppLocalizations {
           objective.count == 1
               ? objectiveCreateOne(objective.digit!)
               : objectiveCreateMany(objective.count, objective.digit!),
+        ObjectiveType.collectDigit => objectiveCollect(
+          objective.count,
+          objective.digit!,
+        ),
         ObjectiveType.clearObstacles => objectiveClearObstacles(
           objective.count,
           obstacleName(objective.obstacle, objective.count),
@@ -65,6 +69,7 @@ extension DomainLabels on AppLocalizations {
     ObstacleType.ice => obstacleIceCount(count),
     ObstacleType.glass => obstacleGlassCount(count),
     ObstacleType.stone => obstacleStoneCount(count),
+    ObstacleType.chain => obstacleChainCount(count),
   };
 
   /// A dica de uma fase, ou nulo quando a fase não ensina nada novo.

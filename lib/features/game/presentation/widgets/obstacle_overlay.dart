@@ -50,6 +50,7 @@ class ObstacleOverlay extends StatelessWidget {
         cellIndex: cellIndex,
       ),
       ObstacleType.stone => const StoneObstaclePainter(),
+      ObstacleType.chain => const ChainObstaclePainter(),
     };
     if (painter == null) return const SizedBox.shrink();
 
@@ -73,6 +74,7 @@ Color obstacleAccent(ObstacleType type) => switch (type) {
   ObstacleType.ice => const Color(0xFF7FC7EF),
   ObstacleType.glass => const Color(0xFFCBD6E0),
   ObstacleType.stone => const Color(0xFF9AA0A9),
+  ObstacleType.chain => const Color(0xFFE0B45A),
 };
 
 /// Ícone da cobertura, para o rótulo do objetivo.
@@ -81,6 +83,7 @@ IconData obstacleIcon(ObstacleType type) => switch (type) {
   ObstacleType.ice => Icons.ac_unit,
   ObstacleType.glass => Icons.blur_on,
   ObstacleType.stone => Icons.terrain,
+  ObstacleType.chain => Icons.link,
 };
 
 /// A cobertura como amostra, fora do tabuleiro.
@@ -443,4 +446,92 @@ class StoneObstaclePainter extends CustomPainter {
   /// A pedra não tem estado: nada nela muda entre um quadro e o seguinte.
   @override
   bool shouldRepaint(StoneObstaclePainter old) => false;
+}
+
+/// Corrente: duas correias de elos cruzadas sobre a peça, com um cadeado no
+/// meio. Deixa o dígito à mostra — a peça acorrentada **combina**, e o
+/// jogador precisa ler o valor para planejar o trio que a solta.
+///
+/// Nada de sprite: o pacote de arte não trouxe corrente, e um pintor com
+/// alfa mantém a mesma régua das outras coberturas (translucidez por cor,
+/// nunca por `Opacity`).
+class ChainObstaclePainter extends CustomPainter {
+  const ChainObstaclePainter();
+
+  static const _gold = Color(0xFFE0B45A);
+  static const _shadow = Color(0xAA2A1A05);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+
+    // Véu âmbar bem leve: diz "esta célula está presa" sem apagar a cor da
+    // peça por baixo.
+    canvas.drawRect(rect, Paint()..color = _gold.withValues(alpha: 0.10));
+
+    _drawStrap(canvas, size, Offset.zero, Offset(size.width, size.height));
+    _drawStrap(canvas, size, Offset(size.width, 0), Offset(0, size.height));
+
+    // Cadeado no canto, e não no cruzamento: no centro ele taparia o dígito,
+    // que é o que o jogador precisa ler para montar o trio que solta a peça.
+    final centre = Offset(size.width * 0.76, size.height * 0.74);
+    final body = Rect.fromCenter(
+      center: centre.translate(0, size.height * 0.05),
+      width: size.width * 0.24,
+      height: size.height * 0.20,
+    );
+    canvas.drawArc(
+      Rect.fromCenter(
+        center: centre.translate(0, -size.height * 0.04),
+        width: size.width * 0.16,
+        height: size.height * 0.18,
+      ),
+      pi,
+      pi,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * 0.04
+        ..color = _gold,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(body, Radius.circular(size.width * 0.04)),
+      Paint()..color = _gold,
+    );
+    canvas.drawCircle(body.center, size.width * 0.03, Paint()..color = _shadow);
+  }
+
+  /// Uma correia de elos ovais de [from] a [to].
+  void _drawStrap(Canvas canvas, Size size, Offset from, Offset to) {
+    const links = 6;
+    final delta = to - from;
+    final angle = atan2(delta.dy, delta.dx);
+    final step = delta.distance / links;
+    final link = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * 0.045;
+
+    for (int i = 0; i < links; i++) {
+      final centre = from + delta * ((i + 0.5) / links);
+      canvas.save();
+      canvas.translate(centre.dx, centre.dy);
+      canvas.rotate(angle);
+      // Elos alternam deitado e de pé, como numa corrente de verdade.
+      final upright = i.isOdd;
+      final oval = Rect.fromCenter(
+        center: Offset.zero,
+        width: upright ? step * 0.55 : step * 0.95,
+        height: upright ? step * 0.95 * 0.55 : step * 0.5,
+      );
+      canvas.drawOval(oval, link..color = _shadow);
+      canvas.drawOval(
+        oval.shift(const Offset(-0.6, -0.6)),
+        link..color = _gold.withValues(alpha: 0.92),
+      );
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(ChainObstaclePainter old) => false;
 }

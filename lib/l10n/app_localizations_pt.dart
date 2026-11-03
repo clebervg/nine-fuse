@@ -33,6 +33,17 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String objectiveCollect(int count, int digit) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Funda $count peças $digit',
+      one: 'Funda 1 peça $digit',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String obstacleIceCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -61,6 +72,17 @@ class AppLocalizationsPt extends AppLocalizations {
       locale: localeName,
       other: 'pedras',
       one: 'pedra',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String obstacleChainCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'correntes',
+      one: 'corrente',
     );
     return '$_temp0';
   }
@@ -903,6 +925,18 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get tutorialObstacleStone =>
       'Pedra aguenta três fusões encostadas, ou cede de vez a um 9 nascido ao lado.';
+
+  @override
+  String get tutorialObstacleChain =>
+      'A corrente prende a peça no lugar: ela não troca nem cai, mas ainda combina. Alinhe com ela ou funda ao lado para soltá-la.';
+
+  @override
+  String get tutorialCollectGoal =>
+      'Aqui conta a peça que ENTRA na fusão: alinhe três dessas e já são três a menos.';
+
+  @override
+  String get tutorialBoardShape =>
+      'As casas escuras não fazem parte do tabuleiro. As peças caem por cima delas.';
 
   @override
   String get tutorialGotIt => 'ENTENDI';

@@ -122,6 +122,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Create one {digit} tile} other{Create {count} {digit} tiles}}'**
   String objectiveCreateMany(int count, int digit);
 
+  /// Objetivo de fundir (consumir em combinações) N peças de um dígito. Diferente de 'Crie': aqui conta a peça que entra na fusão, não a que nasce.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Fuse 1 {digit} tile} other{Fuse {count} {digit} tiles}}'**
+  String objectiveCollect(int count, int digit);
+
   /// Nome do gelo com a quantidade implícita. O plural fica em ICU porque cada idioma pluraliza a sua palavra.
   ///
   /// In en, this message translates to:
@@ -139,6 +145,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{stone} other{stones}}'**
   String obstacleStoneCount(int count);
+
+  /// No description provided for @obstacleChainCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{chain} other{chains}}'**
+  String obstacleChainCount(int count);
 
   /// Objetivo de quebrar N coberturas. O nome já vem flexionado pelo ICU de obstacle*Count.
   ///
@@ -1416,6 +1428,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stone takes three fusions next to it, or gives way at once to a 9 born beside it.'**
   String get tutorialObstacleStone;
+
+  /// Balão de estreia da corrente (cobertura ancorada).
+  ///
+  /// In en, this message translates to:
+  /// **'A chain locks the piece in place: it can\'t be swapped and doesn\'t fall, but it still matches. Match with it or fuse next to it to set it free.'**
+  String get tutorialObstacleChain;
+
+  /// Balão da primeira fase com objetivo 'Funda N peças X'.
+  ///
+  /// In en, this message translates to:
+  /// **'Here the piece that GOES INTO a fusion counts: line up three of them and that\'s three fewer to go.'**
+  String get tutorialCollectGoal;
+
+  /// Balão do primeiro tabuleiro recortado (casas fora do formato).
+  ///
+  /// In en, this message translates to:
+  /// **'Dark cells aren\'t part of the board. Pieces fall right past them.'**
+  String get tutorialBoardShape;
 
   /// No description provided for @tutorialGotIt.
   ///

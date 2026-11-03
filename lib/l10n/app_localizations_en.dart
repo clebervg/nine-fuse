@@ -33,6 +33,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String objectiveCollect(int count, int digit) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Fuse $count $digit tiles',
+      one: 'Fuse 1 $digit tile',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String obstacleIceCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -61,6 +72,17 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: 'stones',
       one: 'stone',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String obstacleChainCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'chains',
+      one: 'chain',
     );
     return '$_temp0';
   }
@@ -901,6 +923,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tutorialObstacleStone =>
       'Stone takes three fusions next to it, or gives way at once to a 9 born beside it.';
+
+  @override
+  String get tutorialObstacleChain =>
+      'A chain locks the piece in place: it can\'t be swapped and doesn\'t fall, but it still matches. Match with it or fuse next to it to set it free.';
+
+  @override
+  String get tutorialCollectGoal =>
+      'Here the piece that GOES INTO a fusion counts: line up three of them and that\'s three fewer to go.';
+
+  @override
+  String get tutorialBoardShape =>
+      'Dark cells aren\'t part of the board. Pieces fall right past them.';
 
   @override
   String get tutorialGotIt => 'GOT IT';

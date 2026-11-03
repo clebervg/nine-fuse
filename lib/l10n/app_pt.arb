@@ -9,11 +9,15 @@
 
   "objectiveCreateMany": "{count, plural, =1{Crie uma peça {digit}} other{Crie {count} peças {digit}}}",
 
+  "objectiveCollect": "{count, plural, =1{Funda 1 peça {digit}} other{Funda {count} peças {digit}}}",
+
   "obstacleIceCount": "{count, plural, =1{gelo} other{gelos}}",
 
   "obstacleGlassCount": "{count, plural, =1{vidro} other{vidros}}",
 
   "obstacleStoneCount": "{count, plural, =1{pedra} other{pedras}}",
+
+  "obstacleChainCount": "{count, plural, =1{corrente} other{correntes}}",
 
   "objectiveClearObstacles": "Quebre {count} {obstacle}",
 
@@ -312,6 +316,9 @@
   "tutorialObstacleIce": "Gelo prende a peça. Uma fusão encostada nele o quebra.",
   "tutorialObstacleGlass": "Vidro aguenta duas fusões encostadas antes de quebrar.",
   "tutorialObstacleStone": "Pedra aguenta três fusões encostadas, ou cede de vez a um 9 nascido ao lado.",
+  "tutorialObstacleChain": "A corrente prende a peça no lugar: ela não troca nem cai, mas ainda combina. Alinhe com ela ou funda ao lado para soltá-la.",
+  "tutorialCollectGoal": "Aqui conta a peça que ENTRA na fusão: alinhe três dessas e já são três a menos.",
+  "tutorialBoardShape": "As casas escuras não fazem parte do tabuleiro. As peças caem por cima delas.",
   "tutorialGotIt": "ENTENDI",
   "tutorialSkip": "Pular tutorial",
   "settingsReplayTutorial": "Rever tutorial",

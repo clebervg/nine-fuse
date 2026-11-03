@@ -352,6 +352,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             if (tile != null && tile.obstacle != ObstacleType.none)
               tile.obstacle,
       },
+      collectObjective:
+          state.level.objective.type == ObjectiveType.collectDigit,
+      shapedBoard: state.board.voids.isNotEmpty,
     );
     if (step == null) return;
 
@@ -446,6 +449,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       return const [];
     }
 
+    // A primeira casa fora do formato, para o balão do tabuleiro recortado
+    // apontar o vão em vez de uma peça.
+    List<Rect> voidCell() {
+      final voids = ref.read(gameProvider).board.voids;
+      if (voids.isEmpty) return const [];
+      return only(_cellRect(voids.first));
+    }
+
     final (String message, List<Rect> Function() locate) = switch (step) {
       TutorialStep.firstSwap => (
         l10n.tutorialFirstSwap,
@@ -500,6 +511,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         l10n.tutorialObstacleStone,
         () => obstacleCell(ObstacleType.stone),
       ),
+      TutorialStep.obstacleChain => (
+        l10n.tutorialObstacleChain,
+        () => obstacleCell(ObstacleType.chain),
+      ),
+      TutorialStep.collectGoal => (
+        l10n.tutorialCollectGoal,
+        () => only(_rectOfKey(hudObjectiveKey)),
+      ),
+      TutorialStep.boardShape => (l10n.tutorialBoardShape, () => voidCell()),
     };
 
     final firstSwap = step == TutorialStep.firstSwap;

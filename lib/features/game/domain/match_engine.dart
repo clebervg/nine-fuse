@@ -149,6 +149,21 @@ class Resolution {
   int countProduced(int digit) =>
       producedDigits.where((value) => value == digit).length;
 
+  /// Quantas peças de valor [digit] as combinações desta jogada consumiram.
+  ///
+  /// É a régua do objetivo "funda N peças X": conta peça que **entrou** numa
+  /// fusão, não peça que nasceu dela ([countProduced]). Martelo, Bomba, a
+  /// conversão do Super 9 e a Nova não contam — nenhum deles é fusão, e o
+  /// objetivo pede justamente que o jogador as alinhe.
+  int countCollected(int digit) => steps.fold(
+    0,
+    (total, step) =>
+        total +
+        step.fusions
+            .where((f) => f.matchedValue == digit)
+            .fold(0, (sum, f) => sum + f.consumed.length),
+  );
+
   /// Ids de peças especiais (hoje só o Super 9) nascidas **nesta mesma
   /// resolução** — usado por `decaySpecials` para não descontar o turno de
   /// vida de uma peça que ainda não existia no início da jogada. Espelha
@@ -179,10 +194,16 @@ class FusionOutcome {
     this.events = const [],
     this.bigFusionTileIds = const {},
     this.novaEvents = const [],
+    this.obstacleHits = const [],
   });
 
   final Board board;
   final int score;
+
+  /// Correntes rompidas porque a própria peça acorrentada entrou numa
+  /// combinação. Sai daqui, e não de `_damageObstacles`, porque depois da
+  /// fusão a casa já está vazia e não sobra cobertura para contar.
+  final List<ObstacleHit> obstacleHits;
 
   /// Dígitos criados, na ordem.
   final List<int> produced;
@@ -224,10 +245,18 @@ class FusionEvent {
     required this.matchLength,
     required this.score,
     this.specialType,
+    this.matchedValue,
   });
 
   /// Todas as células da combinação, inclusive a que sobrevive.
   final List<Position> consumed;
+
+  /// O valor das peças **consumidas** pela combinação (o de antes de fundir).
+  ///
+  /// É o que o objetivo "funda N peças X" conta. Não dá para derivar de
+  /// [value]: a [FusionRule] decide o que nasce, e nada garante que seja
+  /// sempre o consumido + 1. Nulo só em eventos montados à mão em teste.
+  final int? matchedValue;
 
   /// Onde nasce a peça evoluída.
   final Position at;
@@ -405,14 +434,20 @@ class MatchEngine {
   /// A cobertura entra **depois** de o sorteio provar que há jogada, porque
   /// [placeObstacles] só cobre o que não trava a partida — checar antes daria
   /// um veredito sobre um tabuleiro que não é o que o jogador vai receber.
-  Board generateBoard({ObstacleLayout obstacles = ObstacleLayout.none}) {
+  ///
+  /// [voids] é o formato da fase (ver `BoardShape`): casas que não existem
+  /// neste tabuleiro e que nunca recebem peça.
+  Board generateBoard({
+    ObstacleLayout obstacles = ObstacleLayout.none,
+    Set<Position> voids = const {},
+  }) {
     for (int attempt = 0; attempt < _maxBoardAttempts; attempt++) {
-      final board = _generateCandidate();
+      final board = _generateCandidate(voids);
       if (hasValidMoves(board)) return placeObstacles(board, obstacles);
     }
     // Nunca observado na prática; melhor um tabuleiro jogável porém com
     // combinação pronta do que um tabuleiro sem jogada.
-    return placeObstacles(_generateCandidate(), obstacles);
+    return placeObstacles(_generateCandidate(voids), obstacles);
   }
 
   /// Espalha as coberturas de [layout] pelas casas livres de [board].
@@ -459,11 +494,12 @@ class MatchEngine {
     return result;
   }
 
-  Board _generateCandidate() {
-    var board = Board.empty();
+  Board _generateCandidate(Set<Position> voids) {
+    var board = Board.empty(voids: voids);
     for (int row = 0; row < Board.boardSize; row++) {
       for (int col = 0; col < Board.boardSize; col++) {
         final position = Position(row: row, col: col);
+        if (board.isVoid(position)) continue;
         board = board.updateTile(
           position,
           Tile(
@@ -809,7 +845,10 @@ class MatchEngine {
       final damage = _damageObstacles(current, fused.events);
       current = damage.board;
 
-      var obstacleHits = damage.hits;
+      // As correntes rompidas por dentro da combinação entram primeiro; o
+      // dano de vizinhança não as alcança (a casa já foi esvaziada ou a peça
+      // nasceu livre), então não há hit duplicado a filtrar.
+      var obstacleHits = [...fused.obstacleHits, ...damage.hits];
 
       // Bloco 9: só a fusão do jogador (primeiro passo da resolução) limpa
       // bloqueadores ao redor do 9 recém-criado. Cascatas automáticas
@@ -1092,6 +1131,7 @@ class MatchEngine {
     final bigFusions = <String>{};
     final events = <FusionEvent>[];
     final novaEvents = <NovaEvent>[];
+    final chainHits = <ObstacleHit>[];
     var novaTriggered = novaAlreadyTriggered;
     var score = 0;
 
@@ -1099,6 +1139,21 @@ class MatchEngine {
       final survivor = _fusionPosition(match, anchor);
       final tile = board.getTileAt(survivor);
       if (tile == null) continue;
+
+      // Peça acorrentada que entra na combinação rompe a corrente. Conta como
+      // quebra para o objetivo, como qualquer outra cobertura destruída.
+      for (final position in match) {
+        final member = board.getTileAt(position);
+        if (member != null && member.isAnchored) {
+          chainHits.add(
+            ObstacleHit(
+              position: position,
+              type: member.obstacle,
+              remainingHp: 0,
+            ),
+          );
+        }
+      }
 
       if (tile.value >= kMaxDigit) {
         // 3+ peças de valor 9 já existentes se alinharam. A primeira
@@ -1160,7 +1215,13 @@ class MatchEngine {
             position: position,
             specialType: SpecialTileType.superNine,
           ),
-          (true, false) => tile.copyWith(value: value),
+          // A peça que nasce da fusão nasce livre: se a sobrevivente estava
+          // acorrentada, a corrente acabou de romper (ver `chainHits`).
+          (true, false) => tile.copyWith(
+            value: value,
+            obstacle: ObstacleType.none,
+            obstacleHp: 0,
+          ),
           (false, _) => Tile(id: _newId(), value: value, position: position),
         };
         updates[position] = born;
@@ -1186,6 +1247,7 @@ class MatchEngine {
             matchLength: match.length,
             score: score - scoreBefore,
             specialType: born.specialType,
+            matchedValue: tile.value,
           ),
         );
       }
@@ -1199,6 +1261,7 @@ class MatchEngine {
       events: events,
       bigFusionTileIds: bigFusions,
       novaEvents: novaEvents,
+      obstacleHits: chainHits,
     );
   }
 
@@ -1308,7 +1371,8 @@ class MatchEngine {
         // Peça coberta interrompe a sequência como se a casa estivesse vazia:
         // ela está presa, e nada nela pode ser consumido antes de a cobertura
         // cair. É isso que obriga o jogador a atacar o obstáculo de fora.
-        final value = (tile == null || tile.isBlocked) ? null : tile.value;
+        // A corrente é a exceção: a peça acorrentada combina normalmente.
+        final value = (tile == null || tile.blocksMatch) ? null : tile.value;
 
         if (value != null && value == currentValue) {
           current.add(position);
@@ -1331,29 +1395,53 @@ class MatchEngine {
 
   /// Empurra as peças de cada coluna para baixo, preenchendo os vazios
   /// deixados pelas fusões. Os buracos passam a ficar no topo.
+  ///
+  /// Casa fora do formato do tabuleiro não segura nada: a peça cai **por
+  /// cima** dela até a próxima casa que existe. É o comportamento que o
+  /// jogador de match-3 espera de um vão, e é o que mantém a coluna inteira
+  /// alimentada pelo topo — se o vão parasse a queda, a parte de baixo só se
+  /// encheria por reposição no lugar, sem queda nenhuma para ler.
   Board applyGravity(Board board) {
     var result = board;
 
     for (int col = 0; col < Board.boardSize; col++) {
-      final column = [
-        for (int row = 0; row < Board.boardSize; row++)
-          if (board.getTileAt(Position(row: row, col: col)) case final Tile t)
-            t,
-      ];
-
+      // Peça acorrentada não cai e segura tudo o que está acima dela: a
+      // coluna se parte em trechos, e cada trecho assenta na própria base.
+      // A parte de baixo de uma corrente só se enche por reposição no lugar.
+      var segment = <int>[];
       for (int row = 0; row < Board.boardSize; row++) {
-        result = result.updateTile(Position(row: row, col: col), null);
+        final position = Position(row: row, col: col);
+        if (board.isVoid(position)) continue;
+        if (board.getTileAt(position)?.isAnchored ?? false) {
+          result = _settleSegment(result, board, col, segment);
+          segment = <int>[];
+          continue;
+        }
+        segment.add(row);
       }
-
-      // A coluna fica encostada na base: a primeira peça ocupa a linha
-      // correspondente à quantidade de vazios.
-      final offset = Board.boardSize - column.length;
-      for (int i = 0; i < column.length; i++) {
-        final position = Position(row: offset + i, col: col);
-        result = result.updateTile(position, column[i].moveTo(position));
-      }
+      result = _settleSegment(result, board, col, segment);
     }
 
+    return result;
+  }
+
+  /// Assenta as peças das linhas [rows] da coluna [col] nas últimas casas do
+  /// trecho, na mesma ordem em que estavam.
+  Board _settleSegment(Board result, Board board, int col, List<int> rows) {
+    final column = [
+      for (final row in rows)
+        if (board.getTileAt(Position(row: row, col: col)) case final Tile t) t,
+    ];
+
+    for (final row in rows) {
+      result = result.updateTile(Position(row: row, col: col), null);
+    }
+
+    final offset = rows.length - column.length;
+    for (int i = 0; i < column.length; i++) {
+      final position = Position(row: rows[offset + i], col: col);
+      result = result.updateTile(position, column[i].moveTo(position));
+    }
     return result;
   }
 

@@ -13,6 +13,10 @@ import 'package:nine_fuse/features/game/presentation/widgets/tile_widget.dart';
 /// desenho está naquele instante.
 Key tileKey(Position position) => Key('tile_${position.row}_${position.col}');
 
+/// Chave da casa fora do formato do tabuleiro, para teste.
+Key boardVoidKey(Position position) =>
+    Key('void_${position.row}_${position.col}');
+
 /// Chave do desenho de uma peça, estável enquanto ela existir.
 Key tileVisualKey(String tileId) => Key('tile_visual_$tileId');
 
@@ -344,15 +348,32 @@ class _BoardGridWidgetState extends State<BoardGridWidget>
                       // Célula vazia marcada: parece um encaixe onde a peça
                       // se apoia, e dá ao tabuleiro textura mesmo quando uma
                       // peça está no ar durante a queda.
+                      //
+                      // Casa fora do formato da fase é o oposto: um poço mais
+                      // escuro que o fundo, sem encaixe. Deixá-la só sem o
+                      // encaixe a faria ler como "célula vazia esperando
+                      // peça", e o jogador ficaria esperando a reposição.
                       child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          // Lilás quase transparente sobre o navy: o encaixe
-                          // aparece sem competir com a arte da peça.
-                          color: const Color(
-                            0xFF788CFF,
-                          ).withValues(alpha: 0.07),
-                          borderRadius: BorderRadius.circular(9),
-                        ),
+                        key: widget.board.isVoid(Position(row: row, col: col))
+                            ? boardVoidKey(Position(row: row, col: col))
+                            : null,
+                        decoration:
+                            widget.board.isVoid(Position(row: row, col: col))
+                            ? BoxDecoration(
+                                color: const Color(
+                                  0xFF03061A,
+                                ).withValues(alpha: 0.85),
+                                borderRadius: BorderRadius.circular(9),
+                              )
+                            : BoxDecoration(
+                                // Lilás quase transparente sobre o navy: o
+                                // encaixe aparece sem competir com a arte da
+                                // peça.
+                                color: const Color(
+                                  0xFF788CFF,
+                                ).withValues(alpha: 0.07),
+                                borderRadius: BorderRadius.circular(9),
+                              ),
                       ),
                     ),
 
@@ -426,35 +447,37 @@ class _BoardGridWidgetState extends State<BoardGridWidget>
                     ),
                   ),
 
-                // Áreas tocáveis por cima, endereçadas por posição.
+                // Áreas tocáveis por cima, endereçadas por posição. Casa fora
+                // do formato não tem área: um toque ali não é jogada.
                 for (int row = 0; row < Board.boardSize; row++)
                   for (int col = 0; col < Board.boardSize; col++)
-                    Positioned(
-                      left: geometry.left(col),
-                      top: geometry.top(row),
-                      width: tileSize,
-                      height: tileSize,
-                      child: Builder(
-                        builder: (context) {
-                          final cell = Position(row: row, col: col);
-                          return GestureDetector(
-                            key: tileKey(cell),
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () => widget.onTileTap?.call(cell),
-                            onPanStart: (_) {
-                              _drag = Offset.zero;
-                              _dragResolved = false;
-                            },
-                            onPanUpdate: (details) =>
-                                _onDragUpdate(cell, details.delta, tileSize),
-                            onPanEnd: (_) {
-                              _drag = Offset.zero;
-                              _dragResolved = false;
-                            },
-                          );
-                        },
+                    if (!widget.board.isVoid(Position(row: row, col: col)))
+                      Positioned(
+                        left: geometry.left(col),
+                        top: geometry.top(row),
+                        width: tileSize,
+                        height: tileSize,
+                        child: Builder(
+                          builder: (context) {
+                            final cell = Position(row: row, col: col);
+                            return GestureDetector(
+                              key: tileKey(cell),
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => widget.onTileTap?.call(cell),
+                              onPanStart: (_) {
+                                _drag = Offset.zero;
+                                _dragResolved = false;
+                              },
+                              onPanUpdate: (details) =>
+                                  _onDragUpdate(cell, details.delta, tileSize),
+                              onPanEnd: (_) {
+                                _drag = Offset.zero;
+                                _dragResolved = false;
+                              },
+                            );
+                          },
+                        ),
                       ),
-                    ),
               ],
             ),
           ),
