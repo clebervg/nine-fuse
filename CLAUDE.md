@@ -2201,8 +2201,10 @@ sobrevivente acorrentada nasce livre. Há teste para os dois.
   gelo de fases já calibradas.
 - Blocos ímpares pedem "quebre 2 correntes" na posição 8
   (`kChainMovesPerUnit = 7`, 65-73% com o bot).
-- Sprite `obstacle_chain_1.png`, vetorial: `tool/gen_chain_sprite.py` gera
-  `docs/brand/obstacle_chain.svg` e o `rsvg-convert` o rasteriza. A corrente
+- Sprite `obstacle_chain_1.png` desenhado no Claude Design (2026-11-03), a
+  partir do prompt que descrevia a versão vetorial anterior; a primeira
+  versão saía de `tool/gen_chain_sprite.py` → `docs/brand/obstacle_chain.svg`
+  → `rsvg-convert`, que ficam como fonte de reserva. A corrente
   **contorna a borda** da face em vez de cruzar em X — o X passaria pelo
   centro, onde mora o número, e a peça acorrentada combina: o jogador precisa
   ler o valor. O cadeado fica no canto pelo mesmo motivo. A fonte não fica em

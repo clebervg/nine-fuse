@@ -1,5 +1,8 @@
 """Gera o SVG do obstáculo Corrente (256x256, encaixe na face da peça).
 
+Reserva: o sprite em uso desde 2026-11-03 veio do Claude Design. Rodar
+isto sobrescreve a arte final com a versão vetorial antiga.
+
 Uso (o rsvg-convert é o mesmo do pipeline de ícones: `brew install librsvg`):
 
     python3 tool/gen_chain_sprite.py docs/brand/obstacle_chain.svg
