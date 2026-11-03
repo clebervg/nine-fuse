@@ -38,7 +38,8 @@ done
 #  - build.gradle.kts: App ID de debug (manifestPlaceholders)
 #  - Info.plist: App ID do iOS, até o app iOS ser cadastrado no AdMob
 #  - docs, README, CLAUDE.md, este script e os testes: só o mencionam
-ALLOWED='^(lib/core/ads/ad_ids\.dart|android/app/build\.gradle\.kts|ios/Runner/Info\.plist|docs/.*|README\.md|CLAUDE\.md|tool/check_admob_ids\.sh|test/.*)$'
+#  - build_release.sh: cita o prefixo justamente para recusá-lo
+ALLOWED='^(lib/core/ads/ad_ids\.dart|android/app/build\.gradle\.kts|ios/Runner/Info\.plist|docs/.*|README\.md|CLAUDE\.md|tool/check_admob_ids\.sh|tool/build_release\.sh|test/.*)$'
 
 fail=0
 warn=0
