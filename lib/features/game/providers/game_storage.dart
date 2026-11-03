@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:nine_fuse/features/game/domain/daily_ad_count.dart';
+import 'package:nine_fuse/features/game/domain/game_settings.dart';
 import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -80,6 +82,27 @@ abstract interface class GameStorage {
   /// migração nem valor de fachada.
   Future<DateTime?> readLastSpinTimestamp();
   Future<void> writeLastSpinTimestamp(DateTime value);
+
+  /// Martelos ganhos por vídeo, com o dia (local) em que foram contados.
+  ///
+  /// O dia viaja junto porque é ele que zera o teto (`kMaxHammerAdsPerDay`):
+  /// lido em outro dia, o contador vale zero, sem tarefa de meia-noite.
+  Future<DailyAdCount> readHammerAdGrants();
+  Future<void> writeHammerAdGrants(DailyAdCount value);
+
+  /// Som, música, vibração e idioma.
+  ///
+  /// Cada campo ilegível volta ao seu padrão **sozinho**: um volume corrompido
+  /// não pode religar a vibração que o jogador desligou.
+  Future<GameSettings> readSettings();
+  Future<void> writeSettings(GameSettings settings);
+
+  /// Nomes dos passos do tutorial que o jogador já viu.
+  ///
+  /// Strings, e não o enum: um passo removido numa versão futura vira um nome
+  /// que ninguém procura, em vez de uma leitura que estoura.
+  Future<Set<String>> readTutorialSeen();
+  Future<void> writeTutorialSeen(Set<String> steps);
 }
 
 /// Persistência real, no armazenamento do dispositivo.
@@ -97,6 +120,14 @@ class PrefsGameStorage implements GameStorage {
   static const String _coinsKey = 'wallet_coins';
   static const String _chestsKey = 'campaign_chests_claimed';
   static const String _lastSpinKey = 'daily_spin_last_timestamp';
+  static const String _hammerAdDayKey = 'hammer_ad_grants_day';
+  static const String _hammerAdCountKey = 'hammer_ad_grants_count';
+  static const String _soundOnKey = 'settings_sound_on';
+  static const String _soundVolumeKey = 'settings_sound_volume';
+  static const String _musicOnKey = 'settings_music_on';
+  static const String _vibrationOnKey = 'settings_vibration_on';
+  static const String _languageKey = 'settings_language';
+  static const String _tutorialKey = 'tutorial_seen_steps';
 
   @override
   Future<int> readCampaignProgress() async =>
@@ -212,10 +243,7 @@ class PrefsGameStorage implements GameStorage {
 
   @override
   Future<void> writeArchivedStars(int stars) async =>
-      (await SharedPreferences.getInstance()).setInt(
-        _archivedStarsKey,
-        stars,
-      );
+      (await SharedPreferences.getInstance()).setInt(_archivedStarsKey, stars);
 
   @override
   Future<int> readPrunedBelow() async =>
@@ -230,9 +258,7 @@ class PrefsGameStorage implements GameStorage {
 
   @override
   Future<DateTime?> readLastSpinTimestamp() async {
-    final millis = (await SharedPreferences.getInstance()).getInt(
-      _lastSpinKey,
-    );
+    final millis = (await SharedPreferences.getInstance()).getInt(_lastSpinKey);
     if (millis == null) return null;
     return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
   }
@@ -242,6 +268,82 @@ class PrefsGameStorage implements GameStorage {
       (await SharedPreferences.getInstance()).setInt(
         _lastSpinKey,
         value.toUtc().millisecondsSinceEpoch,
+      );
+
+  @override
+  Future<DailyAdCount> readHammerAdGrants() async {
+    final prefs = await SharedPreferences.getInstance();
+    final day = prefs.getString(_hammerAdDayKey);
+    if (day == null) return DailyAdCount.empty;
+    return DailyAdCount(day: day, count: prefs.getInt(_hammerAdCountKey) ?? 0);
+  }
+
+  @override
+  Future<void> writeHammerAdGrants(DailyAdCount value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_hammerAdDayKey, value.day);
+    await prefs.setInt(_hammerAdCountKey, value.count);
+  }
+
+  @override
+  Future<GameSettings> readSettings() async {
+    const defaults = GameSettings();
+    final SharedPreferences prefs;
+    try {
+      prefs = await SharedPreferences.getInstance();
+    } catch (error) {
+      debugPrint('Configurações ilegíveis, usando o padrão: $error');
+      return defaults;
+    }
+    // Um tipo trocado no disco (versão antiga, edição manual) faz o
+    // `getBool` lançar; cada campo cai no padrão por conta própria.
+    T? read<T>(T? Function() get) {
+      try {
+        return get();
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final volume = read(() => prefs.getDouble(_soundVolumeKey));
+    return GameSettings(
+      soundOn: read(() => prefs.getBool(_soundOnKey)) ?? defaults.soundOn,
+      soundVolume: volume == null || volume.isNaN
+          ? defaults.soundVolume
+          : volume.clamp(0.0, 1.0),
+      musicOn: read(() => prefs.getBool(_musicOnKey)) ?? defaults.musicOn,
+      vibrationOn:
+          read(() => prefs.getBool(_vibrationOnKey)) ?? defaults.vibrationOn,
+      language: AppLanguage.fromCode(read(() => prefs.getString(_languageKey))),
+    );
+  }
+
+  @override
+  Future<void> writeSettings(GameSettings settings) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_soundOnKey, settings.soundOn);
+    await prefs.setDouble(_soundVolumeKey, settings.soundVolume);
+    await prefs.setBool(_musicOnKey, settings.musicOn);
+    await prefs.setBool(_vibrationOnKey, settings.vibrationOn);
+    final code = settings.language.code;
+    if (code == null) {
+      await prefs.remove(_languageKey);
+    } else {
+      await prefs.setString(_languageKey, code);
+    }
+  }
+
+  @override
+  Future<Set<String>> readTutorialSeen() async =>
+      ((await SharedPreferences.getInstance()).getStringList(_tutorialKey) ??
+              const <String>[])
+          .toSet();
+
+  @override
+  Future<void> writeTutorialSeen(Set<String> steps) async =>
+      (await SharedPreferences.getInstance()).setStringList(
+        _tutorialKey,
+        steps.toList(),
       );
 }
 
@@ -257,9 +359,13 @@ class InMemoryGameStorage implements GameStorage {
     this.archivedStars = 0,
     this.prunedBelow = 0,
     this.lastSpinTimestamp,
+    this.hammerAdGrants = DailyAdCount.empty,
+    this.settings = const GameSettings(),
+    Set<String>? tutorialSeen,
     Set<int>? claimedChests,
     Map<int, LevelRecord>? levelRecords,
-  }) : claimedChests = claimedChests ?? {},
+  }) : tutorialSeen = tutorialSeen ?? {},
+       claimedChests = claimedChests ?? {},
        levelRecords = levelRecords ?? {};
 
   int campaignProgress;
@@ -271,6 +377,9 @@ class InMemoryGameStorage implements GameStorage {
   int archivedStars;
   int prunedBelow;
   DateTime? lastSpinTimestamp;
+  DailyAdCount hammerAdGrants;
+  GameSettings settings;
+  Set<String> tutorialSeen;
   Set<int> claimedChests;
   Map<int, LevelRecord> levelRecords;
 
@@ -345,4 +454,24 @@ class InMemoryGameStorage implements GameStorage {
   @override
   Future<void> writeLastSpinTimestamp(DateTime value) async =>
       lastSpinTimestamp = value;
+
+  @override
+  Future<DailyAdCount> readHammerAdGrants() async => hammerAdGrants;
+
+  @override
+  Future<void> writeHammerAdGrants(DailyAdCount value) async =>
+      hammerAdGrants = value;
+
+  @override
+  Future<GameSettings> readSettings() async => settings;
+
+  @override
+  Future<void> writeSettings(GameSettings value) async => settings = value;
+
+  @override
+  Future<Set<String>> readTutorialSeen() async => Set.of(tutorialSeen);
+
+  @override
+  Future<void> writeTutorialSeen(Set<String> steps) async =>
+      tutorialSeen = Set.of(steps);
 }

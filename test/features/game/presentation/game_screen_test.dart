@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
@@ -105,7 +105,7 @@ void main() {
   ) async {
     await pumpGame(tester);
 
-    expect(find.text('Fase 42'), findsOneWidget);
+    expect(find.text('FASE 42'), findsOneWidget);
     expect(find.text('Crie 9 peças 8'), findsOneWidget);
     expect(find.text('0 de 9'), findsOneWidget);
     expect(find.text('500'), findsOneWidget);
@@ -172,7 +172,7 @@ void main() {
 
     expect(notifier.state.status, GameStatus.won);
     expect(find.byKey(const Key('level_outcome')), findsOneWidget);
-    expect(find.text('FASE CONCLUÍDA!'), findsOneWidget);
+    expect(find.text('CONCLUÍDA!'), findsOneWidget);
     expect(find.byKey(starsKey), findsOneWidget);
   });
 
@@ -368,7 +368,7 @@ void main() {
     expect(counter.data, '0');
     expect(
       counter.style?.color,
-      isNot(AppColors.digit0),
+      isNot(NfColors.alert),
       reason: 'o contador não deveria seguir vermelho após o fim da fase',
     );
   });
@@ -386,7 +386,7 @@ void main() {
 
     final counter = tester.widget<Text>(find.byKey(movesLeftKey));
     expect(counter.data, '3');
-    expect(counter.style?.color, AppColors.digit0);
+    expect(counter.style?.color, NfColors.alert);
   });
 
   testWidgets('cabe numa tela pequena sem estourar o layout', (tester) async {

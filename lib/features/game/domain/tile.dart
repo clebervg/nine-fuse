@@ -84,6 +84,13 @@ class Tile {
   );
 
   /// A peça está presa por uma cobertura.
+  /// A peça fica fora das combinações enquanto a cobertura durar (gelo,
+  /// vidro, pedra). A corrente prende a peça, mas a deixa combinar.
+  bool get blocksMatch => obstacle.blocksMatch;
+
+  /// A peça não cai com a gravidade (corrente).
+  bool get isAnchored => obstacle.isAnchored;
+
   bool get isBlocked => obstacle != ObstacleType.none;
 
   /// A cobertura já levou pelo menos um impacto — o vidro usa isto para

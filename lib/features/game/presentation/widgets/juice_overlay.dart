@@ -566,6 +566,8 @@ class _ObstacleShatterState extends State<ObstacleShatter>
   Color get _color => switch (widget.type) {
     ObstacleType.stone => const Color(0xFF9AA0A6),
     ObstacleType.glass => const Color(0xFFE8F1F8),
+    // Elos de ouro: a corrente rompida solta faíscas na cor do próprio aro.
+    ObstacleType.chain => const Color(0xFFE0B45A),
     _ => const Color(0xFFBFEBFF),
   };
 
@@ -836,4 +838,3 @@ class _SupernovaEventState extends State<_SupernovaEvent>
     );
   }
 }
-

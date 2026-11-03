@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/nova_event.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
@@ -91,25 +92,32 @@ void main() {
     expect(notifier.state.novaCoinsGranted, before + kNovaCoinsTier1);
   });
 
-  test('a Nova credita +1 booster, Bomba ou Pincel — nunca o Martelo', () async {
-    final bombBefore = notifier.state.bombCount;
-    final brushBefore = notifier.state.brushCount;
-    final hammerBefore = notifier.state.hammerCount;
+  test(
+    'a Nova credita +1 booster, Bomba ou Pincel — nunca o Martelo',
+    () async {
+      final bombBefore = notifier.state.bombCount;
+      final brushBefore = notifier.state.brushCount;
+      final hammerBefore = notifier.state.hammerCount;
 
-    await playTrio();
+      await playTrio();
 
-    final bombGained = notifier.state.bombCount - bombBefore;
-    final brushGained = notifier.state.brushCount - brushBefore;
+      final bombGained = notifier.state.bombCount - bombBefore;
+      final brushGained = notifier.state.brushCount - brushBefore;
 
-    expect(
-      bombGained + brushGained,
-      1,
-      reason: 'exatamente um dos dois boosters ganha +1',
-    );
-    expect(bombGained, anyOf(0, 1));
-    expect(brushGained, anyOf(0, 1));
-    expect(notifier.state.hammerCount, hammerBefore, reason: 'nunca o martelo');
-  });
+      expect(
+        bombGained + brushGained,
+        1,
+        reason: 'exatamente um dos dois boosters ganha +1',
+      );
+      expect(bombGained, anyOf(0, 1));
+      expect(brushGained, anyOf(0, 1));
+      expect(
+        notifier.state.hammerCount,
+        hammerBefore,
+        reason: 'nunca o martelo',
+      );
+    },
+  );
 
   test('o hitstop da Nova é aguardado antes do resto da encenação', () async {
     final waited = <Duration>[];
@@ -131,5 +139,23 @@ void main() {
     // choque e o tranco de tela nasceriam no mesmo quadro da fusão, sem a
     // pausa dramática que o desenho da Nova pede.
     expect(waited, contains(JuiceTimings.novaHitstop));
+  });
+
+  test('com o estoque no teto, o booster da Nova vira kCoinsPerOverflowBooster '
+      'moedas', () async {
+    // Prêmio grátis passa pelo teto (`capBoosterReward`), como a roleta:
+    // os dois boosters cheios garantem o caso qualquer que seja o sorteio.
+    notifier.grantBomb(count: kMaxBoosterStock);
+    notifier.grantBrush(count: kMaxBoosterStock);
+    final coinsBefore = notifier.state.novaCoinsGranted;
+
+    await playTrio();
+
+    expect(notifier.state.bombCount, kMaxBoosterStock);
+    expect(notifier.state.brushCount, kMaxBoosterStock);
+    expect(
+      notifier.state.novaCoinsGranted,
+      coinsBefore + kNovaCoinsTier1 + kCoinsPerOverflowBooster,
+    );
   });
 }

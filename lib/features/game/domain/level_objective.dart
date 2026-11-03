@@ -22,6 +22,16 @@ enum ObjectiveType {
   /// tabuleiro entregou podem não coincidir. Pedir "todas" sobre um número fixo
   /// tornaria a fase impossível justamente quando o motor foi conservador.
   clearAllObstacles,
+
+  /// Fundir N peças de um dígito: conta peça **consumida** por combinação.
+  ///
+  /// É o avesso de [reachDigit]: lá o dígito é o que nasce, aqui é o que
+  /// entra. Por isso o alvo pode ficar dentro da janela de sorteio — receber o
+  /// dígito do topo não cumpre nada sozinho, o jogador ainda tem de alinhá-lo.
+  /// Existe para dar às fases longas uma meta que não satura em 9: pedir
+  /// "funda 24 peças 5" é tão diferente de "crie dois 9" quanto o jogo
+  /// precisa, sem nenhuma regra nova no tabuleiro.
+  collectDigit,
 }
 
 /// O que uma fase pede do jogador.
@@ -38,6 +48,13 @@ class Objective {
     : type = ObjectiveType.reachDigit,
       obstacle = ObstacleType.none,
       assert(digit >= 0 && digit <= kMaxDigit),
+      assert(count >= 1);
+
+  /// Fundir [count] peças de [digit] (ver [ObjectiveType.collectDigit]).
+  const Objective.collect({required int this.digit, required this.count})
+    : type = ObjectiveType.collectDigit,
+      obstacle = ObstacleType.none,
+      assert(digit >= 0 && digit < kMaxDigit),
       assert(count >= 1);
 
   /// Destruir [count] coberturas de [obstacle].
@@ -94,6 +111,7 @@ class Objective {
       count == 1 ? 'Crie um $digit' : 'Crie $count peças $digit',
     ObjectiveType.clearObstacles => 'Quebre $count ${obstacle.name}',
     ObjectiveType.clearAllObstacles => 'Limpe todo ${obstacle.name}',
+    ObjectiveType.collectDigit => 'Funda $count peças $digit',
   };
 
   @override

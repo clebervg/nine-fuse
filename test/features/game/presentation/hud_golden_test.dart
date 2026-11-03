@@ -13,6 +13,7 @@ import 'package:nine_fuse/features/game/presentation/widgets/level_outcome_card.
 import 'package:nine_fuse/features/game/providers/game_state.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 import '../../../support/localized.dart';
+import '../../../support/game_fonts.dart';
 
 /// Referência visual do HUD e da caixa de mensagem.
 ///
@@ -29,6 +30,7 @@ Future<void> _loadFonts() async {
     loader.addFont(rootBundle.load('assets/fonts/Nunito-$weight.ttf'));
   }
   await loader.load();
+  await loadNfFonts();
 
   // Sem a MaterialIcons, o alvo, o troféu, o raio e as estrelas viram
   // quadrados — e as pílulas do HUD são feitas justamente desses símbolos.

@@ -80,20 +80,17 @@ void main() {
       expect(wallet.state.coins, kChapterChestReward * 2);
     });
 
-    test('capítulo acima do teto não paga', () async {
+    test('capítulo acima do baú grande paga o baú menor, uma vez', () async {
       final storage = InMemoryGameStorage();
       final wallet = WalletNotifier(storage: storage);
       await wallet.refresh();
 
-      expect(
-        wallet.claimChapterChest(kChapterChestPayableCount + 1),
-        isFalse,
-      );
-      expect(wallet.state.coins, 0);
-      expect(
-        wallet.state.hasClaimedChest(kChapterChestPayableCount + 1),
-        isFalse,
-      );
+      const late = kChapterChestPayableCount + 1;
+      expect(wallet.claimChapterChest(late), isTrue);
+      expect(wallet.state.coins, kLateChapterChestReward);
+      expect(wallet.state.hasClaimedChest(late), isTrue);
+      expect(wallet.claimChapterChest(late), isFalse);
+      expect(wallet.state.coins, kLateChapterChestReward);
     });
 
     test('capítulo exatamente no teto ainda paga', () async {
@@ -115,26 +112,36 @@ void main() {
       expect(wallet.state.hasClaimedChest(0), isFalse);
     });
 
-    test(
-      'claimedChests nunca cresce além do teto, mesmo tentando vários '
-      'capítulos futuros em sequência',
-      () async {
-        final storage = InMemoryGameStorage();
-        final wallet = WalletNotifier(storage: storage);
-        await wallet.refresh();
+    test('cada capítulo depois do 20 paga o baú menor uma vez só', () async {
+      final storage = InMemoryGameStorage();
+      final wallet = WalletNotifier(storage: storage);
+      await wallet.refresh();
 
-        for (
-          var chapter = kChapterChestPayableCount + 1;
-          chapter <= kChapterChestPayableCount + 20;
-          chapter++
-        ) {
-          wallet.claimChapterChest(chapter);
-        }
+      for (
+        var chapter = kChapterChestPayableCount + 1;
+        chapter <= kChapterChestPayableCount + 20;
+        chapter++
+      ) {
+        wallet.claimChapterChest(chapter);
+        wallet.claimChapterChest(chapter); // toque duplo não repaga
+      }
 
-        expect(wallet.state.coins, 0);
-        expect(wallet.state.claimedChests, isEmpty);
-      },
-    );
+      expect(wallet.state.coins, kLateChapterChestReward * 20);
+      expect(wallet.state.claimedChests, hasLength(20));
+      expect(storage.claimedChests, hasLength(20));
+    });
+
+    test('chapterChestReward: grande até o 20, menor depois, nada no 0', () {
+      expect(chapterChestReward(0), 0);
+      expect(chapterChestReward(1), kChapterChestReward);
+      expect(chapterChestReward(kChapterChestPayableCount), kChapterChestReward);
+      expect(
+        chapterChestReward(kChapterChestPayableCount + 1),
+        kLateChapterChestReward,
+      );
+      expect(chapterChestReward(500), kLateChapterChestReward);
+      expect(kLateChapterChestReward, lessThan(kChapterChestReward));
+    });
 
     test('falha de disco vale como saldo vazio, sem propagar', () async {
       final wallet = WalletNotifier(storage: _BrokenStorage());

@@ -303,7 +303,10 @@ void _reportCampaign({required int games}) {
       );
       final chooser = Random(1000 + seed);
 
-      var board = engine.generateBoard(obstacles: level.obstacles);
+      var board = engine.generateBoard(
+        obstacles: level.obstacles,
+        voids: level.shape.voids,
+      );
       final target = _targetOf(level, board);
       var produced = 0;
       var moves = 0;
@@ -397,7 +400,10 @@ void _reportEfficiency({required int games}) {
         spawnMax: level.spawnMax,
       );
 
-      var board = engine.generateBoard(obstacles: level.obstacles);
+      var board = engine.generateBoard(
+        obstacles: level.obstacles,
+        voids: level.shape.voids,
+      );
       final target = _targetOf(level, board);
       var produced = 0;
       var moves = 0;
@@ -749,26 +755,21 @@ void main(List<String> args) {
     print('# próprio gerador escolheu. Meta: 70-90%.');
     print('#' * 62);
 
+    // `--levels=12,15,20` mede só as fases pedidas — é o que a calibragem
+    // de uma constante nova usa, sem rodar a amostra inteira a cada ajuste.
+    final levelsArg = args.firstWhere(
+      (a) => a.startsWith('--levels='),
+      orElse: () => '',
+    );
     _reportGeneratedLevels(
       games: games,
-      // A amostra cobre os **três** arquétipos de objetivo em bloco baixo,
-      // médio e alto. A amostra anterior (11, 25, 50, 100, 250, 500, 1000)
-      // era cega: cinco das sete fases caíam na posição 9 do bloco, o fecho
-      // "limpe tudo", então cinco linhas mediam o mesmo arquétipo e nenhuma
-      // media as fases de "quebre N coberturas".
-      //
-      // As posições dentro do bloco são o que escolhe o arquétipo: 0-6 são
-      // dígito, 7-8 são "quebre N", 9 é "limpe tudo".
-      numbers: const [
-        14, 22, 96, 103, 253, 1003, // dígito: blocos 0, 1, 8, 9, 24 e 99
-        18, 108, 1008, // quebre N coberturas: blocos 0, 9 e 99
-        20, 100, 1000, // limpe tudo: blocos 0, 8 e 98
-        // Bloco 11: primeiro em que a janela cíclica (`_spawnMinFor`) volta ao
-        // degrau baixo (2-5) depois de já ter subido — é a combinação que
-        // escapava do teto de contagem antes de [kHeavyDigitDistanceThreshold]
-        // existir (fase 124 media 0% mesmo no piso de movimentos escolhido).
-        122, 124,
-      ],
+      numbers: levelsArg.isNotEmpty
+          ? [
+              for (final n
+                  in levelsArg.substring('--levels='.length).split(','))
+                int.parse(n.trim()),
+            ]
+          : _generatedSample,
     );
   }
 
@@ -810,6 +811,27 @@ void main(List<String> args) {
   print('');
 }
 
+/// Amostra padrão do modo `generated`, escolhida por **posição no bloco** —
+/// é a posição, e não o número redondo, que decide o arquétipo:
+///
+/// - 0, 2, 5: crie um dígito (matriz inteira);
+/// - 1, 4, 7: idem ou quebre N, em tabuleiro recortado (`shapeForLevel`);
+/// - 3: funda N peças dentro da janela; 6 (do bloco 1 em diante): acima dela;
+/// - 7-8: quebre N coberturas; 9: fecho de capítulo, que roda entre limpe
+///   tudo, coleta grande, ápice e coleta acima da janela (bloco % 4).
+///
+/// Cobre blocos baixo, médio e alto, e o bloco 11 em que a janela cíclica
+/// volta ao degrau 2-5 (onde a fase 124 já mediu 0%).
+const List<int> _generatedSample = [
+  11, 13, 16, 103, 1003, // crie um dígito, matriz inteira
+  12, 15, 102, 115, 1002, // formatos no corpo do bloco
+  14, 24, 104, 1004, // funda N dentro da janela
+  27, 107, 1007, // funda N acima da janela
+  18, 108, 1008, // quebre N coberturas
+  20, 30, 40, 50, 100, 110, 120, 130, 1000, // os quatro fechos de capítulo
+  122, 124,
+];
+
 /// O alvo do objetivo desta fase, medido no tabuleiro sorteado.
 ///
 /// Em `clearAllObstacles` o pedido da fase não serve: `placeObstacles` descarta
@@ -831,9 +853,10 @@ int _gainOf(GameLevel level, Resolution resolution) =>
       ObjectiveType.reachDigit => resolution.countProduced(
         level.objective.digit!,
       ),
-      ObjectiveType.clearObstacles ||
-      ObjectiveType.clearAllObstacles => resolution.countCleared(
-        level.objective.obstacle,
+      ObjectiveType.clearObstacles || ObjectiveType.clearAllObstacles =>
+        resolution.countCleared(level.objective.obstacle),
+      ObjectiveType.collectDigit => resolution.countCollected(
+        level.objective.digit!,
       ),
     };
 
@@ -918,20 +941,25 @@ void _reportGeneratedLevels({
   required List<int> numbers,
 }) {
   print('');
-  print('  ${_pad('fase', 8)}${_pad('objetivo', 24)}'
-      '${_padLeft('janela', 10)}${_padLeft('mov', 7)}${_padLeft('vitórias', 11)}');
-  print('  ${'-' * 60}');
+  print(
+    '  ${_pad('fase', 8)}${_pad('objetivo', 24)}${_pad('formato', 12)}'
+    '${_padLeft('janela', 10)}${_padLeft('mov', 7)}${_padLeft('vitórias', 11)}',
+  );
+  print('  ${'-' * 72}');
 
   for (final number in numbers) {
     final level = generateLevel(number);
     final wins = _simulateGeneratedLevel(level: level, games: games);
 
     final rate = (wins / games * 100).toStringAsFixed(0);
-    print('  ${_pad('$number', 8)}'
-        '${_pad(level.objective.debugLabel, 24)}'
-        '${_padLeft('${level.spawnMin}-${level.spawnMax}', 10)}'
-        '${_padLeft('${level.moveLimit}', 7)}'
-        '${_padLeft('$rate%', 11)}');
+    print(
+      '  ${_pad('$number', 8)}'
+      '${_pad(level.objective.debugLabel, 24)}'
+      '${_pad(level.shape.name, 12)}'
+      '${_padLeft('${level.spawnMin}-${level.spawnMax}', 10)}'
+      '${_padLeft('${level.moveLimit}', 7)}'
+      '${_padLeft('$rate%', 11)}',
+    );
   }
 
   print('');
@@ -952,7 +980,10 @@ int _simulateGeneratedLevel({required GameLevel level, required int games}) {
       spawnMax: level.spawnMax,
     );
 
-    var board = engine.generateBoard(obstacles: level.obstacles);
+    var board = engine.generateBoard(
+      obstacles: level.obstacles,
+      voids: level.shape.voids,
+    );
 
     // `_targetOf` e `_gainOf` já existem no arquivo e já sabem tratar os três
     // tipos de objetivo — inclusive o alvo de "limpe todas", que sai do

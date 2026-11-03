@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
-import 'package:nine_fuse/features/game/presentation/widgets/glass_panel.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
+import 'package:nine_fuse/core/widgets/nf_text.dart';
 
 /// Duração de uma batida da pílula em alerta.
 ///
@@ -58,15 +58,12 @@ class GameMetricCard extends StatelessWidget {
   /// Aperta o espaçamento, para quando três pílulas dividem uma tela de 375pt.
   final bool compact;
 
-  /// Promove a pílula a cartão principal do HUD.
+  /// Destaca levemente a pílula (borda neutra um pouco mais clara).
   ///
-  /// Três caixas do mesmo tamanho, com a mesma borda e o mesmo peso, dizem que
-  /// as três informações valem o mesmo — e não valem: os pontos são placar, o
-  /// objetivo é consulta, e o **saldo de movimentos** é o relógio que decide a
-  /// fase. O destaque é o que dá hierarquia sem precisar de um rótulo dizendo
-  /// "olhe aqui": borda mais acesa (a própria `accent`, âmbar neste card) e
-  /// número maior — sem uma segunda moldura por fora, que era o antigo aro em
-  /// degradê.
+  /// O HUD da campanha não usa mais pílula para o saldo de movimentos — ele
+  /// virou o medalhão central do `LevelBanner` —, mas o parâmetro fica para
+  /// quem precisar de uma métrica principal sem recorrer a cor: a cor da borda
+  /// é reservada ao alerta.
   final bool hero;
 
   /// Corpo do número, quando o padrão da pílula não serve.
@@ -74,19 +71,34 @@ class GameMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ring = urgent ? AppColors.digit0 : accent;
-
-    // Vidro fosco em vez do aro-degradê + caixa dupla de antes: a hierarquia
-    // (objetivo/pontos vs. o "relógio" da fase) agora vem só da cor da borda e
-    // do tamanho da fonte, não de uma segunda moldura por fora.
-    final pill = GlassPanel(
-      borderRadius: 14.5,
+    // Borda neutra (branco a 12%) e cor só no ícone: com o tabuleiro em moldura
+    // de ouro e peças coloridas, um aro tingido em cada métrica disputava a
+    // atenção com o que importa. A única exceção é o alerta — aí a borda
+    // **tem** de chamar o olho, e por isso só ela ganha cor e neon.
+    final base = NfDecorations.card(radius: NfRadii.sm);
+    final pill = Container(
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 10 : 14,
-        vertical: compact ? 8 : 10,
+        horizontal: compact ? 8 : 12,
+        vertical: compact ? 7 : 9,
       ),
-      tint: ring,
-      emphasis: hero,
+      decoration: base.copyWith(
+        border: Border.all(
+          color: urgent
+              ? NfColors.alert
+              : Colors.white.withValues(alpha: hero ? 0.18 : 0.12),
+          width: 1.5,
+        ),
+        // Neon só na urgência: sombra acesa o tempo todo vira papel de
+        // parede, e o alerta deixa de ter para onde subir.
+        boxShadow: urgent
+            ? [
+                BoxShadow(
+                  color: NfColors.alert.withValues(alpha: 0.55),
+                  blurRadius: 12,
+                ),
+              ]
+            : null,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -98,22 +110,24 @@ class GameMetricCard extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: compact ? 13 : 14, color: ring),
+                Icon(
+                  icon,
+                  size: compact ? 13 : 14,
+                  color: urgent ? NfColors.alert : accent,
+                ),
                 const SizedBox(width: 5),
                 Text(
                   label,
                   maxLines: 1,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.62),
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.7,
-                  ),
+                  style: NfText.styleFor(
+                    NfTextVariant.label,
+                    size: 10.5,
+                  ).copyWith(letterSpacing: 1.2, color: NfColors.textMuted),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 4),
           // Encolhe em vez de cortar: um placar com reticências não é placar.
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -123,11 +137,11 @@ class GameMetricCard extends StatelessWidget {
                   value!,
                   maxLines: 1,
                   style: TextStyle(
-                    fontFamily: AppFonts.display,
-                    color: urgent ? AppColors.digit0 : Colors.white,
-                    fontSize: valueFontSize ?? (compact ? 20 : 22),
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.2,
+                    fontFamily: AppFonts.number,
+                    color: urgent ? NfColors.alert : Colors.white,
+                    fontSize: valueFontSize ?? (compact ? 21 : 23),
+                    fontWeight: FontWeight.w800,
+                    height: 1.1,
                   ),
                 ),
           ),

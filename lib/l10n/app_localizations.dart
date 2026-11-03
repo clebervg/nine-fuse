@@ -122,6 +122,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Create one {digit} tile} other{Create {count} {digit} tiles}}'**
   String objectiveCreateMany(int count, int digit);
 
+  /// Objetivo de fundir (consumir em combinações) N peças de um dígito. Diferente de 'Crie': aqui conta a peça que entra na fusão, não a que nasce.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Fuse 1 {digit} tile} other{Fuse {count} {digit} tiles}}'**
+  String objectiveCollect(int count, int digit);
+
   /// Nome do gelo com a quantidade implícita. O plural fica em ICU porque cada idioma pluraliza a sua palavra.
   ///
   /// In en, this message translates to:
@@ -139,6 +145,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{stone} other{stones}}'**
   String obstacleStoneCount(int count);
+
+  /// No description provided for @obstacleChainCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{chain} other{chains}}'**
+  String obstacleChainCount(int count);
 
   /// Objetivo de quebrar N coberturas. O nome já vem flexionado pelo ICU de obstacle*Count.
   ///
@@ -601,6 +613,12 @@ abstract class AppLocalizations {
   /// **'Watch a short ad and smash the cell you picked.'**
   String get hammerOfferBody;
 
+  /// No description provided for @hammerOfferAdCapReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back tomorrow for more videos'**
+  String get hammerOfferAdCapReached;
+
   /// No description provided for @hammerOfferWatch.
   ///
   /// In en, this message translates to:
@@ -652,7 +670,7 @@ abstract class AppLocalizations {
   /// No description provided for @continueOfferTitle.
   ///
   /// In en, this message translates to:
-  /// **'Out of moves'**
+  /// **'OUT OF MOVES'**
   String get continueOfferTitle;
 
   /// No description provided for @continueOfferBody.
@@ -874,7 +892,7 @@ abstract class AppLocalizations {
   /// No description provided for @dailySpinSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Spin the wheel for a free daily prize!'**
+  /// **'1 free spin per day'**
   String get dailySpinSubtitle;
 
   /// No description provided for @dailySpinSpinButton.
@@ -895,17 +913,35 @@ abstract class AppLocalizations {
   /// **'CLOSE'**
   String get dailySpinCloseButton;
 
-  /// No description provided for @dailySpinPrizeWon.
+  /// No description provided for @dailySpinFreeButton.
   ///
   /// In en, this message translates to:
-  /// **'You won {prize}!'**
-  String dailySpinPrizeWon(String prize);
+  /// **'FREE SPIN'**
+  String get dailySpinFreeButton;
 
-  /// No description provided for @dailySpinComeBackIn.
+  /// No description provided for @dailySpinNextFreeIn.
   ///
   /// In en, this message translates to:
-  /// **'Come back in {hours}h for your next spin'**
-  String dailySpinComeBackIn(int hours);
+  /// **'Next free spin in'**
+  String get dailySpinNextFreeIn;
+
+  /// No description provided for @dailySpinPrizeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'YOU WON!'**
+  String get dailySpinPrizeTitle;
+
+  /// No description provided for @dailySpinCollectButton.
+  ///
+  /// In en, this message translates to:
+  /// **'COLLECT'**
+  String get dailySpinCollectButton;
+
+  /// No description provided for @dailySpinStockFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock full: +{coins} coins'**
+  String dailySpinStockFull(int coins);
 
   /// No description provided for @movesOfferTitle.
   ///
@@ -1020,6 +1056,546 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Privacy'**
   String get privacyTooltip;
+
+  /// No description provided for @outcomeWonHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'COMPLETE!'**
+  String get outcomeWonHeadline;
+
+  /// No description provided for @continueOfferResume.
+  ///
+  /// In en, this message translates to:
+  /// **'PICK UP WHERE YOU LEFT OFF'**
+  String get continueOfferResume;
+
+  /// No description provided for @continueOfferBonus.
+  ///
+  /// In en, this message translates to:
+  /// **'{bonus, plural, =1{+1 MOVE} other{+{bonus} MOVES}}'**
+  String continueOfferBonus(int bonus);
+
+  /// No description provided for @objectiveMissingDigit.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{So close: 1 more {digit} piece.} other{So close: {count} more {digit} pieces.}}'**
+  String objectiveMissingDigit(int count, int digit);
+
+  /// No description provided for @objectiveMissingObstacle.
+  ///
+  /// In en, this message translates to:
+  /// **'So close: {count} {obstacle} left.'**
+  String objectiveMissingObstacle(int count, String obstacle);
+
+  /// Rótulo da placa do capítulo no mapa: número do capítulo e estrelas conquistadas nele.
+  ///
+  /// In en, this message translates to:
+  /// **'CHAPTER {number} · {earned}/{total}'**
+  String mapChapterStars(int number, int earned, int total);
+
+  /// No description provided for @mapYouAreHere.
+  ///
+  /// In en, this message translates to:
+  /// **'YOU ARE HERE'**
+  String get mapYouAreHere;
+
+  /// No description provided for @mapLevelsCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Levels 1–{last} cleared'**
+  String mapLevelsCleared(int last);
+
+  /// No description provided for @mapPlayLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'PLAY LEVEL {number}'**
+  String mapPlayLevel(int number);
+
+  /// Aviso do mapa quando um tipo de cobertura estreia nas próximas fases.
+  ///
+  /// In en, this message translates to:
+  /// **'New obstacle on level {level}: {obstacle}'**
+  String mapNewObstacle(int level, String obstacle);
+
+  /// No description provided for @mapDailySpinTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily spin'**
+  String get mapDailySpinTooltip;
+
+  /// No description provided for @homeShop.
+  ///
+  /// In en, this message translates to:
+  /// **'SHOP'**
+  String get homeShop;
+
+  /// No description provided for @homeSpin.
+  ///
+  /// In en, this message translates to:
+  /// **'SPIN'**
+  String get homeSpin;
+
+  /// No description provided for @homeMap.
+  ///
+  /// In en, this message translates to:
+  /// **'MAP'**
+  String get homeMap;
+
+  /// Pílula do menu inicial com o capítulo e a fase da vez.
+  ///
+  /// In en, this message translates to:
+  /// **'CHAPTER {chapter} · LEVEL {level}'**
+  String homeChapterLevel(int chapter, int level);
+
+  /// No description provided for @homeStarsSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 star in the campaign} other{{count} stars in the campaign}}'**
+  String homeStarsSemantics(int count);
+
+  /// No description provided for @shopTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SHOP'**
+  String get shopTitle;
+
+  /// No description provided for @shopBoosters.
+  ///
+  /// In en, this message translates to:
+  /// **'BOOSTERS'**
+  String get shopBoosters;
+
+  /// No description provided for @shopCoins.
+  ///
+  /// In en, this message translates to:
+  /// **'COINS'**
+  String get shopCoins;
+
+  /// No description provided for @shopStock.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {count}'**
+  String shopStock(int count);
+
+  /// No description provided for @shopVideoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'+{coins} coins'**
+  String shopVideoTitle(int coins);
+
+  /// No description provided for @shopVideoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch a short video'**
+  String get shopVideoSubtitle;
+
+  /// No description provided for @shopWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'WATCH'**
+  String get shopWatch;
+
+  /// No description provided for @shopBuyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The purchase couldn\'t be completed. Your coins weren\'t spent.'**
+  String get shopBuyFailed;
+
+  /// No description provided for @chestReadyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter chest!'**
+  String get chestReadyTitle;
+
+  /// No description provided for @chestCollect.
+  ///
+  /// In en, this message translates to:
+  /// **'COLLECT'**
+  String get chestCollect;
+
+  /// No description provided for @chestLockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Chest locked'**
+  String get chestLockedTitle;
+
+  /// No description provided for @chestLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Beat every level of chapter {chapter} to open it.'**
+  String chestLockedHint(int chapter);
+
+  /// No description provided for @chestOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get chestOk;
+
+  /// No description provided for @semanticsChestLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter {chapter} chest, locked.'**
+  String semanticsChestLocked(int chapter);
+
+  /// No description provided for @semanticsChestReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter {chapter} chest, ready to open.'**
+  String semanticsChestReady(int chapter);
+
+  /// No description provided for @semanticsChestOpened.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter {chapter} chest, already opened.'**
+  String semanticsChestOpened(int chapter);
+
+  /// No description provided for @settingsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTooltip;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SETTINGS'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsSectionAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'SOUND & TOUCH'**
+  String get settingsSectionAudio;
+
+  /// No description provided for @settingsSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound effects'**
+  String get settingsSound;
+
+  /// No description provided for @settingsVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Effects volume'**
+  String get settingsVolume;
+
+  /// No description provided for @settingsMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get settingsMusic;
+
+  /// No description provided for @settingsVibration.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration'**
+  String get settingsVibration;
+
+  /// No description provided for @settingsSectionLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'LANGUAGE'**
+  String get settingsSectionLanguage;
+
+  /// No description provided for @settingsLanguageSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Device default'**
+  String get settingsLanguageSystem;
+
+  /// No description provided for @settingsLanguagePt.
+  ///
+  /// In en, this message translates to:
+  /// **'Português'**
+  String get settingsLanguagePt;
+
+  /// No description provided for @settingsLanguageEn.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get settingsLanguageEn;
+
+  /// No description provided for @settingsSectionPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'PRIVACY'**
+  String get settingsSectionPrivacy;
+
+  /// No description provided for @settingsPrivacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get settingsPrivacyPolicy;
+
+  /// No description provided for @settingsConsent.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage ad consent'**
+  String get settingsConsent;
+
+  /// No description provided for @settingsSectionAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'ABOUT'**
+  String get settingsSectionAbout;
+
+  /// No description provided for @settingsCredits.
+  ///
+  /// In en, this message translates to:
+  /// **'Credits'**
+  String get settingsCredits;
+
+  /// No description provided for @settingsLicenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Open source licenses'**
+  String get settingsLicenses;
+
+  /// No description provided for @creditsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Credits'**
+  String get creditsTitle;
+
+  /// No description provided for @creditsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nunito, Lilita One and Baloo 2 fonts under the SIL Open Font License (OFL).\nTiles, obstacles and icons: NineFuse \"candy pop\" art pack.\nSound effects: Kenney (kenney.nl), CC0.\nMade with Flutter.'**
+  String get creditsBody;
+
+  /// No description provided for @creditsClose.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get creditsClose;
+
+  /// No description provided for @tutorialFirstSwap.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap these two pieces to line up three of a kind.'**
+  String get tutorialFirstSwap;
+
+  /// No description provided for @tutorialFusion.
+  ///
+  /// In en, this message translates to:
+  /// **'The piece you touched evolves: {amount} {from}s become a {to}!'**
+  String tutorialFusion(String amount, int from, int to);
+
+  /// No description provided for @tutorialAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'{size, select, three{three} four{four} five{five} other{several}}'**
+  String tutorialAmount(String size);
+
+  /// No description provided for @tutorialObjective.
+  ///
+  /// In en, this message translates to:
+  /// **'{objective} to win.'**
+  String tutorialObjective(String objective);
+
+  /// No description provided for @tutorialMovesMedallion.
+  ///
+  /// In en, this message translates to:
+  /// **'These are your moves. Every swap that makes a match spends one.'**
+  String get tutorialMovesMedallion;
+
+  /// No description provided for @tutorialFreeMiss.
+  ///
+  /// In en, this message translates to:
+  /// **'A swap without a match costs no move: the pieces just slide back.'**
+  String get tutorialFreeMiss;
+
+  /// No description provided for @tutorialBoosterDock.
+  ///
+  /// In en, this message translates to:
+  /// **'Stuck? The Hammer smashes the piece you tap, without spending a move.'**
+  String get tutorialBoosterDock;
+
+  /// No description provided for @tutorialObstacleIce.
+  ///
+  /// In en, this message translates to:
+  /// **'Ice traps the piece. One fusion next to it breaks it.'**
+  String get tutorialObstacleIce;
+
+  /// No description provided for @tutorialObstacleGlass.
+  ///
+  /// In en, this message translates to:
+  /// **'Glass takes two fusions next to it before it breaks.'**
+  String get tutorialObstacleGlass;
+
+  /// No description provided for @tutorialObstacleStone.
+  ///
+  /// In en, this message translates to:
+  /// **'Stone takes three fusions next to it, or gives way at once to a 9 born beside it.'**
+  String get tutorialObstacleStone;
+
+  /// Balão de estreia da corrente (cobertura ancorada).
+  ///
+  /// In en, this message translates to:
+  /// **'A chain locks the piece in place: it can\'t be swapped and doesn\'t fall, but it still matches. Match with it or fuse next to it to set it free.'**
+  String get tutorialObstacleChain;
+
+  /// Balão da primeira fase com objetivo 'Funda N peças X'.
+  ///
+  /// In en, this message translates to:
+  /// **'Here the piece that GOES INTO a fusion counts: line up three of them and that\'s three fewer to go.'**
+  String get tutorialCollectGoal;
+
+  /// Balão do primeiro tabuleiro recortado (casas fora do formato).
+  ///
+  /// In en, this message translates to:
+  /// **'Dark cells aren\'t part of the board. Pieces fall right past them.'**
+  String get tutorialBoardShape;
+
+  /// No description provided for @tutorialGotIt.
+  ///
+  /// In en, this message translates to:
+  /// **'GOT IT'**
+  String get tutorialGotIt;
+
+  /// No description provided for @tutorialSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip tutorial'**
+  String get tutorialSkip;
+
+  /// No description provided for @settingsReplayTutorial.
+  ///
+  /// In en, this message translates to:
+  /// **'Replay tutorial'**
+  String get settingsReplayTutorial;
+
+  /// No description provided for @settingsReplayTutorialDone.
+  ///
+  /// In en, this message translates to:
+  /// **'The tutorial will show up again in your next levels.'**
+  String get settingsReplayTutorialDone;
+
+  /// Rótulo do botão da recompensa diária no menu.
+  ///
+  /// In en, this message translates to:
+  /// **'DAILY'**
+  String get homeDaily;
+
+  /// Rótulo do botão das missões diárias no menu.
+  ///
+  /// In en, this message translates to:
+  /// **'MISSIONS'**
+  String get homeMissions;
+
+  /// No description provided for @dailyRewardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily reward'**
+  String get dailyRewardTitle;
+
+  /// No description provided for @dailyRewardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back every day: the longer the streak, the bigger the prize.'**
+  String get dailyRewardSubtitle;
+
+  /// No description provided for @dailyRewardDay.
+  ///
+  /// In en, this message translates to:
+  /// **'DAY {day}'**
+  String dailyRewardDay(int day);
+
+  /// No description provided for @dailyRewardStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Streak: 1 day} other{Streak: {count} days}}'**
+  String dailyRewardStreak(int count);
+
+  /// No description provided for @dailyRewardCollect.
+  ///
+  /// In en, this message translates to:
+  /// **'COLLECT'**
+  String get dailyRewardCollect;
+
+  /// No description provided for @dailyRewardComeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back tomorrow for the next prize.'**
+  String get dailyRewardComeBack;
+
+  /// No description provided for @dailyRewardMissedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipping a day restarts the streak.'**
+  String get dailyRewardMissedHint;
+
+  /// No description provided for @missionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily missions'**
+  String get missionsTitle;
+
+  /// No description provided for @missionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Three new missions every day.'**
+  String get missionsSubtitle;
+
+  /// No description provided for @missionsCollect.
+  ///
+  /// In en, this message translates to:
+  /// **'COLLECT'**
+  String get missionsCollect;
+
+  /// No description provided for @missionsBonus.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete all three: +{coins} coins'**
+  String missionsBonus(int coins);
+
+  /// No description provided for @missionsAllDone.
+  ///
+  /// In en, this message translates to:
+  /// **'All done! New missions tomorrow.'**
+  String get missionsAllDone;
+
+  /// No description provided for @missionWinLevels.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Win 1 level} other{Win {count} levels}}'**
+  String missionWinLevels(int count);
+
+  /// No description provided for @missionFusions.
+  ///
+  /// In en, this message translates to:
+  /// **'Make {count} fusions'**
+  String missionFusions(int count);
+
+  /// No description provided for @missionCreateNines.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Create 1 nine} other{Create {count} nines}}'**
+  String missionCreateNines(int count);
+
+  /// No description provided for @missionBreakObstacles.
+  ///
+  /// In en, this message translates to:
+  /// **'Break {count} covers'**
+  String missionBreakObstacles(int count);
+
+  /// No description provided for @missionUseBoosters.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Use 1 booster} other{Use {count} boosters}}'**
+  String missionUseBoosters(int count);
+
+  /// No description provided for @missionEarnStars.
+  ///
+  /// In en, this message translates to:
+  /// **'Earn {count} stars'**
+  String missionEarnStars(int count);
+
+  /// No description provided for @missionTriggerNova.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Trigger a Nova (three 9s in a row)} other{Trigger {count} Novas}}'**
+  String missionTriggerNova(int count);
 }
 
 class _AppLocalizationsDelegate

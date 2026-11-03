@@ -22,6 +22,17 @@ enum ObstacleType {
   /// Pedra: três impactos. Também cede de uma vez à onda de choque do
   /// dígito máximo, que varre a célula inteira.
   stone,
+
+  /// Corrente: prende a peça **no lugar**, mas não a esconde do jogo.
+  ///
+  /// É o avesso das outras três. Gelo, vidro e pedra tiram a peça da
+  /// combinação e a deixam cair com a gravidade; a corrente deixa a peça
+  /// combinar normalmente, mas ela não pode ser trocada e **não cai** — as
+  /// peças de cima empilham sobre ela. Cede a uma fusão encostada (como o
+  /// gelo) ou a entrar ela mesma numa combinação. É a cobertura que dá ao
+  /// desenho de fase uma posição fixa ("solte a peça do canto") sem mexer no
+  /// equilíbrio já medido das outras três, que seguem caindo.
+  chain,
 }
 
 /// Resistência de cada obstáculo, em impactos de fusão.
@@ -31,7 +42,15 @@ extension ObstacleHitPoints on ObstacleType {
     ObstacleType.ice => 1,
     ObstacleType.glass => 2,
     ObstacleType.stone => 3,
+    ObstacleType.chain => 1,
   };
+
+  /// A cobertura tira a peça das combinações. Só a corrente não tira.
+  bool get blocksMatch =>
+      this != ObstacleType.none && this != ObstacleType.chain;
+
+  /// A cobertura segura a peça no lugar contra a gravidade.
+  bool get isAnchored => this == ObstacleType.chain;
 }
 
 /// Quantas coberturas de cada tipo uma fase pede ao sortear o tabuleiro.
@@ -41,8 +60,12 @@ extension ObstacleHitPoints on ObstacleType {
 /// posições fixas aqui tornaria toda fase idêntica a cada tentativa — e a
 /// campanha do NineFuse é procedural.
 class ObstacleLayout {
-  const ObstacleLayout({this.ice = 0, this.glass = 0, this.stone = 0})
-    : assert(ice >= 0 && glass >= 0 && stone >= 0);
+  const ObstacleLayout({
+    this.ice = 0,
+    this.glass = 0,
+    this.stone = 0,
+    this.chain = 0,
+  }) : assert(ice >= 0 && glass >= 0 && stone >= 0 && chain >= 0);
 
   /// Fase sem obstáculo nenhum.
   static const ObstacleLayout none = ObstacleLayout();
@@ -50,8 +73,9 @@ class ObstacleLayout {
   final int ice;
   final int glass;
   final int stone;
+  final int chain;
 
-  int get total => ice + glass + stone;
+  int get total => ice + glass + stone + chain;
 
   /// Quantas coberturas de [type] esta fase pede.
   ///
@@ -64,6 +88,7 @@ class ObstacleLayout {
     ObstacleType.ice => ice,
     ObstacleType.glass => glass,
     ObstacleType.stone => stone,
+    ObstacleType.chain => chain,
   };
 
   bool get isEmpty => total == 0;
@@ -77,6 +102,10 @@ class ObstacleLayout {
   List<ObstacleType> get types => [
     for (int i = 0; i < stone; i++) ObstacleType.stone,
     for (int i = 0; i < glass; i++) ObstacleType.glass,
+    // A corrente vem antes do gelo: tem um impacto só, mas é a única que
+    // muda a regra da célula, e perdê-la por falta de lugar apagaria a
+    // novidade da fase.
+    for (int i = 0; i < chain; i++) ObstacleType.chain,
     for (int i = 0; i < ice; i++) ObstacleType.ice,
   ];
 
@@ -86,14 +115,16 @@ class ObstacleLayout {
       other is ObstacleLayout &&
           ice == other.ice &&
           glass == other.glass &&
-          stone == other.stone;
+          stone == other.stone &&
+          chain == other.chain;
 
   @override
-  int get hashCode => Object.hash(ice, glass, stone);
+  int get hashCode => Object.hash(ice, glass, stone, chain);
 
   @override
   String toString() =>
-      'ObstacleLayout(gelo: $ice, vidro: $glass, pedra: $stone)';
+      'ObstacleLayout(gelo: $ice, vidro: $glass, pedra: $stone'
+      '${chain > 0 ? ', corrente: $chain' : ''})';
 }
 
 /// Um obstáculo que levou dano num passo da resolução.

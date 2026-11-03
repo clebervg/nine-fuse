@@ -1,5 +1,6 @@
-import 'dart:math' show cos, pi;
+import 'dart:math' show cos, min, pi;
 
+import 'package:nine_fuse/features/game/domain/board_shape.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/obstacle.dart';
@@ -66,6 +67,20 @@ const double kHeavyDigitDistanceThreshold = 3.0;
 /// coberturas não podem nascer encostadas. Pedir mais do que cabe faria a fase
 /// pedida deixar de ser a fase jogada.
 const int kMaxObstacles = 7;
+
+/// O primeiro bloco gerado com corrente (fases 31-40). O bloco 0 estreia os
+/// formatos e a coleta; empilhar a corrente ali seriam três novidades em dez
+/// fases, e cada uma merece o seu capítulo.
+const int kFirstChainBlock = 2;
+
+/// Quantas correntes cada fase espalha a partir de [kFirstChainBlock], por
+/// cima do teto [kMaxObstacles] das outras coberturas.
+const int kChainsPerLevel = 2;
+
+/// Movimentos por corrente pedida em "solte N correntes". Bem abaixo de
+/// [kObstacleMovesPerUnit]: a corrente tem um impacto só e ainda cede a uma
+/// combinação que passe por ela — o jogador pode mirá-la diretamente.
+const double kChainMovesPerUnit = 7.0;
 
 /// Piso do limite de movimentos.
 ///
@@ -159,6 +174,45 @@ const double kObstacleMovesPerUnit = 12.0;
 /// pode não estar lá.
 const double kClearAllMoves = 30.0;
 
+/// Movimentos por peça pedida num objetivo "funda N peças X" com o X **dentro**
+/// da janela de sorteio.
+///
+/// Abaixo de um movimento por peça porque cada combinação consome três ou
+/// mais de uma vez, e as cascatas também contam. Fixado por
+/// `simulate_economy.dart --mode=generated`.
+const double kCollectMovesPerPiece = 0.9;
+
+/// Movimentos por peça pedida quando o X fica **acima** da janela: cada peça
+/// tem de ser criada por fusão antes de poder ser fundida de novo.
+const double kCollectAboveMovesPerPiece = 4.8;
+
+/// Folga de movimentos por fração de casas fora do formato do tabuleiro.
+///
+/// Tabuleiro menor tem menos combinações possíveis por jogada e cascata mais
+/// curta; sem compensar, todo formato seria só uma fase mais difícil, e o que
+/// ele quer ser é uma fase **diferente**. `1.0` dá ao losango (24 casas de
+/// vão, 37,5%) 19% de movimentos a mais.
+const double kShapeMovesPerVoidFraction = 0.5;
+
+/// A partir de qual fase entram os formatos de tabuleiro. A fase 12 é a
+/// primeira de posição 1 no primeiro bloco gerado — logo depois da costura com
+/// a campanha artesanal, que termina na matriz inteira.
+const int kFirstShapedLevel = 12;
+
+/// Quantos 9 o fecho de ápice pede (ver `_objectiveFor`, fecho `block % 4 ==
+/// 2`, sempre na janela 5-8).
+///
+/// Dez, e não os dois do teto [kMaxApexObjectiveCount]: na janela 5-8 o 9
+/// está a uma fusão do topo, e medido com o bot guloso ele faz **cinco** 9 em
+/// seis jogadas 73% das vezes — com o piso de [kMinMoveLimit] qualquer
+/// contagem pequena dava 100%. Dez em ~14 jogadas fica em 75-90%.
+const int kApexClosingCount = 10;
+
+/// Movimentos por 9 pedido no fecho de ápice. Régua própria porque a fórmula
+/// de dígito ([_digitMoves]) foi calibrada em janelas baixas, onde o 9 custa
+/// várias fusões, e superestima este caso por mais do dobro.
+const double kApexClosingMovesPerPiece = 1.4;
+
 /// Quanto o limite de movimentos encolhe a cada bloco.
 const double kTighteningPerBlock = 0.02;
 
@@ -212,6 +266,7 @@ GameLevel generateLevel(int number) {
   final spawnMax = spawnMin + kSpawnWidth - 1;
   final obstacles = _obstaclesFor(block, hard: isHardLevel(number));
   final objective = _finalObjectiveFor(number);
+  final shape = shapeForLevel(number);
 
   return GameLevel(
     number: number,
@@ -222,10 +277,12 @@ GameLevel generateLevel(int number) {
       spawnMin: spawnMin,
       spawnMax: spawnMax,
       number: number,
+      shape: shape,
     ),
     spawnMin: spawnMin,
     spawnMax: spawnMax,
     obstacles: obstacles,
+    shape: shape,
   );
 }
 
@@ -253,8 +310,69 @@ int moveLimitForTesting(int number, {required bool hard}) {
     spawnMin: spawnMin,
     spawnMax: spawnMax,
     number: number,
+    shape: shapeForLevel(number),
     hardOverride: hard,
   );
+}
+
+/// Os formatos que aparecem no corpo de um bloco, do mais brando ao mais
+/// recortado. O primeiro da lista é o da estreia (fase [kFirstShapedLevel]):
+/// cantos cortados mudam pouco o jogo e muito a cara do tabuleiro.
+const List<BoardShape> _bodyShapes = [
+  BoardShape.cornersCut,
+  BoardShape.pillars,
+  BoardShape.bridge,
+  BoardShape.ring,
+  BoardShape.hourglass,
+  BoardShape.cross,
+];
+
+/// Os formatos do fecho de capítulo — os mais recortados, para a última fase
+/// do capítulo ter cara de chefe.
+const List<BoardShape> _closingShapes = [
+  BoardShape.ring,
+  BoardShape.diamond,
+  BoardShape.cross,
+  BoardShape.hourglass,
+];
+
+/// Os formatos que cortam o meio do tabuleiro.
+bool _breaksInTheMiddle(BoardShape shape) =>
+    shape == BoardShape.pillars || shape == BoardShape.bridge;
+
+/// O formato do tabuleiro da fase [number].
+///
+/// Três fases do corpo de cada bloco (posições 1, 4 e 7) e o fecho são
+/// recortados; o resto é a matriz inteira. Recortar toda fase apagaria o
+/// contraste que faz o formato ser notado, e recortar nenhuma era o problema:
+/// da fase 100 em diante as fases só se distinguiam pelo número.
+///
+/// Os índices andam com o bloco para dois capítulos seguidos não repetirem a
+/// mesma sequência de formatos.
+BoardShape shapeForLevel(int number) {
+  if (number < kFirstShapedLevel) return BoardShape.full;
+  final block = _blockOf(number);
+  final position = _positionOf(number);
+
+  if (position == kBlockSize - 1) {
+    // O índice anda um passo a cada volta completa do ciclo de fechos: sem
+    // isso cada natureza de fecho (que também roda por `block % 4`) viria
+    // sempre no mesmo formato, e o par se repetiria igual a cada 40 fases.
+    return _closingShapes[(block + block ~/ 4) % _closingShapes.length];
+  }
+  if (position % 3 != 1) return BoardShape.full;
+  final shape = _bodyShapes[(block * 3 + position ~/ 3 + block ~/ 4) %
+      _bodyShapes.length];
+
+  // Pilares e ponte cortam o miolo do tabuleiro, e é ali que a cobertura
+  // (que cai com a gravidade) passa a maior parte da fase: medido com o bot,
+  // "quebre 3 pedras" cai de ~80% na matriz inteira para 12% nos pilares e
+  // 34% na ponte. Numa meta de cobertura eles viram cantos cortados, o
+  // formato que menos pesa (90%).
+  if (_breaksInTheMiddle(shape) && _finalObjectiveFor(number).isObstacleGoal) {
+    return BoardShape.cornersCut;
+  }
+  return shape;
 }
 
 /// Objetivo final da fase [number], já passado pelo controle de
@@ -412,8 +530,23 @@ Objective _varied(
       );
 
     case ObjectiveType.clearAllObstacles:
-      final alternative = _secondHardestOf(obstacles, avoiding: candidate.obstacle);
-      return alternative == null ? candidate : Objective.clearAllObstacles(alternative);
+      final alternative = _secondHardestOf(
+        obstacles,
+        avoiding: candidate.obstacle,
+      );
+      return alternative == null
+          ? candidate
+          : Objective.clearAllObstacles(alternative);
+
+    case ObjectiveType.collectDigit:
+      // Troca o dígito e mantém a contagem: o custo de "funda N" dentro da
+      // janela não depende de qual dígito da janela é pedido, então descer um
+      // dígito muda a fase sem mudar a dificuldade. No piso da janela, sobe.
+      final digit = candidate.digit!;
+      final spawnMin = spawnMax - kSpawnWidth + 1;
+      final next = digit > spawnMin ? digit - 1 : digit + 1;
+      if (next >= kMaxDigit) return _toObstacleGoal(obstacles) ?? candidate;
+      return Objective.collect(digit: next, count: candidate.count);
   }
 }
 
@@ -476,9 +609,43 @@ Objective _objectiveFor({
   required int spawnMax,
   required ObstacleLayout obstacles,
 }) {
-  // Fecho de bloco: limpar tudo do tipo mais duro que a fase espalha.
+  final spawnMin = spawnMax - kSpawnWidth + 1;
+
+  // Fecho de bloco: roda entre quatro naturezas de meta, para o último
+  // capítulo não terminar sempre igual ao anterior. Antes era sempre "limpe
+  // toda a pedra", e da fase 100 em diante isso fazia 10% da campanha ser a
+  // mesma fase.
   if (position == kBlockSize - 1) {
-    return Objective.clearAllObstacles(_hardestOf(obstacles));
+    return switch (block % 4) {
+      // Limpar tudo do tipo mais duro que a fase espalha (o fecho original).
+      0 => Objective.clearAllObstacles(_hardestOf(obstacles)),
+      // Uma coleta grande de um dígito do pé da janela. Do pé, e não do
+      // topo: o topo é o que toda fusão gulosa já consome, e pedido ali o
+      // fecho media 95-99% — o limite não pesava.
+      1 => Objective.collect(
+        digit: spawnMin + 1,
+        count: 24 + 3 * min(block, 4),
+      ),
+      // O ápice: este degrau do ciclo cai sempre na janela 5-8 (ver
+      // [_spawnMinFor]), em que o 9 está a uma fusão do topo. Por isso pede
+      // dez, bem acima do teto [kMaxApexObjectiveCount] que vale para as
+      // janelas baixas (ver [kApexClosingCount]). É o fecho de festa do
+      // ciclo, cheio de Bloco 9.
+      2 => const Objective(digit: kMaxDigit, count: kApexClosingCount),
+      // Coleta acima da janela: cada peça tem de nascer de fusão antes de
+      // ser fundida de novo.
+      _ => _collectAbove(spawnMax: spawnMax, count: 6),
+    };
+  }
+
+  // Nos blocos com corrente, a segunda fase de quebra de blocos alternados
+  // pede as correntes: é o que dá à cobertura nova uma meta própria, e não só
+  // presença de fundo.
+  if (position == kBlockSize - 2 && obstacles.chain > 0 && block.isOdd) {
+    return Objective.clearObstacles(
+      obstacle: ObstacleType.chain,
+      count: obstacles.chain,
+    );
   }
 
   // As duas antes do fecho: quebrar uma quantidade declarada.
@@ -493,6 +660,19 @@ Objective _objectiveFor({
     );
   }
 
+  // Duas fases de coleta no corpo do bloco: uma dentro da janela, outra (a
+  // partir do segundo bloco) acima dela. O primeiro bloco fica só com a de
+  // dentro, que ensina a meta nova no seu caso mais legível.
+  if (position == 3) {
+    return Objective.collect(
+      digit: spawnMin + 1 + block % 3,
+      count: 12 + 3 * min(block, 4),
+    );
+  }
+  if (position == 6 && block >= 1) {
+    return _collectAbove(spawnMax: spawnMax, count: 3 + min(block ~/ 2, 3));
+  }
+
   // O corpo do bloco: formar o dígito acima da janela.
   //
   // O `+1` alternando com `+2` dá dois patamares de esforço dentro do mesmo
@@ -503,6 +683,14 @@ Objective _objectiveFor({
   final count = (1 + position % 3 + block ~/ 2).clamp(1, _maxCountFor(digit, distance));
 
   return Objective(digit: digit, count: count);
+}
+
+/// "Funda [count] peças" do dígito logo acima da janela — ou do topo dela,
+/// quando o de cima já seria o 9 (que não se funde: três 9 viram Nova, e a
+/// Nova não é fusão).
+Objective _collectAbove({required int spawnMax, required int count}) {
+  final digit = spawnMax + 1 < kMaxDigit ? spawnMax + 1 : spawnMax;
+  return Objective.collect(digit: digit, count: count);
 }
 
 /// As coberturas que o bloco espalha.
@@ -559,7 +747,19 @@ ObstacleLayout _obstaclesFor(int block, {bool hard = false}) {
     total--;
   }
 
-  return ObstacleLayout(ice: trimmedIce, glass: trimmedGlass, stone: trimmedStone);
+  // A corrente entra **por cima** do teto das outras três, com o seu próprio
+  // teto: somá-la ao corte acima tiraria gelo das fases já calibradas, e a
+  // calibragem de gelo, vidro e pedra não precisa ser refeita por causa dela.
+  // Não dobra na fase hard pelo mesmo motivo — a intensificação hard foi
+  // medida sem ela.
+  final chain = block >= kFirstChainBlock ? kChainsPerLevel : 0;
+
+  return ObstacleLayout(
+    ice: trimmedIce,
+    glass: trimmedGlass,
+    stone: trimmedStone,
+    chain: chain,
+  );
 }
 
 /// O teto de contagem que vale para um objetivo de dígito [digit] a
@@ -601,20 +801,39 @@ int _movesFor({
   required int spawnMin,
   required int spawnMax,
   required int number,
+  BoardShape shape = BoardShape.full,
   bool? hardOverride,
 }) {
-  final double base = switch (objective.type) {
-    ObjectiveType.reachDigit => _digitMoves(objective, spawnMin: spawnMin, spawnMax: spawnMax),
+  final double objectiveBase = switch (objective.type) {
+    ObjectiveType.reachDigit when _isApexClosing(objective) =>
+      kApexClosingMovesPerPiece * objective.count,
+    ObjectiveType.reachDigit => _digitMoves(
+      objective,
+      spawnMin: spawnMin,
+      spawnMax: spawnMax,
+    ),
+    ObjectiveType.clearObstacles when objective.obstacle == ObstacleType.chain =>
+      kChainMovesPerUnit * objective.count,
     ObjectiveType.clearObstacles => kObstacleMovesPerUnit * objective.count,
     ObjectiveType.clearAllObstacles => kClearAllMoves,
+    ObjectiveType.collectDigit => _collectMoves(objective, spawnMax: spawnMax),
   };
+  final voidFraction =
+      shape.voids.length / (shape.voids.length + shape.playableCount);
+  final base = objectiveBase * (1 + kShapeMovesPerVoidFraction * voidFraction);
 
   // Aperto de 2% por bloco, com teto: a fase encolhe devagar o bastante para o
   // jogador sentir que melhorou, e para de encolher antes de a conta se virar
   // contra ele. O `clamp` inferior é o conserto do defeito que fazia a fase 500
   // sair com um movimento — um percentual aplicado para sempre não tende a um
   // limite apertado, tende a nenhum limite.
-  final tighteningFactor = (1 - kTighteningPerBlock * block).clamp(kTighteningFloor, 1.0);
+  //
+  // O fecho de ápice fica fora do aperto: a curva dele é íngreme (10 jogadas
+  // dão ~40%, 16 dão ~95%), e o quarto que o aperto tira nos blocos altos o
+  // jogava de 96% no bloco 3 para 20% no bloco 14 — a mesma fase, dois jogos.
+  final tighteningFactor = _isApexClosing(objective)
+      ? 1.0
+      : (1 - kTighteningPerBlock * block).clamp(kTighteningFloor, 1.0);
 
   // A curva senoidal de ritmo entra por último, sobre o valor já apertado: ela
   // é quem decide se esta fase específica é a "difícil" ou a "relaxante" do
@@ -648,6 +867,21 @@ double _digitMoves(Objective objective, {required int spawnMin, required int spa
   return objective.count * (objective.digit! - averageBoardTileLevel) + 8;
 }
 
+/// O fecho de ápice ("crie dez 9" na janela 5-8): o único objetivo de dígito
+/// que não passa pela fórmula nem pelo piso pesado de [_digitMoves].
+bool _isApexClosing(Objective objective) =>
+    objective.type == ObjectiveType.reachDigit &&
+    objective.digit == kMaxDigit &&
+    objective.count == kApexClosingCount;
+
+/// Movimentos-base de "funda N peças X": mais caro por peça quando o X fica
+/// acima da janela, porque ali cada peça tem de nascer antes de entrar.
+double _collectMoves(Objective objective, {required int spawnMax}) {
+  final above = objective.digit! > spawnMax;
+  return objective.count *
+      (above ? kCollectAboveMovesPerPiece : kCollectMovesPerPiece);
+}
+
 /// O piso de movimentos que vale para [objective], a [distance] peças acima
 /// do centro da janela de sorteio.
 ///
@@ -666,7 +900,9 @@ double _digitMoves(Objective objective, {required int spawnMin, required int spa
 /// não move a fase para fora do território caro. Todo o resto continua no
 /// piso geral [kMinMoveLimit].
 int _moveFloorFor(Objective objective, {required double distance}) {
-  final isHeavyDigitGoal = objective.type == ObjectiveType.reachDigit &&
+  final isHeavyDigitGoal =
+      objective.type == ObjectiveType.reachDigit &&
+      !_isApexClosing(objective) &&
       (objective.digit ?? 0) >= kHeavyDigitThreshold &&
       (objective.count > kHeavyDigitCountThreshold || distance >= kHeavyDigitDistanceThreshold);
 

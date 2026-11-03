@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
+import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
@@ -104,18 +106,21 @@ mixin BombBooster<S> on StateNotifier<S> {
   /// Mesmos três avisos do Martelo, e pelo mesmo motivo: engajar a mira,
   /// errar a mira e o estouro precisam soar diferentes um do outro.
   static void Function() targetingFeedback = () {
-    HapticFeedback.selectionClick();
-    SystemSound.play(SystemSoundType.click);
+    Haptics.selection();
+    GameAudio.play(SoundEvent.select, fallback: Haptics.click);
   };
 
   static void Function() rejectionFeedback = () =>
-      SystemSound.play(SystemSoundType.alert);
+      GameAudio.play(SoundEvent.invalidSwap, fallback: Haptics.alert);
 
   /// O estouro é mais violento que o golpe do Martelo — nove células em vez
   /// de uma —, mas o projeto não tem um nível de intensidade tátil maior que
   /// `heavyImpact`; a diferença de peso fica para o Screen Shake, que aceita
   /// amplitude maior.
-  static void Function() strikeFeedback = HapticFeedback.heavyImpact;
+  static void Function() strikeFeedback = () {
+    Haptics.heavy();
+    GameAudio.play(SoundEvent.bomb);
+  };
 
   // --- o que cada notifier fornece -------------------------------------------
 

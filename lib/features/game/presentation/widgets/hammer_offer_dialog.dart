@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/theme/app_fonts.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
+import 'package:nine_fuse/core/widgets/sprite_icon.dart';
 import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/coin_sources_card.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
+import 'package:nine_fuse/features/game/providers/hammer_ad_cap.dart';
 import 'package:nine_fuse/features/game/providers/wallet.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
@@ -87,6 +91,9 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
 
   Future<void> _watch() async {
     if (_waiting) return;
+    // O botão já nasce desligado no teto; a guarda aqui cobre o toque que
+    // chegou antes do rebuild.
+    if (ref.read(hammerAdCapProvider.notifier).reachedToday) return;
     setState(() {
       _waiting = true;
       _failed = false;
@@ -96,6 +103,9 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
     if (!mounted) return;
 
     if (granted) {
+      // Conta antes de entregar: `onGranted` costuma fechar a caixa, e o teto
+      // tem de valer para o próximo convite.
+      ref.read(hammerAdCapProvider.notifier).recordGrant();
       widget.onGranted();
       return;
     }
@@ -130,7 +140,9 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
     if (!mounted) return;
 
     // `creditCoins` já persiste no disco: o saldo sobrevive a fechar o jogo.
-    if (granted) ref.read(walletProvider.notifier).creditCoins(kCoinsPerRewardedAd);
+    if (granted) {
+      ref.read(walletProvider.notifier).creditCoins(kCoinsPerRewardedAd);
+    }
 
     setState(() {
       _waiting = false;
@@ -170,6 +182,10 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
     final l10n = AppLocalizations.of(context);
     final wallet = ref.watch(walletProvider);
     final canAfford = wallet.canAfford(kHammerCoinPrice);
+    // Observado para o botão reagir ao crédito e à leitura do disco; a conta
+    // do dia é do notifier, que sabe que dia é hoje.
+    ref.watch(hammerAdCapProvider);
+    final adCapped = ref.read(hammerAdCapProvider.notifier).reachedToday;
 
     return GameDialog(
       cardKey: hammerOfferKey,
@@ -178,35 +194,53 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.gavel_rounded, color: AppColors.digit4, size: 44),
+          // A arte do booster, a mesma do dock: o convite fala do item que o
+          // jogador acabou de tocar, e um ícone de fonte seria outro objeto.
+          const SpriteIcon(
+            asset: 'assets/images/ic_hammer.png',
+            fallback: Icons.gavel_rounded,
+            size: 76,
+            color: AppColors.digit4,
+          ),
           const SizedBox(height: 12),
           Text(
             l10n.hammerOfferBody,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70, fontSize: 15),
+            style: const TextStyle(
+              fontFamily: AppFonts.display,
+              color: NfColors.textSoft,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           if (_failed) ...[
             const SizedBox(height: 10),
             Text(
               l10n.hammerOfferFailed,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.digit0, fontSize: 13),
+              style: const TextStyle(color: NfColors.alert, fontSize: 13),
             ),
           ],
           const SizedBox(height: 18),
+          // No teto do dia o botão fica, apagado e dizendo quando volta: sumir
+          // com ele faria o jogador procurar o vídeo que usou ontem. A compra
+          // com moeda logo abaixo continua valendo.
           GameButton(
             key: hammerOfferWatchKey,
-            label: l10n.hammerOfferWatch,
-            color: AppColors.digit4,
-            icon: Icons.play_circle_fill_rounded,
-            onPressed: _watch,
+            label: adCapped
+                ? l10n.hammerOfferAdCapReached
+                : l10n.hammerOfferWatch,
+            color: adCapped ? AppColors.darkSurface : NfColors.gem,
+            icon: adCapped
+                ? Icons.schedule_rounded
+                : Icons.play_circle_fill_rounded,
+            onPressed: adCapped ? null : _watch,
           ),
           const SizedBox(height: 10),
           GameButton(
             key: hammerOfferBuyKey,
             label: l10n.hammerOfferBuy(kHammerCoinPrice),
             color: canAfford ? AppColors.uiGold : AppColors.darkSurface,
-            foreground: canAfford ? Colors.black : Colors.white38,
             icon: Icons.shopping_bag_rounded,
             // Nulo desabilita o botão, e é o que o teste de saldo curto afirma:
             // um botão que aceita o toque e não faz nada é pior do que um
@@ -223,8 +257,10 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
                 : '${l10n.hammerOfferNoCoins} · ${l10n.hammerOfferBalance(wallet.coins)}',
             textAlign: TextAlign.center,
             style: TextStyle(
+              fontFamily: AppFonts.display,
               color: canAfford ? Colors.white54 : Colors.white38,
               fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 10),
@@ -232,7 +268,6 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
             key: hammerOfferEarnCoinsKey,
             label: l10n.hammerOfferEarnCoins(kCoinsPerRewardedAd),
             color: AppColors.uiGold,
-            foreground: Colors.black,
             icon: Icons.ondemand_video_rounded,
             onPressed: _earnCoins,
           ),
@@ -241,7 +276,12 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
             Text(
               l10n.hammerOfferEarnedCoins(kCoinsPerRewardedAd),
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.digit2, fontSize: 12),
+              style: const TextStyle(
+                fontFamily: AppFonts.display,
+                color: AppColors.digit2,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
           const SizedBox(height: 14),
@@ -251,7 +291,6 @@ class _HammerOfferDialogState extends ConsumerState<HammerOfferDialog> {
             key: hammerOfferDeclineKey,
             label: l10n.hammerOfferDecline,
             color: AppColors.darkSurface,
-            foreground: Colors.white70,
             onPressed: widget.onDecline,
           ),
         ],

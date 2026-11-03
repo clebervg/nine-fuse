@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nine_fuse/features/game/domain/game_settings.dart';
+import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/board_grid_widget.dart';
@@ -10,12 +12,19 @@ import 'package:nine_fuse/features/game/presentation/widgets/endless_banner.dart
 import 'package:nine_fuse/features/game/presentation/widgets/tile_widget.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
-import 'package:nine_fuse/features/game/domain/level_record.dart';
+import 'package:nine_fuse/features/game/domain/daily_ad_count.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
 
 /// Armazenamento que sempre falha, para verificar que o jogo não fica preso.
 class _BrokenStorage implements GameStorage {
+  @override
+  Future<DailyAdCount> readHammerAdGrants() async =>
+      throw StateError('sem disco');
+  @override
+  Future<void> writeHammerAdGrants(DailyAdCount value) async =>
+      throw StateError('sem disco');
+
   @override
   Future<int> readCampaignProgress() async =>
       throw StateError('disco indisponível');
@@ -46,8 +55,7 @@ class _BrokenStorage implements GameStorage {
   @override
   Future<int> readBombCount() async => throw StateError('sem disco');
   @override
-  Future<void> writeBombCount(int count) async =>
-      throw StateError('sem disco');
+  Future<void> writeBombCount(int count) async => throw StateError('sem disco');
   @override
   Future<int> readBrushCount() async => throw StateError('sem disco');
   @override
@@ -77,6 +85,17 @@ class _BrokenStorage implements GameStorage {
       throw StateError('sem disco');
   @override
   Future<void> writeLastSpinTimestamp(DateTime value) async =>
+      throw StateError('sem disco');
+  @override
+  Future<GameSettings> readSettings() async => throw StateError('sem disco');
+  @override
+  Future<void> writeSettings(GameSettings settings) async =>
+      throw StateError('sem disco');
+  @override
+  Future<Set<String>> readTutorialSeen() async =>
+      throw StateError('sem disco');
+  @override
+  Future<void> writeTutorialSeen(Set<String> steps) async =>
       throw StateError('sem disco');
 }
 

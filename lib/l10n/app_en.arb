@@ -25,6 +25,15 @@
     }
   },
 
+  "objectiveCollect": "{count, plural, =1{Fuse 1 {digit} tile} other{Fuse {count} {digit} tiles}}",
+  "@objectiveCollect": {
+    "description": "Objetivo de fundir (consumir em combinações) N peças de um dígito. Diferente de 'Crie': aqui conta a peça que entra na fusão, não a que nasce.",
+    "placeholders": {
+      "count": { "type": "int" },
+      "digit": { "type": "int" }
+    }
+  },
+
   "obstacleIceCount": "{count, plural, =1{ice block} other{ice blocks}}",
   "@obstacleIceCount": {
     "description": "Nome do gelo com a quantidade implícita. O plural fica em ICU porque cada idioma pluraliza a sua palavra.",
@@ -38,6 +47,11 @@
 
   "obstacleStoneCount": "{count, plural, =1{stone} other{stones}}",
   "@obstacleStoneCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "obstacleChainCount": "{count, plural, =1{chain} other{chains}}",
+  "@obstacleChainCount": {
     "placeholders": { "count": { "type": "int" } }
   },
 
@@ -255,6 +269,7 @@
 
   "hammerOfferTitle": "Out of hammers",
   "hammerOfferBody": "Watch a short ad and smash the cell you picked.",
+  "hammerOfferAdCapReached": "Come back tomorrow for more videos",
   "hammerOfferWatch": "WATCH AD",
   "hammerOfferDecline": "NOT NOW",
   "hammerOfferFailed": "No ad available right now.",
@@ -283,7 +298,7 @@
     "description": "Confirmation shown after the coin rewarded ad completes.",
     "placeholders": { "reward": { "type": "int" } }
   },
-  "continueOfferTitle": "Out of moves",
+  "continueOfferTitle": "OUT OF MOVES",
   "continueOfferBody": "Watch a short ad or spend coins to get {bonus} extra moves and keep going.",
   "@continueOfferBody": {
     "placeholders": { "bonus": { "type": "int" } }
@@ -365,17 +380,17 @@
   },
 
   "dailySpinTitle": "Daily Spin",
-  "dailySpinSubtitle": "Spin the wheel for a free daily prize!",
+  "dailySpinSubtitle": "1 free spin per day",
   "dailySpinSpinButton": "SPIN",
   "dailySpinWatchAgainButton": "Spin Again (Watch Ad)",
   "dailySpinCloseButton": "CLOSE",
-  "dailySpinPrizeWon": "You won {prize}!",
-  "@dailySpinPrizeWon": {
-    "placeholders": { "prize": { "type": "String" } }
-  },
-  "dailySpinComeBackIn": "Come back in {hours}h for your next spin",
-  "@dailySpinComeBackIn": {
-    "placeholders": { "hours": { "type": "int" } }
+  "dailySpinFreeButton": "FREE SPIN",
+  "dailySpinNextFreeIn": "Next free spin in",
+  "dailySpinPrizeTitle": "YOU WON!",
+  "dailySpinCollectButton": "COLLECT",
+  "dailySpinStockFull": "Stock full: +{coins} coins",
+  "@dailySpinStockFull": {
+    "placeholders": { "coins": { "type": "int" } }
   },
 
   "movesOfferTitle": "Almost there!",
@@ -407,5 +422,179 @@
   "privacyPolicyLink": "Privacy Policy",
   "privacyAdOptions": "Ad privacy options",
   "privacyClose": "CLOSE",
-  "privacyTooltip": "Privacy"
+  "privacyTooltip": "Privacy",
+  "outcomeWonHeadline": "COMPLETE!",
+  "continueOfferResume": "PICK UP WHERE YOU LEFT OFF",
+  "continueOfferBonus": "{bonus, plural, =1{+1 MOVE} other{+{bonus} MOVES}}",
+  "@continueOfferBonus": {
+    "placeholders": { "bonus": { "type": "int" } }
+  },
+  "objectiveMissingDigit": "{count, plural, =1{So close: 1 more {digit} piece.} other{So close: {count} more {digit} pieces.}}",
+  "@objectiveMissingDigit": {
+    "placeholders": { "count": { "type": "int" }, "digit": { "type": "int" } }
+  },
+  "objectiveMissingObstacle": "So close: {count} {obstacle} left.",
+  "@objectiveMissingObstacle": {
+    "placeholders": { "count": { "type": "int" }, "obstacle": { "type": "String" } }
+  },
+  "mapChapterStars": "CHAPTER {number} · {earned}/{total}",
+  "@mapChapterStars": {
+    "description": "Rótulo da placa do capítulo no mapa: número do capítulo e estrelas conquistadas nele.",
+    "placeholders": { "number": { "type": "int" }, "earned": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "mapYouAreHere": "YOU ARE HERE",
+  "mapLevelsCleared": "Levels 1–{last} cleared",
+  "@mapLevelsCleared": {
+    "placeholders": { "last": { "type": "int" } }
+  },
+  "mapPlayLevel": "PLAY LEVEL {number}",
+  "@mapPlayLevel": {
+    "placeholders": { "number": { "type": "int" } }
+  },
+  "mapNewObstacle": "New obstacle on level {level}: {obstacle}",
+  "@mapNewObstacle": {
+    "description": "Aviso do mapa quando um tipo de cobertura estreia nas próximas fases.",
+    "placeholders": { "level": { "type": "int" }, "obstacle": { "type": "String" } }
+  },
+  "mapDailySpinTooltip": "Daily spin",
+  "homeShop": "SHOP",
+  "homeSpin": "SPIN",
+  "homeMap": "MAP",
+  "homeChapterLevel": "CHAPTER {chapter} · LEVEL {level}",
+  "@homeChapterLevel": {
+    "description": "Pílula do menu inicial com o capítulo e a fase da vez.",
+    "placeholders": { "chapter": { "type": "int" }, "level": { "type": "int" } }
+  },
+  "homeStarsSemantics": "{count, plural, =1{1 star in the campaign} other{{count} stars in the campaign}}",
+  "@homeStarsSemantics": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "shopTitle": "SHOP",
+  "shopBoosters": "BOOSTERS",
+  "shopCoins": "COINS",
+  "shopStock": "You have {count}",
+  "@shopStock": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "shopVideoTitle": "+{coins} coins",
+  "@shopVideoTitle": {
+    "placeholders": { "coins": { "type": "int" } }
+  },
+  "shopVideoSubtitle": "Watch a short video",
+  "shopWatch": "WATCH",
+  "shopBuyFailed": "The purchase couldn't be completed. Your coins weren't spent.",
+  "chestReadyTitle": "Chapter chest!",
+  "chestCollect": "COLLECT",
+  "chestLockedTitle": "Chest locked",
+  "chestLockedHint": "Beat every level of chapter {chapter} to open it.",
+  "@chestLockedHint": {
+    "placeholders": { "chapter": { "type": "int" } }
+  },
+  "chestOk": "OK",
+  "semanticsChestLocked": "Chapter {chapter} chest, locked.",
+  "@semanticsChestLocked": {
+    "placeholders": { "chapter": { "type": "int" } }
+  },
+  "semanticsChestReady": "Chapter {chapter} chest, ready to open.",
+  "@semanticsChestReady": {
+    "placeholders": { "chapter": { "type": "int" } }
+  },
+  "semanticsChestOpened": "Chapter {chapter} chest, already opened.",
+  "@semanticsChestOpened": {
+    "placeholders": { "chapter": { "type": "int" } }
+  },
+  "settingsTooltip": "Settings",
+  "settingsTitle": "SETTINGS",
+  "settingsSectionAudio": "SOUND & TOUCH",
+  "settingsSound": "Sound effects",
+  "settingsVolume": "Effects volume",
+  "settingsMusic": "Music",
+  "settingsVibration": "Vibration",
+  "settingsSectionLanguage": "LANGUAGE",
+  "settingsLanguageSystem": "Device default",
+  "settingsLanguagePt": "Português",
+  "settingsLanguageEn": "English",
+  "settingsSectionPrivacy": "PRIVACY",
+  "settingsPrivacyPolicy": "Privacy policy",
+  "settingsConsent": "Manage ad consent",
+  "settingsSectionAbout": "ABOUT",
+  "settingsCredits": "Credits",
+  "settingsLicenses": "Open source licenses",
+  "creditsTitle": "Credits",
+  "creditsBody": "Nunito, Lilita One and Baloo 2 fonts under the SIL Open Font License (OFL).\nTiles, obstacles and icons: NineFuse \"candy pop\" art pack.\nSound effects: Kenney (kenney.nl), CC0.\nMade with Flutter.",
+  "creditsClose": "CLOSE",
+
+  "tutorialFirstSwap": "Swap these two pieces to line up three of a kind.",
+  "tutorialFusion": "The piece you touched evolves: {amount} {from}s become a {to}!",
+  "tutorialAmount": "{size, select, three{three} four{four} five{five} other{several}}",
+  "@tutorialAmount": {
+    "placeholders": { "size": { "type": "String" } }
+  },
+  "@tutorialFusion": {
+    "placeholders": {
+      "amount": { "type": "String" },
+      "from": { "type": "int" },
+      "to": { "type": "int" }
+    }
+  },
+  "tutorialObjective": "{objective} to win.",
+  "@tutorialObjective": {
+    "placeholders": { "objective": { "type": "String" } }
+  },
+  "tutorialMovesMedallion": "These are your moves. Every swap that makes a match spends one.",
+  "tutorialFreeMiss": "A swap without a match costs no move: the pieces just slide back.",
+  "tutorialBoosterDock": "Stuck? The Hammer smashes the piece you tap, without spending a move.",
+  "tutorialObstacleIce": "Ice traps the piece. One fusion next to it breaks it.",
+  "tutorialObstacleGlass": "Glass takes two fusions next to it before it breaks.",
+  "tutorialObstacleStone": "Stone takes three fusions next to it, or gives way at once to a 9 born beside it.",
+  "tutorialObstacleChain": "A chain locks the piece in place: it can't be swapped and doesn't fall, but it still matches. Match with it or fuse next to it to set it free.",
+  "@tutorialObstacleChain": {
+    "description": "Balão de estreia da corrente (cobertura ancorada)."
+  },
+  "tutorialCollectGoal": "Here the piece that GOES INTO a fusion counts: line up three of them and that's three fewer to go.",
+  "@tutorialCollectGoal": {
+    "description": "Balão da primeira fase com objetivo 'Funda N peças X'."
+  },
+  "tutorialBoardShape": "Dark cells aren't part of the board. Pieces fall right past them.",
+  "@tutorialBoardShape": {
+    "description": "Balão do primeiro tabuleiro recortado (casas fora do formato)."
+  },
+  "tutorialGotIt": "GOT IT",
+  "tutorialSkip": "Skip tutorial",
+  "settingsReplayTutorial": "Replay tutorial",
+  "settingsReplayTutorialDone": "The tutorial will show up again in your next levels.",
+
+  "homeDaily": "DAILY",
+  "@homeDaily": {"description": "Rótulo do botão da recompensa diária no menu."},
+  "homeMissions": "MISSIONS",
+  "@homeMissions": {"description": "Rótulo do botão das missões diárias no menu."},
+  "dailyRewardTitle": "Daily reward",
+  "dailyRewardSubtitle": "Come back every day: the longer the streak, the bigger the prize.",
+  "dailyRewardDay": "DAY {day}",
+  "@dailyRewardDay": {"placeholders": {"day": {"type": "int"}}},
+  "dailyRewardStreak": "{count, plural, =1{Streak: 1 day} other{Streak: {count} days}}",
+  "@dailyRewardStreak": {"placeholders": {"count": {"type": "int"}}},
+  "dailyRewardCollect": "COLLECT",
+  "dailyRewardComeBack": "Come back tomorrow for the next prize.",
+  "dailyRewardMissedHint": "Skipping a day restarts the streak.",
+  "missionsTitle": "Daily missions",
+  "missionsSubtitle": "Three new missions every day.",
+  "missionsCollect": "COLLECT",
+  "missionsBonus": "Complete all three: +{coins} coins",
+  "@missionsBonus": {"placeholders": {"coins": {"type": "int"}}},
+  "missionsAllDone": "All done! New missions tomorrow.",
+  "missionWinLevels": "{count, plural, =1{Win 1 level} other{Win {count} levels}}",
+  "@missionWinLevels": {"placeholders": {"count": {"type": "int"}}},
+  "missionFusions": "Make {count} fusions",
+  "@missionFusions": {"placeholders": {"count": {"type": "int"}}},
+  "missionCreateNines": "{count, plural, =1{Create 1 nine} other{Create {count} nines}}",
+  "@missionCreateNines": {"placeholders": {"count": {"type": "int"}}},
+  "missionBreakObstacles": "Break {count} covers",
+  "@missionBreakObstacles": {"placeholders": {"count": {"type": "int"}}},
+  "missionUseBoosters": "{count, plural, =1{Use 1 booster} other{Use {count} boosters}}",
+  "@missionUseBoosters": {"placeholders": {"count": {"type": "int"}}},
+  "missionEarnStars": "Earn {count} stars",
+  "@missionEarnStars": {"placeholders": {"count": {"type": "int"}}},
+  "missionTriggerNova": "{count, plural, =1{Trigger a Nova (three 9s in a row)} other{Trigger {count} Novas}}",
+  "@missionTriggerNova": {"placeholders": {"count": {"type": "int"}}}
 }

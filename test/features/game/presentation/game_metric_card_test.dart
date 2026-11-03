@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_metric_card.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 import '../../../support/localized.dart';
@@ -31,8 +32,7 @@ void main() {
     ),
   );
 
-  /// A caixa de vidro (o `Container` de dentro do `GlassPanel`), onde mora a
-  /// borda tingida.
+  /// A caixa da pílula, onde mora a borda.
   BoxDecoration decorationOf(WidgetTester tester) =>
       tester
               .widget<Container>(
@@ -52,26 +52,32 @@ void main() {
     expect(find.byIcon(Icons.bolt), findsOneWidget);
   });
 
-  testWidgets('em alerta a borda de vidro fica vermelha', (tester) async {
+  testWidgets('em alerta a borda fica vermelha e só ela ganha neon', (
+    tester,
+  ) async {
     await pumpCard(tester, urgent: false);
     final calmo = decorationOf(tester);
 
     await pumpCard(tester, urgent: true);
     final alerta = decorationOf(tester);
 
-    // A borda é a única coisa que muda de cor com a cor de origem (`accent`
-    // ou `AppColors.digit0` em alerta) — o vidro em si (fundo, blur) é neutro.
-    // Compara ignorando o alfa (o tingimento aplica transparência própria).
+    // Fora do alerta a borda é neutra (a cor fica no ícone); no alerta ela
+    // vira `NfColors.alert`. Compara ignorando o alfa (a borda neutra é branco
+    // com transparência).
     Color opaque(Color c) => c.withValues(alpha: 1);
 
     expect(
       opaque((calmo.border! as Border).top.color).toARGB32(),
-      isNot(opaque(AppColors.digit0).toARGB32()),
+      isNot(opaque(NfColors.alert).toARGB32()),
     );
     expect(
       opaque((alerta.border! as Border).top.color).toARGB32(),
-      opaque(AppColors.digit0).toARGB32(),
+      opaque(NfColors.alert).toARGB32(),
     );
+
+    // Neon só na urgência: brilho aceso o tempo todo vira papel de parede.
+    expect(calmo.boxShadow ?? const [], isEmpty);
+    expect(alerta.boxShadow, isNotEmpty);
   });
 
   testWidgets('a batida da pílula termina sozinha', (tester) async {

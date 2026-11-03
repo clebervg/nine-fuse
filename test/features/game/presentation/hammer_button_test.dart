@@ -174,34 +174,34 @@ void main() {
     expect(find.byKey(brushBadgeKey), findsNothing);
   });
 
-  testWidgets('estoque zero da Bomba mostra 0, não +', (tester) async {
+  testWidgets('estoque zero da Bomba mostra o + verde, não 0', (tester) async {
+    // Bomba ganhou Modo Fantasma (mirar sem estoque guarda o alvo e abre o
+    // convite), então o selo segue a regra do Martelo: um `0` anunciaria um
+    // botão inútil, e o toque ainda leva a algum lugar.
     await pumpDock(tester, bombCount: 0);
 
     expect(
-      find.descendant(
-        of: find.byKey(bombBadgeKey),
-        matching: find.text('0'),
-      ),
+      find.descendant(of: find.byKey(bombBadgeKey), matching: find.text('+')),
       findsOneWidget,
     );
     expect(
-      find.descendant(of: find.byKey(bombBadgeKey), matching: find.text('+')),
+      find.descendant(of: find.byKey(bombBadgeKey), matching: find.text('0')),
       findsNothing,
     );
   });
 
-  testWidgets('estoque zero do Pincel mostra 0, não +', (tester) async {
+  testWidgets('estoque zero do Pincel mostra o + verde, não 0', (tester) async {
+    // Pincel ganhou Modo Fantasma (mirar sem estoque guarda o alvo e abre o
+    // convite), então o selo segue a regra do Martelo: um `0` anunciaria um
+    // botão inútil, e o toque ainda leva a algum lugar.
     await pumpDock(tester, brushCount: 0);
 
     expect(
-      find.descendant(
-        of: find.byKey(brushBadgeKey),
-        matching: find.text('0'),
-      ),
+      find.descendant(of: find.byKey(brushBadgeKey), matching: find.text('+')),
       findsOneWidget,
     );
     expect(
-      find.descendant(of: find.byKey(brushBadgeKey), matching: find.text('+')),
+      find.descendant(of: find.byKey(brushBadgeKey), matching: find.text('0')),
       findsNothing,
     );
   });

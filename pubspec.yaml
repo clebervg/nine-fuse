@@ -1,5 +1,5 @@
 name: nine_fuse
-description: "A new Flutter project."
+description: "NineFuse: a logic match-3 puzzle with digits 0-9. Match three equal numbers to fuse them into the next one, evolve up to 9 and unleash shockwaves."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -61,6 +61,11 @@ dependencies:
   timezone: ^0.9.4
   app_tracking_transparency: ^2.0.7
   url_launcher: ^6.3.2
+  # Efeitos sonoros e música (ver core/audio/). PINADO, sem `^`, pela mesma
+  # razão do `google_mobile_ads`: plugin nativo cuja faixa aberta já quebrou o
+  # build do iOS uma vez neste projeto. Subir de versão só depois de
+  # `flutter build ios --debug --simulator` e `flutter build apk --debug`.
+  audioplayers: 6.8.1
 
 dev_dependencies:
   flutter_test:
@@ -106,12 +111,20 @@ flutter:
   # (ver core/theme/app_fonts.dart), como a OFL exige de quem redistribui.
   assets:
     - assets/fonts/OFL.txt
+    - assets/fonts/OFL-LilitaOne.txt
+    - assets/fonts/OFL-Baloo2.txt
     - assets/images/
     - assets/sprites/tiles/
     - assets/sprites/obstacles/
     - assets/splash/
+    # Áudio: as pastas são declaradas mesmo vazias (só com `.gitkeep`). O
+    # serviço descobre pelo AssetManifest o que existe e fica mudo para o que
+    # falta — quem soltar um arquivo com o nome certo (ver
+    # assets/audio/README.md) ouve o som sem mexer em código.
+    - assets/audio/sfx/
+    - assets/audio/music/
 
-  # Nunito vem empacotada, não baixada em runtime: uma fonte que depende de
+  # As fontes vêm empacotadas, não baixadas em runtime: uma fonte que depende de
   # rede cai silenciosamente no padrão do sistema quando o aparelho está
   # offline, e o jogo muda de cara sem aviso.
   fonts:
@@ -123,6 +136,18 @@ flutter:
           weight: 800
         - asset: assets/fonts/Nunito-Black.ttf
           weight: 900
+    # Títulos e botões grandes (direção visual "Observatório Real").
+    - family: LilitaOne
+      fonts:
+        - asset: assets/fonts/LilitaOne-Regular.ttf
+    # Números do HUD: pontos, jogadas, moedas, contadores. Subconjunto latino
+    # dos pesos 700/800 (a fonte original traz devanágari e pesa 6x mais).
+    - family: Baloo2
+      fonts:
+        - asset: assets/fonts/Baloo2-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Baloo2-ExtraBold.ttf
+          weight: 800
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

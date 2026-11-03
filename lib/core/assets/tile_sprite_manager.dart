@@ -107,6 +107,7 @@ abstract final class TileSpriteManager {
     (ObstacleType.stone, 3),
     (ObstacleType.stone, 2),
     (ObstacleType.stone, 1),
+    (ObstacleType.chain, 1),
   ];
 
   /// Caminho do asset esperado para a cobertura em [type] com [hp] restante.

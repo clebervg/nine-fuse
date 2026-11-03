@@ -1,13 +1,22 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/game_settings.dart';
 import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
+import 'package:nine_fuse/features/game/domain/daily_ad_count.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 
 /// Armazenamento que só sabe falhar. Nenhuma leitura ou gravação de progresso
 /// pode impedir o jogador de abrir o mapa.
 class _BrokenStorage implements GameStorage {
+  @override
+  Future<DailyAdCount> readHammerAdGrants() async =>
+      throw StateError('sem disco');
+  @override
+  Future<void> writeHammerAdGrants(DailyAdCount value) async =>
+      throw StateError('sem disco');
+
   @override
   Future<int> readCampaignProgress() async => throw StateError('sem disco');
   @override
@@ -31,8 +40,7 @@ class _BrokenStorage implements GameStorage {
   @override
   Future<int> readBombCount() async => throw StateError('sem disco');
   @override
-  Future<void> writeBombCount(int count) async =>
-      throw StateError('sem disco');
+  Future<void> writeBombCount(int count) async => throw StateError('sem disco');
   @override
   Future<int> readBrushCount() async => throw StateError('sem disco');
   @override
@@ -62,6 +70,17 @@ class _BrokenStorage implements GameStorage {
       throw StateError('sem disco');
   @override
   Future<void> writeLastSpinTimestamp(DateTime value) async =>
+      throw StateError('sem disco');
+  @override
+  Future<GameSettings> readSettings() async => throw StateError('sem disco');
+  @override
+  Future<void> writeSettings(GameSettings settings) async =>
+      throw StateError('sem disco');
+  @override
+  Future<Set<String>> readTutorialSeen() async =>
+      throw StateError('sem disco');
+  @override
+  Future<void> writeTutorialSeen(Set<String> steps) async =>
       throw StateError('sem disco');
 }
 
@@ -283,12 +302,14 @@ void main() {
     // escrito à mão — isso faria o mapa anunciar "Capítulo 2" para sempre,
     // por mais fases geradas que o jogador vencesse. `chapterOf` gera um
     // capítulo novo, no mesmo compasso do bloco de progressão do gerador.
-    test('uma fase além dos capítulos artesanais gera um capítulo, não quebra',
-        () {
-      final chapter = chapterOf(999);
+    test(
+      'uma fase além dos capítulos artesanais gera um capítulo, não quebra',
+      () {
+        final chapter = chapterOf(999);
 
-      expect(chapter.number, greaterThan(kChapters.last.number));
-      expect(chapter.contains(999), isTrue);
-    });
+        expect(chapter.number, greaterThan(kChapters.last.number));
+        expect(chapter.contains(999), isTrue);
+      },
+    );
   });
 }

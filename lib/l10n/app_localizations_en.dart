@@ -33,6 +33,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String objectiveCollect(int count, int digit) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Fuse $count $digit tiles',
+      one: 'Fuse 1 $digit tile',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String obstacleIceCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -61,6 +72,17 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: 'stones',
       one: 'stone',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String obstacleChainCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'chains',
+      one: 'chain',
     );
     return '$_temp0';
   }
@@ -373,6 +395,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Watch a short ad and smash the cell you picked.';
 
   @override
+  String get hammerOfferAdCapReached => 'Come back tomorrow for more videos';
+
+  @override
   String get hammerOfferWatch => 'WATCH AD';
 
   @override
@@ -405,7 +430,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get continueOfferTitle => 'Out of moves';
+  String get continueOfferTitle => 'OUT OF MOVES';
 
   @override
   String continueOfferBody(int bonus) {
@@ -544,7 +569,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dailySpinTitle => 'Daily Spin';
 
   @override
-  String get dailySpinSubtitle => 'Spin the wheel for a free daily prize!';
+  String get dailySpinSubtitle => '1 free spin per day';
 
   @override
   String get dailySpinSpinButton => 'SPIN';
@@ -556,13 +581,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dailySpinCloseButton => 'CLOSE';
 
   @override
-  String dailySpinPrizeWon(String prize) {
-    return 'You won $prize!';
-  }
+  String get dailySpinFreeButton => 'FREE SPIN';
 
   @override
-  String dailySpinComeBackIn(int hours) {
-    return 'Come back in ${hours}h for your next spin';
+  String get dailySpinNextFreeIn => 'Next free spin in';
+
+  @override
+  String get dailySpinPrizeTitle => 'YOU WON!';
+
+  @override
+  String get dailySpinCollectButton => 'COLLECT';
+
+  @override
+  String dailySpinStockFull(int coins) {
+    return 'Stock full: +$coins coins';
   }
 
   @override
@@ -636,4 +668,398 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyTooltip => 'Privacy';
+
+  @override
+  String get outcomeWonHeadline => 'COMPLETE!';
+
+  @override
+  String get continueOfferResume => 'PICK UP WHERE YOU LEFT OFF';
+
+  @override
+  String continueOfferBonus(int bonus) {
+    String _temp0 = intl.Intl.pluralLogic(
+      bonus,
+      locale: localeName,
+      other: '+$bonus MOVES',
+      one: '+1 MOVE',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String objectiveMissingDigit(int count, int digit) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'So close: $count more $digit pieces.',
+      one: 'So close: 1 more $digit piece.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String objectiveMissingObstacle(int count, String obstacle) {
+    return 'So close: $count $obstacle left.';
+  }
+
+  @override
+  String mapChapterStars(int number, int earned, int total) {
+    return 'CHAPTER $number · $earned/$total';
+  }
+
+  @override
+  String get mapYouAreHere => 'YOU ARE HERE';
+
+  @override
+  String mapLevelsCleared(int last) {
+    return 'Levels 1–$last cleared';
+  }
+
+  @override
+  String mapPlayLevel(int number) {
+    return 'PLAY LEVEL $number';
+  }
+
+  @override
+  String mapNewObstacle(int level, String obstacle) {
+    return 'New obstacle on level $level: $obstacle';
+  }
+
+  @override
+  String get mapDailySpinTooltip => 'Daily spin';
+
+  @override
+  String get homeShop => 'SHOP';
+
+  @override
+  String get homeSpin => 'SPIN';
+
+  @override
+  String get homeMap => 'MAP';
+
+  @override
+  String homeChapterLevel(int chapter, int level) {
+    return 'CHAPTER $chapter · LEVEL $level';
+  }
+
+  @override
+  String homeStarsSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count stars in the campaign',
+      one: '1 star in the campaign',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shopTitle => 'SHOP';
+
+  @override
+  String get shopBoosters => 'BOOSTERS';
+
+  @override
+  String get shopCoins => 'COINS';
+
+  @override
+  String shopStock(int count) {
+    return 'You have $count';
+  }
+
+  @override
+  String shopVideoTitle(int coins) {
+    return '+$coins coins';
+  }
+
+  @override
+  String get shopVideoSubtitle => 'Watch a short video';
+
+  @override
+  String get shopWatch => 'WATCH';
+
+  @override
+  String get shopBuyFailed =>
+      'The purchase couldn\'t be completed. Your coins weren\'t spent.';
+
+  @override
+  String get chestReadyTitle => 'Chapter chest!';
+
+  @override
+  String get chestCollect => 'COLLECT';
+
+  @override
+  String get chestLockedTitle => 'Chest locked';
+
+  @override
+  String chestLockedHint(int chapter) {
+    return 'Beat every level of chapter $chapter to open it.';
+  }
+
+  @override
+  String get chestOk => 'OK';
+
+  @override
+  String semanticsChestLocked(int chapter) {
+    return 'Chapter $chapter chest, locked.';
+  }
+
+  @override
+  String semanticsChestReady(int chapter) {
+    return 'Chapter $chapter chest, ready to open.';
+  }
+
+  @override
+  String semanticsChestOpened(int chapter) {
+    return 'Chapter $chapter chest, already opened.';
+  }
+
+  @override
+  String get settingsTooltip => 'Settings';
+
+  @override
+  String get settingsTitle => 'SETTINGS';
+
+  @override
+  String get settingsSectionAudio => 'SOUND & TOUCH';
+
+  @override
+  String get settingsSound => 'Sound effects';
+
+  @override
+  String get settingsVolume => 'Effects volume';
+
+  @override
+  String get settingsMusic => 'Music';
+
+  @override
+  String get settingsVibration => 'Vibration';
+
+  @override
+  String get settingsSectionLanguage => 'LANGUAGE';
+
+  @override
+  String get settingsLanguageSystem => 'Device default';
+
+  @override
+  String get settingsLanguagePt => 'Português';
+
+  @override
+  String get settingsLanguageEn => 'English';
+
+  @override
+  String get settingsSectionPrivacy => 'PRIVACY';
+
+  @override
+  String get settingsPrivacyPolicy => 'Privacy policy';
+
+  @override
+  String get settingsConsent => 'Manage ad consent';
+
+  @override
+  String get settingsSectionAbout => 'ABOUT';
+
+  @override
+  String get settingsCredits => 'Credits';
+
+  @override
+  String get settingsLicenses => 'Open source licenses';
+
+  @override
+  String get creditsTitle => 'Credits';
+
+  @override
+  String get creditsBody =>
+      'Nunito, Lilita One and Baloo 2 fonts under the SIL Open Font License (OFL).\nTiles, obstacles and icons: NineFuse \"candy pop\" art pack.\nSound effects: Kenney (kenney.nl), CC0.\nMade with Flutter.';
+
+  @override
+  String get creditsClose => 'CLOSE';
+
+  @override
+  String get tutorialFirstSwap =>
+      'Swap these two pieces to line up three of a kind.';
+
+  @override
+  String tutorialFusion(String amount, int from, int to) {
+    return 'The piece you touched evolves: $amount ${from}s become a $to!';
+  }
+
+  @override
+  String tutorialAmount(String size) {
+    String _temp0 = intl.Intl.selectLogic(size, {
+      'three': 'three',
+      'four': 'four',
+      'five': 'five',
+      'other': 'several',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String tutorialObjective(String objective) {
+    return '$objective to win.';
+  }
+
+  @override
+  String get tutorialMovesMedallion =>
+      'These are your moves. Every swap that makes a match spends one.';
+
+  @override
+  String get tutorialFreeMiss =>
+      'A swap without a match costs no move: the pieces just slide back.';
+
+  @override
+  String get tutorialBoosterDock =>
+      'Stuck? The Hammer smashes the piece you tap, without spending a move.';
+
+  @override
+  String get tutorialObstacleIce =>
+      'Ice traps the piece. One fusion next to it breaks it.';
+
+  @override
+  String get tutorialObstacleGlass =>
+      'Glass takes two fusions next to it before it breaks.';
+
+  @override
+  String get tutorialObstacleStone =>
+      'Stone takes three fusions next to it, or gives way at once to a 9 born beside it.';
+
+  @override
+  String get tutorialObstacleChain =>
+      'A chain locks the piece in place: it can\'t be swapped and doesn\'t fall, but it still matches. Match with it or fuse next to it to set it free.';
+
+  @override
+  String get tutorialCollectGoal =>
+      'Here the piece that GOES INTO a fusion counts: line up three of them and that\'s three fewer to go.';
+
+  @override
+  String get tutorialBoardShape =>
+      'Dark cells aren\'t part of the board. Pieces fall right past them.';
+
+  @override
+  String get tutorialGotIt => 'GOT IT';
+
+  @override
+  String get tutorialSkip => 'Skip tutorial';
+
+  @override
+  String get settingsReplayTutorial => 'Replay tutorial';
+
+  @override
+  String get settingsReplayTutorialDone =>
+      'The tutorial will show up again in your next levels.';
+
+  @override
+  String get homeDaily => 'DAILY';
+
+  @override
+  String get homeMissions => 'MISSIONS';
+
+  @override
+  String get dailyRewardTitle => 'Daily reward';
+
+  @override
+  String get dailyRewardSubtitle =>
+      'Come back every day: the longer the streak, the bigger the prize.';
+
+  @override
+  String dailyRewardDay(int day) {
+    return 'DAY $day';
+  }
+
+  @override
+  String dailyRewardStreak(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Streak: $count days',
+      one: 'Streak: 1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dailyRewardCollect => 'COLLECT';
+
+  @override
+  String get dailyRewardComeBack => 'Come back tomorrow for the next prize.';
+
+  @override
+  String get dailyRewardMissedHint => 'Skipping a day restarts the streak.';
+
+  @override
+  String get missionsTitle => 'Daily missions';
+
+  @override
+  String get missionsSubtitle => 'Three new missions every day.';
+
+  @override
+  String get missionsCollect => 'COLLECT';
+
+  @override
+  String missionsBonus(int coins) {
+    return 'Complete all three: +$coins coins';
+  }
+
+  @override
+  String get missionsAllDone => 'All done! New missions tomorrow.';
+
+  @override
+  String missionWinLevels(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Win $count levels',
+      one: 'Win 1 level',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String missionFusions(int count) {
+    return 'Make $count fusions';
+  }
+
+  @override
+  String missionCreateNines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Create $count nines',
+      one: 'Create 1 nine',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String missionBreakObstacles(int count) {
+    return 'Break $count covers';
+  }
+
+  @override
+  String missionUseBoosters(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Use $count boosters',
+      one: 'Use 1 booster',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String missionEarnStars(int count) {
+    return 'Earn $count stars';
+  }
+
+  @override
+  String missionTriggerNova(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Trigger $count Novas',
+      one: 'Trigger a Nova (three 9s in a row)',
+    );
+    return '$_temp0';
+  }
 }

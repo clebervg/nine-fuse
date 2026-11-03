@@ -77,15 +77,28 @@ lib/
 
 ### Pré-requisitos
 1. **Keystore de upload** e `android/key.properties` preenchido (modelo em `android/key.properties.example`). Sem ele o release cai na chave de **debug**, que a Play Store recusa.
-2. **IDs das unidades de anúncio de produção**, uma por funil, criados no AdMob (tipo *Premiado*).
+2. **IDs das unidades de anúncio de produção**, uma por funil, criados no AdMob (tipo *Premiado*, e uma do tipo *Intersticial*).
 
-### Comando
+### Jeito recomendado
+```bash
+cp tool/release.env.example.json release.env.json   # uma vez; o arquivo fica fora do git
+# preencha os IDs e o PRIVACY_POLICY_URL em release.env.json
+tool/build_release.sh                  # produção: recusa unidade vazia, ID de teste ou URL faltando
+tool/build_release.sh --allow-missing  # teste interno: o que faltar vira aviso
+```
+O script compila com `--dart-define-from-file`, roda o guard abaixo e confere a assinatura do `.aab`.
+
+### Comando manual (equivalente)
 ```bash
 flutter build appbundle --release \
   --dart-define=ADMOB_HAMMER_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
   --dart-define=ADMOB_MOVES_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
   --dart-define=ADMOB_COINS_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
-  --dart-define=ADMOB_SPIN_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN
+  --dart-define=ADMOB_SPIN_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
+  --dart-define=ADMOB_BOMB_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
+  --dart-define=ADMOB_BRUSH_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
+  --dart-define=ADMOB_CONTINUE_REWARDED=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN \
+  --dart-define=ADMOB_INTERSTITIAL=ca-app-pub-XXXXXXXXXXXXXXXX/NNNNNNNNNN
 ```
 O build de iOS usa os mesmos nomes de variável, com as unidades da app iOS.
 
@@ -95,6 +108,7 @@ O build de iOS usa os mesmos nomes de variável, com as unidades da app iOS.
 ```bash
 tool/check_admob_ids.sh            # falha se houver ID de teste onde não deve
 tool/check_admob_ids.sh --strict   # também falha com pendências (ex.: iOS em teste)
+tool/check_admob_ids.sh --defines "$BUILD_FLAGS"  # falha se alguma unidade ficou sem --dart-define
 keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab
 ```
 O `Owner` da assinatura não pode ser `CN=Android Debug`.

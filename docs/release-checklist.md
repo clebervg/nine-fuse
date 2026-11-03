@@ -13,7 +13,8 @@ Origem: auditoria técnica de 2026-09-30. Branch de trabalho:
 - [x] **1.3 parcial, App ID Android** (`c802343`): `manifestPlaceholders` por
   build. Debug = ID de teste; release = `ca-app-pub-5525495238538539~6427370565`.
 - [x] **1.4 IDs por `--dart-define`**: as unidades de produção saíram do código;
-  `ad_ids.dart` lê `ADMOB_{HAMMER,MOVES,COINS,SPIN}_REWARDED`. Sem a variável:
+  `ad_ids.dart` lê `ADMOB_{HAMMER,MOVES,COINS,SPIN,BOMB,BRUSH,CONTINUE}_REWARDED` e
+  `ADMOB_INTERSTITIAL`. Sem a variável:
   teste em debug/profile e vazio (sem anúncio) em release. Comando no README.
 - [x] **1.4 Guard** `tool/check_admob_ids.sh` (`--strict` antes de enviar o iOS).
 
@@ -23,13 +24,22 @@ IDs de produção já criados no AdMob (Android), para passar no build:
 
 ## Pendente: bloqueia a publicação
 
-- [ ] **Gerar a keystore de release** e criar `android/key.properties`
-  (passos no `key.properties.example`). Fazer backup fora do repositório.
-  Sem ela o release cai na chave de debug, que a Play Store recusa.
+- [x] **Keystore de release** criada (`~/upload-keystore.jks`) e
+  `android/key.properties` apontando para ela; conferido em 2026-11-02 que o
+  `app-release.aab` sai assinado com ela. Fazer backup fora do repositório.
 - [ ] **Unidades de produção que faltam (Android):** *movimentos extras* e
   *moedas*. Criar em AdMob > NineFuse (Android) > Unidades de anúncio >
   Premiado e passar em `ADMOB_MOVES_REWARDED` / `ADMOB_COINS_REWARDED`.
   Sem elas, o release fica **sem anúncio** nesses dois funis.
+- [ ] **Unidades da Bomba e do Pincel (Android):** criar duas unidades
+  *Premiado* e passar em `ADMOB_BOMB_REWARDED` / `ADMOB_BRUSH_REWARDED`. Sem
+  elas, esses dois funis ficam **sem anúncio** no release.
+- [ ] **Unidade do resgate de derrota (Android):** criar uma unidade
+  *Premiado* e passar em `ADMOB_CONTINUE_REWARDED`. Sem ela, o "+5 jogadas"
+  por vídeo fica **sem anúncio** no release.
+- [ ] **Unidade do intersticial (Android):** criar em AdMob > Unidades de
+  anúncio > **Intersticial** e passar em `ADMOB_INTERSTITIAL`. Sem ela o
+  release não mostra intersticial (o jogo segue normal).
 - [ ] **iOS:** cadastrar o app iOS no AdMob (outro App ID + unidades) e trocar
   `GADApplicationIdentifier` em `ios/Runner/Info.plist:72-73` e as unidades
   iOS. Hoje tudo é ID de teste.
@@ -58,7 +68,7 @@ IDs de produção já criados no AdMob (Android), para passar no build:
 
 - [ ] Firebase (projeto próprio, separado do AdMob): analytics e crash
   reporting. Nada no `pubspec.yaml` ainda.
-- [ ] Onboarding nas fases 1 a 3.
+- [x] Onboarding nas fases 1 a 3 (`c635eab`, tutorial interativo).
 
 ## Dívida conhecida, anterior ao trabalho
 

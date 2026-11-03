@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
+import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
 import 'package:nine_fuse/features/game/domain/economy.dart';
@@ -12,20 +14,29 @@ import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/nova_event.dart';
 import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/domain/special_tile.dart';
+import 'package:nine_fuse/features/game/domain/tutorial.dart';
 import 'package:nine_fuse/features/game/providers/bomb_booster.dart';
 import 'package:nine_fuse/features/game/providers/brush_booster.dart';
 import 'package:nine_fuse/features/game/providers/game_state.dart';
+import 'package:nine_fuse/features/game/domain/daily_missions.dart';
+import 'package:nine_fuse/features/game/domain/star_rating.dart';
+import 'package:nine_fuse/features/game/providers/daily_progress.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
+import 'package:nine_fuse/features/game/providers/step_sounds.dart';
 
 /// Orquestra o estado da fase. Toda a regra de Match-3 e fusão vive no
 /// [MatchEngine]; aqui só decidimos o que fazer com o resultado.
 class GameNotifier extends StateNotifier<GameState>
-    with HammerBooster<GameState>, BombBooster<GameState>, BrushBooster<GameState> {
+    with
+        HammerBooster<GameState>,
+        BombBooster<GameState>,
+        BrushBooster<GameState> {
   GameNotifier({
     Random? random,
     Future<void> Function(Duration)? delay,
     GameStorage? storage,
+    this._missions,
   }) : _random = random ?? Random(),
        _delay = delay ?? _realDelay,
        _storage = storage ?? const PrefsGameStorage(),
@@ -38,6 +49,10 @@ class GameNotifier extends StateNotifier<GameState>
   static Future<void> _realDelay(Duration d) => Future<void>.delayed(d);
 
   final Random _random;
+
+  /// Para onde vão os acontecimentos que as missões diárias contam. Nulo em
+  /// teste e em qualquer notifier criado fora do provider.
+  final MissionSink? _missions;
 
   /// Onde o inventário de boosters mora entre aberturas do app.
   final GameStorage _storage;
@@ -190,6 +205,28 @@ class GameNotifier extends StateNotifier<GameState>
   @visibleForTesting
   MatchEngine? get engine => _engine;
 
+  /// A troca que a mão do tutorial mostra no tabuleiro atual (ver
+  /// `tutorialSwap`). Nula antes de a fase começar ou com o tabuleiro travado.
+  ///
+  /// Passa pelo notifier porque o motor é dele: a tela pergunta, não opera.
+  (Position, Position)? tutorialSwapSuggestion({int? avoidResult}) {
+    final engine = _engine;
+    if (engine == null) return null;
+    return tutorialSwap(engine, state.board, avoidResult: avoidResult);
+  }
+
+  /// O que a troca [a] → [b] fundiria sobre [board] (ver
+  /// `describeSwapFusion`). Não resolve nada nem consome o sorteio.
+  ({int count, int from, int to, Position anchor})? describeFusion(
+    Board board,
+    Position a,
+    Position b,
+  ) {
+    final engine = _engine;
+    if (engine == null) return null;
+    return describeSwapFusion(engine, board, a, b);
+  }
+
   /// Começa a fase [level] com um tabuleiro novo.
   void startLevel(GameLevel level) {
     // A mesma fase, tentada de novo, mantém a sequência de derrotas — é
@@ -203,7 +240,10 @@ class GameNotifier extends StateNotifier<GameState>
       spawnMax: level.spawnMax,
     );
 
-    final board = _engine!.generateBoard(obstacles: level.obstacles);
+    final board = _engine!.generateBoard(
+      obstacles: level.obstacles,
+      voids: level.shape.voids,
+    );
 
     state = GameState(
       board: board,
@@ -378,6 +418,7 @@ class GameNotifier extends StateNotifier<GameState>
       clearRejectedSwap: true,
       clearPendingSupernova: true,
     );
+    GameAudio.play(SoundEvent.select);
   }
 
   void deselectTile() {
@@ -408,8 +449,10 @@ class GameNotifier extends StateNotifier<GameState>
           clearSelectedTile: true,
           rejectedSwap: (from, to),
         );
+        GameAudio.play(SoundEvent.invalidSwap);
 
       case MoveSuperNineActivated(:final board, :final convertedFrom):
+        GameAudio.play(SoundEvent.superNine);
         // O `switch` não é `async`: travar a UI esperando o hitstop antes de
         // devolver o controle ao chamador não é necessário aqui.
         unawaited(_applySuperNineActivation(engine, board, convertedFrom));
@@ -458,6 +501,7 @@ class GameNotifier extends StateNotifier<GameState>
       if (step.fusions.any((f) => f.value == kMaxDigit)) {
         _explosionFeedback();
       }
+      _playStepSounds(step);
 
       // Um Super 9 CRIADO nesta jogada merece a mesma apresentação de
       // Supernova que a ativação já tem (spec: "Super 9 criado ou ativado
@@ -501,6 +545,7 @@ class GameNotifier extends StateNotifier<GameState>
         await _delay(JuiceTimings.novaHitstop);
         if (!mounted) return;
         _explosionFeedback();
+        GameAudio.play(SoundEvent.nova);
 
         // Recompensa: a única fusão do jogo que paga moeda direto — soma dos
         // tiers (no máximo uma Nova por jogada, mas soma por segurança se
@@ -516,11 +561,7 @@ class GameNotifier extends StateNotifier<GameState>
           novaStrikes: state.novaStrikes + 1,
           novaCoinsGranted: state.novaCoinsGranted + coinsGained,
         );
-        if (_random.nextBool()) {
-          grantBomb();
-        } else {
-          grantBrush();
-        }
+        _grantNovaBooster();
       }
 
       await _delay(JuiceTimings.fusion);
@@ -536,14 +577,45 @@ class GameNotifier extends StateNotifier<GameState>
     _finishMove(engine, resolution, extraScore: 0, countsAsMove: countsAsMove);
   }
 
+  /// O booster grátis da Nova (Bomba ou Pincel, sorteado), respeitando o
+  /// teto de [kMaxBoosterStock].
+  ///
+  /// É prêmio, não compra: com o estoque cheio o item vira
+  /// [kCoinsPerOverflowBooster] moedas, somadas a `novaCoinsGranted` — o
+  /// mesmo caminho da moeda da Nova, que a tela credita na carteira. Sem o
+  /// teto a Nova seria a única torneira grátis a empilhar booster sem fim,
+  /// exatamente o que o teto da roleta existe para impedir.
+  void _grantNovaBooster() {
+    final isBomb = _random.nextBool();
+    final current = isBomb ? state.bombCount : state.brushCount;
+    final credit = capBoosterReward(current: current, amount: 1);
+    if (credit.count > current) {
+      isBomb ? grantBomb() : grantBrush();
+    }
+    if (credit.overflowCoins > 0) {
+      state = state.copyWith(
+        novaCoinsGranted: state.novaCoinsGranted + credit.overflowCoins,
+      );
+    }
+  }
+
   /// Batida forte da explosão do dígito máximo.
   ///
   /// Injetável porque é a única coisa aqui que fala com a plataforma: nos
   /// testes vira um contador, e a suíte não depende de canal nativo.
   @visibleForTesting
-  static void Function() explosionFeedback = HapticFeedback.heavyImpact;
+  static void Function() explosionFeedback = Haptics.heavy;
 
   void _explosionFeedback() => explosionFeedback();
+
+  /// O som do quadro de fusão (ver [stepSound]) e o da cobertura quebrada.
+  /// Fica junto do clarão, e não em `_finishMove`, pelo mesmo motivo da
+  /// batida tátil: o som tem de coincidir com o que a tela mostra.
+  void _playStepSounds(ResolutionStep step) {
+    final sound = stepSound(step);
+    if (sound != null) GameAudio.play(sound);
+    if (stepBreaksObstacle(step)) GameAudio.play(SoundEvent.obstacleBreak);
+  }
 
   /// Aplica o desfecho da ativação do Super 9: consome 1 movimento (é uma
   /// jogada como qualquer swap), decai as peças especiais do turno e conta
@@ -630,6 +702,25 @@ class GameNotifier extends StateNotifier<GameState>
       // celebração de "primeira vez que o dígito máximo aparece nesta
       // partida" acompanha a troca: ativar o Super 9 sempre produz um 9.
       apexCelebrated: state.apexCelebrated || produced == kMaxDigit,
+    );
+    // A conversão não é fusão (não conta para "fusões" nem "crie 9"), mas
+    // pode fechar a fase — e a vitória conta.
+    if (outcome.status == GameStatus.won) _reportWin();
+  }
+
+  /// Uma fase vencida, com as estrelas que o cartão de vitória vai mostrar.
+  /// Lê o estado **já** atualizado: é a mesma conta de `starRating` que a
+  /// tela usa, e duas contas divergiriam no primeiro bônus de movimentos.
+  void _reportWin() {
+    final sink = _missions;
+    if (sink == null) return;
+    sink(MissionKind.winLevels, 1);
+    sink(
+      MissionKind.earnStars,
+      starRating(
+        movesLeft: state.movesLeft,
+        movesAvailable: state.movesAvailable,
+      ),
     );
   }
 
@@ -745,6 +836,9 @@ class GameNotifier extends StateNotifier<GameState>
       consecutiveLosses: consecutiveLosses,
       endlessOfferShown: endlessOfferShown,
     );
+
+    reportMissionResolution(_missions, resolution, boosterUsed: !countsAsMove);
+    if (outcome.status == GameStatus.won) _reportWin();
   }
 
   /// O quanto esta jogada rendeu ao objetivo da fase.
@@ -758,6 +852,7 @@ class GameNotifier extends StateNotifier<GameState>
 
     return switch (objective.type) {
       ObjectiveType.reachDigit => resolution.countProduced(objective.digit!),
+      ObjectiveType.collectDigit => resolution.countCollected(objective.digit!),
       ObjectiveType.clearObstacles || ObjectiveType.clearAllObstacles =>
         resolution.countCleared(objective.obstacle),
     };
@@ -794,7 +889,7 @@ class GameNotifier extends StateNotifier<GameState>
 
 /// Provider do GameNotifier
 final gameProvider = StateNotifierProvider<GameNotifier, GameState>(
-  (ref) => GameNotifier(),
+  (ref) => GameNotifier(missions: ref.read(missionsProvider.notifier).record),
 );
 
 /// Número da fase mais alta já concluída. As fases seguintes ficam bloqueadas.

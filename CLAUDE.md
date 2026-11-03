@@ -1752,3 +1752,603 @@ mudança de identidade com goldens a regerar, para uma rodada própria. Saíram
 `tool/prepare_icons.dart` ainda os menciona, mas é o pipeline do SVG, já
 legado desde 2026-09-10.
 
+
+### Direção visual "Observatório Real": as 7 telas do Claude Design (2026-11-01)
+
+Referência: `Nine Fuse Telas.dc.html` no projeto do Claude Design (telas 01-07).
+Céu azul-noite, moldura de ouro e gema roxa. **Ouro marca o que é tocável e
+valioso, roxo marca o que é mágico.** Tokens em `core/theme/nf_tokens.dart`
+(`NfColors`, `NfRadii`, `NfDurations`, `NfDecorations`); widgets novos leem
+dali, não de hex solto.
+
+**Tipografia em três vozes, todas empacotadas.** Lilita One (títulos, botões
+grandes), Baloo 2 (números do HUD — a família dos números dos tiles) e Nunito
+(texto corrido). A Baloo 2 entrou como **subconjunto latino** dos pesos 700/800
+(72 KB cada, contra 410 KB com o devanágari da fonte original). Lilita One tem
+um peso só: passar `fontWeight` faz o Flutter sintetizar negrito borrado.
+`NfText` dá as quatro variantes; o contorno de `NfText.number` é traço, não
+sombra, por isso vale dentro de `Transform` animado (o bug de sombra do
+Impeller continua valendo para os títulos).
+
+**Restilizar no lugar, não duplicar.** `GameButton` e `GameDialog` mudaram de
+cara sem mudar de API: `color: AppColors.uiGold` vira o botão de ouro e
+`AppColors.darkSurface` o secundário azul-noite. Os doze chamadores não foram
+tocados por isso. O botão afunda 8→3px com escala 0,96 e dá `lightImpact`.
+
+**Vídeo premiado é sempre gema (`NfColors.gem`).** Cada convite usava a cor
+da sua peça, e o mesmo gesto ("assistir") parecia cinco ações diferentes. O
+verde (`buyGreen`) fica reservado para compra com dinheiro real, que ainda não
+existe.
+
+**O que o design pedia e não entrou, por decisão do dono do produto:**
+- **Preços e prêmios do design** (900, 1.200, 1.500, roleta até 1.000) eram
+  placeholder; valem os do código. A fatia dourada da roleta é a de maior
+  valor de `kSpinWheelPrizes`, calculada, não fixa.
+- **Pacotes em R$ e "Baú Real"** na Loja: não há billing. A Loja vende
+  boosters por moeda e oferece o vídeo premiado.
+- **"DESAFIO" com timer e "MUNDO"** no menu: não existem no jogo. O botão
+  virou ROLETA e "Mundo" virou Capítulo.
+- **"RECORDE NOVO" e "+1 martelo"** na vitória: não há recorde por fase nem
+  item por vitória.
+
+**Fluxo novo: Splash → Menu → Mapa → Fase.** O JOGAR do menu abre o **mapa**,
+que abre a fase da vez (`autoOpenCurrent`) — não a fase direto, porque o
+cartão de desfecho diz "Voltar às fases" e voltar tem de cair na trilha. A
+auto-abertura da roleta diária e o `onAppOpened()` das notificações saíram do
+mapa para o menu (primeira tela).
+
+**Teto de 5 por booster só para prêmio grátis** (`capBoosterReward`,
+`kMaxBoosterStock`, `kCoinsPerOverflowBooster = 50`): o excedente da roleta
+vira moeda e o popup diz "Estoque cheio". Compra (Loja, anúncio, mini-loja do
+início de fase) não passa pelo teto: recusar o que o jogador acabou de pagar
+seria cobrar sem entregar. Estoque legado acima de 5 não é cortado.
+
+**O "+" das moedas depende de onde a pílula está.** No menu e no mapa abre a
+Loja (rota); dentro da fase e do Recorde continua abrindo a caixa de moedas,
+porque a Loja grava estoque direto no disco e, numa partida, a autoridade é o
+`GameState` — o HUD mostraria um número velho até o próximo `startLevel`.
+
+**Tela de fase.** HUD numa placa só com o medalhão de jogadas no centro;
+alerta de jogadas sobe de ≤3 para ≤5 (`kUrgentMovesLeft`, só visual — o
+pre-churn segue em `kPreChurnMovesLeft`). Os boosters desceram para **baixo**
+do tabuleiro, no alcance do polegar, revertendo a posição das "Diretrizes de
+UI/UX: Booster Martelo" — continuam fora do card de métricas, e
+`hud_layout_test` passou a travar "dock abaixo do tabuleiro, acima da área
+segura". Sem estoque: ícone dessaturado por `ColorFilter.matrix` (não
+`Opacity`) e selo verde "+"; o Modo Fantasma não mudou.
+
+**Roleta.** Ângulo final por função pura (`targetTurnsFor`): ≥5 voltas a
+partir de onde a roda parou, ±30% de jitter injetável, testado para todos os
+índices. `Curves.decelerate` em 4200ms. A contagem "Próximo giro grátis" usa
+`Timer.periodic` (cancelado no dispose), não animação — o `pumpAndSettle`
+termina com ela ligada. O X fica desativado durante o giro: fechar no meio
+descartaria a animação antes do crédito.
+
+**Armadilhas desta rodada:**
+- **Golden sem a fonte vira retângulos.** `test/support/game_fonts.dart`
+  (`loadNfFonts`) carrega Lilita One e Baloo 2 nos quatro testes de golden.
+  Todos os seis goldens foram regerados (`board`, `game_hud`,
+  `game_hud_urgent`, `juice_fusion`, `level_outcome`, `saga_map`).
+- **`dart format` em pasta inteira** reformatou arquivos fora do escopo numa
+  das etapas; foram devolvidos ao HEAD. Formate só o que mudou.
+- **Animações em loop**: o halo da fase atual no mapa já repetia antes (com
+  `debugDisableMapPulse`); todas as animações novas são finitas (raios da
+  vitória param em 1,8s, lâmpadas da roleta só piscam enquanto ela gira).
+
+**Não validado em aparelho:** as telas foram conferidas por capturas de teste
+de widget em 390x844, 375x667 e 1080x2400 (20:9); falta rodar no simulador e
+num Android real, sobretudo o desempenho do blur dos modais.
+
+
+### Correções: baú de capítulo, teto do booster da Nova e visual do Super 9 (2026-11-01)
+
+**O baú de capítulo finalmente paga.** `Wallet.claimChapterChest` existia, com
+teste, e nenhuma tela o chamava — o cartão "Como ganhar moedas" prometia uma
+torneira que não abria. Agora há um nó de baú (`ChapterChestNode`, em
+`chapter_chest.dart`) no fim de cada capítulo pagável (1..`kChapterChestPayableCount`)
+na trilha, em três estados: trancado (azul-noite com cadeado no canto), pronto
+(ouro com halo **parado**) e aberto (bronze com ✓). Pronto credita e abre o
+popup "+200" com a moeda; trancado abre a dica "Vença as fases do capítulo N".
+
+- **O baú não entra na geometria da trilha.** Um nó a mais na sequência
+  empurraria todas as fases seguintes e quebraria a conta que centraliza a fase
+  da vez. Ele pousa ao lado, a meio caminho entre a última fase do capítulo e a
+  primeira do seguinte, do lado oposto ao da curva — longe da etiqueta "VOCÊ
+  ESTÁ AQUI", do tile 9 e das coroas de estrelas, que vivem colados nos pins.
+- **"Concluído" lê o progresso, não o histórico de estrelas.** A campanha só
+  destrava em ordem, então `progress >= lastLevel` já garante todas as fases
+  vencidas — e continua certo depois da poda (`prunedBelow`), quando contar
+  registros diria "capítulo vazio".
+- **O toque relê a carteira antes de pagar.** A carteira nasce zerada e a
+  leitura do mapa é assíncrona: um toque antes dela veria o baú como não pago
+  e gravaria um saldo montado sobre zero por cima das moedas reais.
+  `claimChapterChest` continua sendo a trava de "uma vez só".
+- **O halo do baú pronto não pulsa.** O mapa já tem um elemento pulsante (a
+  fase da vez), e um segundo loop quebraria `pumpAndSettle`.
+- O golden `saga_map.png` **não mudou**: no recorte dele (fase 4) o primeiro
+  baú fica acima da área visível.
+
+**A Nova respeita o teto de booster.** O booster grátis da Nova chamava
+`grantBomb`/`grantBrush` direto e furava o `kMaxBoosterStock` que a roleta já
+respeitava. `_grantNovaBooster` (nos dois notifiers) passa por
+`capBoosterReward`: com o estoque cheio, o item vira `kCoinsPerOverflowBooster`
+somado a `novaCoinsGranted` — o mesmo caminho que a tela já usa para creditar a
+moeda da Nova. O sorteio Bomba/Pincel continua sendo **um** `nextBool`, para
+não mudar a sequência aleatória das partidas com semente.
+
+**O Super 9 ganhou cara própria.** Antes ele era desenhado igual a um 9 comum:
+a peça especial existia só na regra, e a reversão em `kSpecialTileLifespan`
+jogadas era invisível — o jogador via o poder sumir "do nada". Agora tem aro com
+degradê de varredura gema/ouro, halo de gema somado ao ouro do ápice e um selo
+no canto com as jogadas restantes (3, 2, 1). Ao nascer, o aro dá **um** pulso
+(anel que se expande e apaga, alfa de cor dentro do pintor — nada de
+`Opacity`/`FadeTransition` na peça). O número do selo é texto sem sombra,
+porque vive dentro das transformações animadas da peça.
+
+### Configurações e serviço de áudio (silencioso até haver arquivos) (2026-11-01)
+
+**O áudio entrou mudo, e isso é o estado correto, não um meio-termo.** Não
+há nenhum arquivo de som no projeto. `AudioService` (`core/audio/`) lê o
+AssetManifest no primeiro som pedido e só toca o que foi empacotado em
+`assets/audio/sfx/` e `assets/audio/music/` — quem soltar um arquivo com o
+nome certo (lista exata em `assets/audio/README.md`, derivada de
+`SoundEvent.fileName`) ouve o som sem mexer em código. Arquivo que falta é
+silêncio: sem exceção e sem log por jogada (falha do plugin é avisada uma
+vez). As duas pastas existem só com `.gitkeep` porque o Flutter reclama de
+diretório de asset declarado e inexistente no build.
+
+**Mesma régua dos anúncios: porta fina sem teste, decisão em Dart puro.**
+`AudioPort`/`AudioplayersPort` falam com o plugin; o serviço decide
+(arquivo existe? som ligado? faixa já tocando?). O padrão
+`GameAudio.service` é `AudioService.silent()`, e só o `main` liga o plugin —
+a suíte nunca abre canal de áudio. **É estático, e não provider**, porque
+quem dispara som são os ganchos táteis estáticos dos boosters e dos
+notifiers (mixins sem `ref`); passar provider até eles mudaria a assinatura
+de dois notifiers por um som.
+
+**`audioplayers` PINADO em `6.8.1`**, pelo histórico do `google_mobile_ads`.
+`flutter build ios --debug --simulator` e `flutter build apk --debug`
+compilaram com ele. Os players nativos são `late`: enquanto não houver
+arquivo, o jogo não abre player nenhum. Contexto de áudio de **jogo**
+(iOS `ambient`, Android `game` sem foco): respeita a chave de silencioso e
+**mistura** com a música do jogador em vez de pausá-la.
+`AudioContextConfig(respectSilence: true)` não serve — no Android ele troca
+o uso para toque de chamada.
+
+**O iOS não toca `.ogg`.** O AVPlayer não tem Vorbis, então a lista de
+extensões é por plataforma (`platformAudioExtensions`): no iOS o `.ogg` nem
+é considerado, e um `fusion.ogg` sozinho vira silêncio em vez de erro a cada
+fusão. O README recomenda `.mp3` para tudo.
+
+**Um som por passo de cascata, o mais forte vence** (`stepSound`, função
+pura compartilhada por campanha e Recorde): Super 9 > 9 nascendo > combo >
+fusão. A Nova soa no fim do hitstop, junto do payoff, e não no quadro em que
+os 9s se alinham. Cobertura só soa quando **quebra** — a mesma régua de
+`countCleared`.
+
+**O som de sistema virou reserva, não camada.** `GameAudio.play(...,
+fallback:)` roda o clique/alerta do sistema só quando o efeito próprio não
+tocou. Sem isso, no dia em que `select.mp3` chegar, o jogador ouviria os
+dois empilhados.
+
+**Vitória e derrota soam na transição de status (`ref.listen` da tela), não
+no cartão.** O cartão é `StatelessWidget` reconstruído a cada quadro das
+animações dele; som em `build` tocaria em loop. O tilintar das moedas mora
+em `WalletNotifier.creditCoins` (cinco torneiras, um som), com
+`chime: false` no estorno de compra que falhou — devolver moeda não é ganhar.
+
+**Configurações persistidas em `GameStorage`** (`settings_*`), cada campo
+com leitura tolerante **isolada**: um volume corrompido não pode religar a
+vibração que o jogador desligou. Idioma "do aparelho" apaga a chave em vez
+de gravar `system`. `SettingsNotifier` descarta a leitura do disco que
+chega depois de um toque local, o mesmo remédio da carteira.
+
+**A vibração passa por um ponto só (`Haptics`, `core/feedback/`).** Todo
+`HapticFeedback` e `SystemSound` do jogo saiu de boosters, notifiers,
+roleta, mapa, baú e `GameButton` para lá; o `main` espelha as Configurações
+nele (`applyFeedbackSettings`, via `container.listen`). Fica fora do
+notifier de propósito: uma suíte que cria dez notifiers não sai mexendo em
+estado global. Os ganchos injetáveis (`strikeFeedback`,
+`explosionFeedback`...) continuam existindo e sendo dublados como antes.
+"Som desligado" também cala o clique e o alerta do sistema — um interruptor
+de som que deixa o clique do mapa tocando mente.
+
+**Idioma:** `NineFuseApp` virou `ConsumerWidget` e lê só
+`settings.language.code` (`select`): mexer no volume não reconstrói o app.
+
+**Tela de Configurações é rota, não caixa** (quatro seções não cabem num
+modal no iPhone SE). Tudo vale na hora, sem "salvar". O item de
+consentimento só aparece quando `privacyOptionsRequired` diz que é exigido,
+perguntado uma vez no `initState` (um `FutureBuilder` com a chamada no
+`build` voltaria ao UMP a cada interruptor). "Política de privacidade"
+reabre a mesma caixa que o botão do menu abria. **A engrenagem substituiu o
+botão de privacidade do Menu** (`homePrivacyKey` → `homeSettingsKey`;
+nenhum teste usava a chave antiga).
+
+**Ficou de fora, por decisão:** número de versão nos Créditos (não há
+`package_info_plus`, e um plugin nativo a mais só para "1.0.0" não se
+paga); os próprios arquivos de áudio; e a música parar ao abrir um anúncio
+premiado (o SDK do AdMob já pede foco de áudio, e sem arquivo de música não
+há o que medir). **Não validado em aparelho:** o caminho nativo do
+`audioplayers` só foi compilado, não ouvido — não há arquivo para tocar.
+
+### Tutorial interativo das fases 1-3 e estreias de cobertura (2026-11-01)
+
+**Desligado por padrão, ligado no `main`.** `tutorialStorageProvider` nasce
+nulo (tutorial off) e o `main` o aponta para `PrefsGameStorage` — o mesmo
+desenho do anúncio e do áudio. É o que deixa a suíte antiga montar as fases
+1-3 sem balão nenhum no caminho; os testes do tutorial ligam com
+`InMemoryGameStorage`. Os passos vistos vão em `GameStorage`
+(`tutorial_seen_steps`), pelo **nome** do enum: renomear um `TutorialStep`
+faz o passo reaparecer. Leitura que falha = nada visto; o que for marcado
+antes de o disco responder só é gravado depois, **somado** ao que estava lá
+(gravar antes apagaria os passos do disco — um teste pegou isso).
+
+**O passo é marcado como visto quando sobe, não quando fecha.** "Uma vez só"
+vale mesmo se o app fechar com o balão na tela.
+
+**Qualquer troca válida é aceita durante a mão.** Prender a primeira jogada à
+troca indicada ensinaria a obedecer, não a enxergar trios; véu, aros e mão
+ignoram o toque (só o balão o recebe), e a mão some quando o jogador joga. A
+troca da mão sai de `candidateSwaps` do tabuleiro real (`tutorialSwap`),
+**orientada** para a fusão nascer na segunda ponta (onde `tryMove` faz a peça
+nascer) e evitando o dígito que venceria a fase na hora — senão o balão da
+fusão e o lembrete do objetivo sumiriam sob o cartão de vitória.
+
+**Os números do balão da fusão vêm da jogada de verdade, sem perguntar ao
+motor.** A tela anota a troca tentada e o tabuleiro de antes
+(`_onTileTap`/`_onTileSwipe`), e `describeSwapFusion` calcula `swap` +
+`detectMatches` + `fusionRule`. Rodar `tryMove` de novo consumiria o sorteio
+das peças novas e mudaria o tabuleiro seguinte. Como a primeira fusão da fase
+1 ainda pode vencê-la (cascata), o balão da fusão também vale na fase 2.
+
+**A tela acha o HUD e o dock pelas `Key`s que já existiam**
+(`hudObjectiveKey`, `movesLeftKey`, `boosterDockKey`), percorrendo a árvore
+só enquanto há balão no ar. Trocá-las por `GlobalKey` mexeria em widgets de
+outra frente só para o tutorial medir.
+
+**Regras de cada passo** (`idleTutorialStep`, testada sem tela): fase 1 mão →
+fusão → objetivo; fase 2 medalhão; troca recusada da fase 2 em diante; estreia
+de cobertura na **primeira vez que o tipo aparece no tabuleiro** (não pelo
+número da fase); dock na fase 3 mesmo vazio, depois só com estoque — e mirar
+qualquer booster marca o passo, que é como "nunca usou" é cumprido.
+"Rever tutorial" (Configurações) zera tudo, mas os balões das fases 1-3 só
+voltam rejogando essas fases.
+
+**Animações finitas:** a mão faz o gesto três vezes e descansa; os balões
+informativos fecham sozinhos em 6s (`kTutorialAutoClose`) — um
+`pumpAndSettle` atravessa esse tempo, então os testes que olham o balão usam
+`pump`.
+
+
+### Intersticial, cap do martelo por vídeo, unidades próprias e mapa deslizante (2026-11-01)
+
+**Intersticial: a regra mora no serviço, a tela só diz onde está.**
+`InterstitialAdService` (Dart puro, mesma arquitetura do premiado: porta
+`InterstitialAdPort` + adaptador `AdMobInterstitialPort` fino e sem teste)
+recebe um `InterstitialMoment` — `afterVictory`, `exitToMap` ou
+`afterDefeat` — e decide. `afterDefeat` existe só para a proibição ficar
+escrita e testada: quem chama não precisa lembrar que derrota nunca mostra
+anúncio, basta dizer de onde está saindo. Os dois pontos de chamada são o
+"Próxima fase" do cartão de vitória (`_nextAfterVictory`, que espera o
+anúncio fechar antes de começar a fase seguinte) e o retorno da fase ao mapa
+(`_openLevel(...).then`), que lê o status da última partida para escolher o
+momento. Nunca no meio de uma partida: nenhum dos dois pontos existe com o
+tabuleiro em jogo.
+
+**Os 45 s são de jogo, não de relógio.** Relógio de parede passa sozinho com o
+jogador parado no mapa, na loja ou com o app em segundo plano, e um anúncio a
+cada saída de fase rápida seria o que ele lembra do jogo. O `GameScreen` tem um
+`Stopwatch` que corre só com o cartão de início fechado, a fase não encerrada e
+o app visível, e entrega o tempo ao serviço (`addPlayTime`). O relógio zera na
+**exibição**, não na oportunidade perdida por falta de estoque — pular por rede
+vazia não pode custar mais 45 s ao jogo. O primeiro anúncio da sessão também
+espera 45 s.
+
+**O `PopScope` da fase não bloqueia nada: descarrega o relógio na hora da
+saída.** O mapa decide o intersticial assim que a rota fecha, e o `dispose` da
+fase só roda depois da animação de saída — tarde demais para o tempo da última
+partida contar. `onPopInvokedWithResult` roda no próprio `pop`.
+
+**Onboarding protegido por progresso, não por sessão.** "Nunca na primeira
+sessão antes de vencer a fase 3" virou `campaignProgress <
+kInterstitialOnboardingLevels` (3): medir "sessão" pediria persistir mais
+estado, e quem ainda não venceu a fase 3 está no onboarding em qualquer
+sessão.
+
+**Sem estoque, pula — não carrega na hora.** O premiado carrega sob demanda
+porque o jogador pediu; o intersticial ninguém pediu, e segurar a navegação
+esperando a rede seria cobrar espera por um anúncio indesejado. Preload no
+`initState` da fase, como o premiado.
+
+**O padrão do provider é nenhum anúncio** (`NoInterstitialAdPort`), não
+"paga sem rede" como o premiado: um intersticial não paga nada, então o
+neutro em teste é não existir. Quem liga o AdMob é `admobOverrides()`. O
+Endless fica de fora de propósito: o fim de corrida é derrota.
+
+**No-Ads Pass: `adsRemovedProvider`, hoje sempre `false`.** É o único ponto a
+trocar quando houver billing. Remove só o intersticial — o premiado é opt-in.
+
+**Música pausa durante qualquer anúncio de tela cheia** (premiado e
+intersticial), com flag própria no `AudioService` (`pauseForAd` /
+`resumeAfterAd`), separada da suspensão do ciclo de vida: no Android o anúncio
+é outra activity e o app passa por oculto → visível ainda com ele aberto; com
+uma flag só, o `resume` do ciclo de vida religaria a música por baixo do
+anúncio. Os ganchos (`onShowStart`/`onShowEnd`) envolvem só a exibição, não a
+carga — uma rede sem estoque pausaria e religaria a faixa do zero sem anúncio
+nenhum na tela.
+
+**`check_admob_ids.sh` ganhou duas checagens:** toda unidade lida em
+`ad_ids.dart` tem de aparecer no comando de build do README, e
+`--defines "<flags>"` confere as flags de um build de verdade. Esquecer um
+`--dart-define` não quebra nada — só deixa o funil sem anúncio no release —,
+e é exatamente por isso que precisa de guarda.
+
+**Teto de 3 Martelos por vídeo ao dia (`HammerAdCap`).** O contador guarda o
+**dia local** junto do número (`DailyAdCount`, persistido em `GameStorage`), e
+não um contador zerado à meia-noite: com o app fechado não há quem zere, e um
+número sem data não sabe se é de hoje. Lido noutro dia, vale zero — inclusive
+com o app aberto atravessando a meia-noite, porque `reachedToday` é calculado
+na hora contra o relógio, nunca guardado. Local, e não UTC: "volte amanhã" é o
+amanhã do jogador. Falha de leitura vale **zero** — travar o vídeo por disco
+ilegível tiraria o caminho principal do item. Só o vídeo do convite conta; a
+compra com moeda continua livre, e no teto o botão de vídeo fica na caixa,
+apagado, dizendo "Volte amanhã para mais vídeos" (sumir com ele faria o
+jogador procurar o vídeo que usou ontem). O teto é contado **antes** do
+`onGranted`, que costuma fechar a caixa.
+
+**Bomba e Pincel ganharam unidade, serviço e preload próprios**
+(`ADMOB_BOMB_REWARDED`, `ADMOB_BRUSH_REWARDED`). O achado foi pior do que
+"usam a unidade de outro funil": `bombAdProvider` e `brushAdProvider` **nunca
+entravam em `admobOverrides()`**, então o padrão de teste — pagar sem anúncio —
+valia também no release, e os dois boosters saíam de graça pelo botão de
+vídeo. Há teste travando que, com o AdMob ligado, cada um pede a própria
+unidade. O mesmo defeito existia no `continueAdProvider` (resgate de derrota) e foi
+fechado logo em seguida: unidade própria `ADMOB_CONTINUE_REWARDED`,
+`continueAdServiceProvider`, preload e override em `admobOverrides()`, com
+teste.
+
+**O mapa virou janela deslizante de verdade — a dívida registrada na Fase 15
+está fechada.** `mapWindowFor(progress)` devolve `(first, last)`:
+`kLookbehind` (30) fases atrás da fase da vez e `kLookahead` (8) à frente,
+nunca antes da fase 1 nem terminando antes das dez artesanais. Na fase 500 a
+trilha monta 38 pins, não 508. `_currentIndex` passou a contar a partir do
+início móvel (`progress + 1 - first`), e é a mesma conta que alimenta a
+rolagem, o preenchimento animado do caminho e a geometria — os três continuam
+concordando porque nenhum deles soube que a janela mudou de lugar: o
+`SagaMapWidget` sempre trabalhou com índices na lista que recebe. O que ele
+**não** fazia era achar baú fora do começo: a busca partia do capítulo 1 e
+parava no primeiro capítulo cujo fim não estivesse na lista — com a janela
+deslizada, nenhum baú aparecia. Agora parte do capítulo da primeira fase
+montada. O pé da trilha ganhou o marcador "Fases 1–N concluídas"
+(`collapsedLevelsKey`): sem ele, uma trilha que começa na 470 terminaria num
+corte seco que lê como o começo do jogo. O golden `saga_map.png` não mudou
+(progresso 3: a janela ainda começa na 1).
+
+
+### Variedade da campanha longa: formatos, "Funda N", fechos rotativos e Corrente (2026-11-03)
+
+**O problema era medido, não impressão.** Da fase 200 à 1000 o gerador
+entregava **31 contratos de fase distintos em 801 fases** (objetivo +
+movimentos + janela + coberturas): a fase 200, a 500 e a 1000 eram a mesma
+"limpe toda a pedra, 25 jogadas", e a partir da 100 só restavam 11 objetivos.
+Hoje são **118 contratos**, travados em teste (`level_generator_test`,
+grupo "variedade da campanha longa", com piso de 110).
+
+**Formato de tabuleiro (`BoardShape`, `Board.voids`).** Casa fora do formato
+não é casa vazia: vazia espera reposição, a do formato nunca recebe peça. O
+truque que deixou a mudança pequena é `isValidPosition` passar a dizer
+`false` para ela — troca, combinação (o vão quebra a sequência como parede),
+dica, booster e reposição a ignoram sem nenhuma guarda nova. Só duas coisas
+precisaram saber do formato: o sorteio (`generateBoard(voids:)`) e a
+gravidade, que **passa por cima do vão** até a próxima casa que existe (o que
+o jogador de match-3 espera, e o que mantém a coluna alimentada pelo topo).
+Oito formatos, todos simétricos e sem coluna inteira apagada (teste). Na tela o
+vão é um poço escuro sem área de toque: só sem o encaixe ele leria como "casa
+esperando peça".
+
+- **Onde aparecem:** posições 1, 4 e 7 de cada bloco e todo fecho de capítulo,
+  a partir da fase 12 (`kFirstShapedLevel`, cantos cortados: o mais brando).
+  Recortar toda fase apagaria o contraste que faz o formato ser notado.
+- **Folga:** `kShapeMovesPerVoidFraction = 0.5` (losango, 37,5% de vão, ganha
+  19% de jogadas). Com 1.0 o losango saía em 100%.
+- **Pilares e ponte nunca em meta de cobertura.** Medido com o bot, "quebre 3
+  pedras" cai de ~80% na matriz inteira para 12% nos pilares e 34% na ponte
+  (cortam o miolo, onde a cobertura passa a fase). Nessas fases o formato vira
+  cantos cortados (90%). Os outros formatos ficam perto da matriz inteira.
+
+**Objetivo "Funda N peças X" (`ObjectiveType.collectDigit`).** O avesso de
+"Crie": conta peça que **entra** numa fusão (`Resolution.countCollected`),
+não a que nasce. Por isso o alvo pode ficar dentro da janela — e não satura em
+9, que era o motivo de as fases longas se repetirem. Exigiu um campo novo,
+`FusionEvent.matchedValue`: o valor consumido não sai de `value - 1`, porque a
+regra graduada faz o match-5 render V+2. Martelo, Bomba, Super 9 e Nova não
+contam (não são fusão). O HUD e o cartão de início já tratavam "objetivo sem
+cobertura" como dígito, então a meta nova herdou a vitrine sem tela nova.
+Posição 3 do bloco pede dentro da janela (`kCollectMovesPerPiece = 0.9`);
+posição 6, do bloco 1 em diante, pede o dígito logo acima dela, que tem de
+nascer antes de ser fundido (`kCollectAboveMovesPerPiece = 4.8`).
+
+**O fecho de capítulo roda entre quatro naturezas** (`block % 4`): limpe
+tudo, coleta grande do pé da janela, ápice "crie dez 9" e coleta acima da
+janela. O formato do fecho anda com `block + block ~/ 4`, senão cada natureza
+viria sempre no mesmo formato. Duas armadilhas medidas:
+- **A coleta do fecho pede o pé da janela, não o topo.** O topo é o que a
+  fusão gulosa já consome: pedido ali o fecho media 95-99%.
+- **O ápice tem régua própria** (`kApexClosingCount = 10`,
+  `kApexClosingMovesPerPiece = 1.4`, fora do aperto por bloco e do piso
+  pesado). Esse degrau do ciclo cai sempre na janela 5-8, onde o 9 está a uma
+  fusão do topo: o bot faz **cinco 9 em seis jogadas** 73% das vezes. Com o
+  piso de 10 qualquer contagem pequena dava 100%, e com o aperto por bloco a
+  mesma fase ia de 96% (bloco 3) a 20% (bloco 14), porque a curva é íngreme.
+
+**Corrente (`ObstacleType.chain`): o obstáculo ancorado.** A pendência da
+Fase 13 ("peça coberta cai com a gravidade") foi resolvida **sem** ancorar
+gelo, vidro e pedra, cuja calibragem inteira depende de eles caírem. A
+ancoragem entrou como cobertura nova, com regra oposta às outras três: a peça
+acorrentada **combina** normalmente, mas não troca e **não cai** — a coluna se
+parte em trechos e as peças de cima empilham sobre ela; abaixo dela só há
+reposição no lugar. Cede a uma fusão encostada (um impacto) ou a entrar ela
+mesma numa combinação. O segundo caminho tem o mesmo risco das três vezes já
+registradas neste arquivo (cobertura que some sem creditar o objetivo): depois
+da fusão a casa já está vazia e `_damageObstacles` não a vê, então o hit sai de
+`_applyFusions` (`FusionOutcome.obstacleHits`), e a peça que nasce de uma
+sobrevivente acorrentada nasce livre. Há teste para os dois.
+- Entra a partir do bloco 2 (fase 31, `kFirstChainBlock`): o bloco 0 já
+  estreia formato e coleta, e três novidades em dez fases é demais.
+- Fica **por cima** do teto `kMaxObstacles` das outras três, com teto próprio
+  (`kChainsPerLevel = 2`), e não dobra na fase hard: somá-la ao corte tiraria
+  gelo de fases já calibradas.
+- Blocos ímpares pedem "quebre 2 correntes" na posição 8
+  (`kChainMovesPerUnit = 7`, 65-73% com o bot).
+- Sprite `obstacle_chain_1.png` desenhado no Claude Design (2026-11-03), a
+  partir do prompt que descrevia a versão vetorial anterior; a primeira
+  versão saía de `tool/gen_chain_sprite.py` → `docs/brand/obstacle_chain.svg`
+  → `rsvg-convert`, que ficam como fonte de reserva. A corrente
+  **contorna a borda** da face em vez de cruzar em X — o X passaria pelo
+  centro, onde mora o número, e a peça acorrentada combina: o jogador precisa
+  ler o valor. O cadeado fica no canto pelo mesmo motivo. A fonte não fica em
+  `assets/sprites/obstacles/` porque tudo naquela pasta vai para o bundle.
+  `ChainObstaclePainter` segue como reserva, e um teste em
+  `tile_sprite_manager_test` exige sprite no disco para todo (tipo, hp).
+
+**Três balões novos de estreia** (`TutorialStep.collectGoal`, `boardShape`,
+`obstacleChain`), pela primeira vez que a coisa aparece e não pelo número da
+fase, como as outras coberturas.
+
+**Calibragem (`--mode=generated --games=150`, amostra em `_generatedSample`;
+`--levels=` mede só as fases pedidas):** corpo do bloco 64-100%, coletas
+64-99%, fechos 52-99%, correntes 65-73%. Abaixo da faixa seguem os pisos já
+conhecidos de pedra (44-58%, bot que não mira cobertura) e a dívida do alvo
+`+2` das posições ímpares ("crie 2 peças 9" em janela baixa, ~40-64%), que
+nada aqui tocou.
+
+**Ainda não feito:** formatos no Modo Recorde (ele continua na matriz
+inteira) e a dívida do `+2`.
+
+**Armadilha desta rodada: `dart format` reformata o arquivo inteiro.** Sete
+arquivos tocados (simulador, motor, gerador, dois testes, dois widgets) não
+estavam formatados no HEAD, e formatá-los misturou centenas de linhas de
+espaço com a mudança real. Foi desfeito com `git merge-file` (HEAD formatado
+como base, HEAD original como outro lado). Formate só arquivo novo.
+
+
+### Recompensa diária com sequência e missões diárias (2026-11-03)
+
+**O motivo de voltar amanhã era só a roleta.** Duas torneiras novas no menu,
+abaixo da Loja e da Roleta: **DIÁRIO** (calendário de 7 dias) e **MISSÕES**
+(três por dia), cada uma com selo vermelho quando há o que coletar.
+
+**Recompensa diária (`domain/daily_reward.dart`).** Regra pura sobre o dia
+local (`localDayKey`), sem relógio nem disco, como a roleta e o teto do
+martelo. Coletou ontem: a sequência continua. Pulou um dia: volta ao dia 1 —
+perder a sequência é o que dá peso a ela. A véspera vem do **calendário**
+(`previousDayKey`), não de "agora menos 24 h", que erra na virada do horário
+de verão. O ciclo (`kDailyRewardCycle`) paga 10, 15, 20, Martelo, 25, 30 e
+Bomba + 50 no dia 7 (valores da recalibragem logo abaixo). Os prêmios reaproveitam
+`SpinPrize`, e a sequência é gravada **antes** do crédito: morrer entre as
+duas escritas perde um prêmio uma vez; na ordem inversa, pagaria de novo a
+cada reabertura.
+
+**Missões (`domain/daily_missions.dart`).** Uma fácil, uma média e uma
+difícil por dia, de tipos diferentes, sorteadas com a **data como semente**
+(hash próprio: `String.hashCode` não é estável entre execuções). As escolhidas
+são **gravadas** ao virar o dia, e não recalculadas a cada leitura: a escolha
+depende do progresso na campanha, e uma missão que muda no meio do dia porque
+o jogador venceu uma fase é o pior defeito possível ali. Antes da fase 10
+(`kAdvancedMissionsFromProgress`) não sai missão de 9, Nova nem cobertura —
+pedir o que o jogador ainda não viu. Coletar as três paga um bônus em moeda
+(`kMissionsBonusCoins`). O progresso para no alvo ("61/60" lê como erro).
+
+**De onde vêm os números.** `GameNotifier` e `EndlessNotifier` recebem um
+`MissionSink` opcional (uma função, não o notifier: a regra de partida segue
+testável sem Riverpod) e o chamam no fim de cada jogada
+(`reportMissionResolution`): fusões, 9 nascidos, Novas, coberturas quebradas
+e, quando a jogada não conta movimento, booster usado. A vitória conta fase e
+estrelas com a mesma `starRating` do cartão — inclusive a vitória pela
+ativação do Super 9, que não passa por `_finishMove`. A conversão do Super 9
+não conta como fusão (não é).
+
+**Armazenamento próprio (`DailyProgressStorage`), e não métodos novos em
+`GameStorage`:** nove arquivos de teste implementam `GameStorage` à mão e
+ganhariam dublês sem relação com o que testam. Desligado por padrão
+(`dailyProgressStorageProvider` nulo) e ligado no `main`, como o tutorial —
+senão toda a suíte de widget que monta o menu teria o calendário abrindo por
+cima. Acontecimento que chega antes de o disco responder fica numa fila e é
+aplicado **sobre** o que estava gravado.
+
+**O crédito dos prêmios grátis virou função compartilhada
+(`providers/prize_credit.dart`, `creditPrize`).** Era privado da roleta; agora
+roleta, recompensa diária e missões pagam pelo mesmo caminho, com o mesmo teto
+de 5 boosters grátis (o excedente vira moeda).
+
+**A diária abre antes da roleta, e a roleta só depois de ela fechar.** As
+duas juntas seriam uma fila de caixas no primeiro segundo do app.
+
+**Ainda não feito:** notificação própria da sequência (o lembrete da roleta em
+24 h já leva o jogador ao menu); conquistas; e missões que dependem do Modo
+Recorde (pontuação), que pediriam um acontecimento a mais.
+
+
+### Recalibragem da economia de moedas (2026-11-03)
+
+**O dono do produto suspeitou que ficou fácil comprar booster, e a conta
+confirmou.** `tool/economy_income_model.py` soma o que cada torneira paga por
+dia para três perfis (2, 5 e 12 fases vencidas por dia). Com a recompensa
+diária e as missões recém-entradas, o jogador de 5 fases/dia levava ~460
+moedas e ~1,8 booster grátis por dia: **~5,8 boosters por dia, mais de um por
+fase**. E o problema era anterior a elas: estrela (10) e baú (200) foram
+calibrados quando a campanha tinha 10 fases ("a campanha inteira rende 300
+moedas"); com a campanha infinita, só os dois já davam ~0,5 booster por fase.
+
+**Opção escolhida (B: menos ganho e preço maior):**
+
+| | antes | agora |
+|---|---|---|
+| `kCoinsPerStar` | 10 | 5 |
+| `kChapterChestReward` | 200 | 100 |
+| Martelo / Pincel / Bomba | 100 / 100 / 150 | 150 / 150 / 200 |
+| Recompensa diária (7 dias) | 20, 30, M, 50, P, 80, B+150 | 10, 15, 20, M, 25, 30, B+50 |
+| Missões (fácil/média/difícil) | 25 / 45-50 / 65-75 | 10 / 15 / 25 |
+| Bônus das três missões | 1 booster | 20 moedas |
+
+Resultado no modelo: **2,2 boosters/dia para quem vence 5 fases (0,44 por
+fase)**, 1,4 para o casual e 3,3 para o intenso. O bônus das missões deixou
+de ser booster porque um booster grátis por dia, somado à roleta e à diária,
+era a maior torneira de booster do jogo.
+
+**Ficaram como estavam, de propósito:** o vídeo de moedas (25, **sem limite
+diário**: é receita de anúncio, e cada um agora vale um sexto de Martelo), o
+resgate de derrota (100 moedas por +5 jogadas), o excedente de booster grátis
+(50) e as moedas da Nova. Limitar o vídeo foi oferecido e recusado.
+
+**Isto é estimativa, não medição.** As premissas (estrelas por vitória, fases
+por dia) são chute até haver analytics; o modelo existe para a próxima
+recalibragem trocar o chute por dado real sem refazer a conta. O golden
+`level_outcome.png` foi regerado: o selo de moedas do cartão de vitória passou
+de +30 para +15, e nada mais mudou na imagem.
+
+
+### Baú de capítulo depois do capítulo 20 (2026-11-03)
+
+**O teto de 20 baús foi revertido a pedido do dono do produto.** Era a
+defesa contra a campanha infinita imprimir moeda para sempre (ver Fase 15);
+o custo, notado agora, é que da fase ~190 em diante o fim de capítulo
+passava sem marca nenhuma — o jogador de teste estava na 198. Todo capítulo
+voltou a ter baú: o grande (`kChapterChestReward`, 100) até o 20, e um
+menor (`kLateChapterChestReward`, 50) depois. A regra vive em
+`chapterChestReward(chapter)`, lida pela carteira, pelo nó da trilha e pelo
+popup — três lugares que antes repetiam a comparação com o teto.
+
+**A torneira segue contida pelo valor.** Um baú a cada 10 fases rende ~5
+moedas por fase, 3% de um Martelo; `tool/economy_income_model.py` agora
+mostra os dois regimes (cap. 1-20 e 21+), e o de depois do 20 dá um pouco
+menos booster por fase que o de antes.
+
+**`claimedChests` deixou de ter teto.** Cresce um inteiro por capítulo pago:
+alguns KB na fase 10.000. Aceito por ora; a poda por marca d'água (como
+`CampaignRecords.prunedBelow`) fica para quando pesar. Quem passou do
+capítulo 20 antes desta mudança encontra os baús dos capítulos 21+ prontos
+na trilha, mas só os que caem na janela do mapa (30 fases para trás) —
+pagamento retroativo pequeno, de propósito.
+

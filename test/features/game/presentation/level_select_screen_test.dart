@@ -3,7 +3,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nine_fuse/core/notifications/notification_port.dart';
+import 'package:nine_fuse/core/widgets/nf_square_button.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/game_settings.dart';
+import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/presentation/screens/endless_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/game_screen.dart';
 import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
@@ -11,16 +15,22 @@ import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.d
 import 'package:nine_fuse/features/game/presentation/widgets/endless_highlight.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/level_start_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/saga_map.dart';
-import 'package:nine_fuse/core/notifications/notification_port.dart';
-import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/features/game/providers/campaign_records.dart';
 import 'package:nine_fuse/features/game/providers/endless_notifier.dart';
 import 'package:nine_fuse/features/game/providers/game_notifier.dart';
+import 'package:nine_fuse/features/game/domain/daily_ad_count.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import '../../../support/localized.dart';
 
 /// Armazenamento que sempre falha, para verificar que o menu não trava.
 class _BrokenStorage implements GameStorage {
+  @override
+  Future<DailyAdCount> readHammerAdGrants() async =>
+      throw StateError('sem disco');
+  @override
+  Future<void> writeHammerAdGrants(DailyAdCount value) async =>
+      throw StateError('sem disco');
+
   @override
   Future<int> readCampaignProgress() async =>
       throw StateError('disco indisponível');
@@ -51,8 +61,7 @@ class _BrokenStorage implements GameStorage {
   @override
   Future<int> readBombCount() async => throw StateError('sem disco');
   @override
-  Future<void> writeBombCount(int count) async =>
-      throw StateError('sem disco');
+  Future<void> writeBombCount(int count) async => throw StateError('sem disco');
   @override
   Future<int> readBrushCount() async => throw StateError('sem disco');
   @override
@@ -82,6 +91,17 @@ class _BrokenStorage implements GameStorage {
       throw StateError('sem disco');
   @override
   Future<void> writeLastSpinTimestamp(DateTime value) async =>
+      throw StateError('sem disco');
+  @override
+  Future<GameSettings> readSettings() async => throw StateError('sem disco');
+  @override
+  Future<void> writeSettings(GameSettings settings) async =>
+      throw StateError('sem disco');
+  @override
+  Future<Set<String>> readTutorialSeen() async =>
+      throw StateError('sem disco');
+  @override
+  Future<void> writeTutorialSeen(Set<String> steps) async =>
       throw StateError('sem disco');
 }
 
@@ -203,7 +223,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('JOGAR'), findsOneWidget);
+    expect(find.byKey(youAreHereKey), findsOneWidget);
 
     // As bloqueadas trazem cadeado no lugar do número.
     expect(
@@ -455,21 +475,30 @@ void main() {
 
   group('Daily Spin', () {
     testWidgets(
-      'abre o Daily Spin automaticamente quando o jogador está elegível',
+      'elegível, o mapa não abre a roleta sozinho — quem abre é o menu '
+      'inicial — mas acende o selo do atalho',
       (tester) async {
+        // Mudança deliberada: a abertura automática passou para o
+        // `HomeScreen`, a primeira tela. Repetida aqui, a roleta abriria duas
+        // vezes na mesma sessão (menu e depois mapa).
         final spinStorage = InMemoryGameStorage(); // nunca girou -> elegível
         await pumpSelect(
           tester,
           extraOverrides: [
             dailySpinStorageProvider.overrideWithValue(spinStorage),
-            notificationPortProvider.overrideWithValue(
-              FakeNotificationPort(),
-            ),
+            notificationPortProvider.overrideWithValue(FakeNotificationPort()),
           ],
         );
         await tester.pumpAndSettle();
 
-        expect(find.byKey(dailySpinKey), findsOneWidget);
+        expect(find.byKey(dailySpinKey), findsNothing);
+        expect(
+          find.descendant(
+            of: find.byKey(levelSelectDailySpinIconKey),
+            matching: find.byKey(nfSquareButtonBadgeKey),
+          ),
+          findsOneWidget,
+        );
       },
     );
 
@@ -483,9 +512,7 @@ void main() {
           tester,
           extraOverrides: [
             dailySpinStorageProvider.overrideWithValue(spinStorage),
-            notificationPortProvider.overrideWithValue(
-              FakeNotificationPort(),
-            ),
+            notificationPortProvider.overrideWithValue(FakeNotificationPort()),
             dailySpinClockProvider.overrideWithValue(() => now),
           ],
         );

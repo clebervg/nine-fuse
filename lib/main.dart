@@ -6,9 +6,15 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:nine_fuse/core/ads/ad_providers.dart';
-import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/audioplayers_port.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/features/game/presentation/screens/splash_screen.dart';
+import 'package:nine_fuse/features/game/providers/daily_progress.dart';
+import 'package:nine_fuse/features/game/providers/game_storage.dart';
+import 'package:nine_fuse/features/game/providers/settings.dart';
+import 'package:nine_fuse/features/game/providers/tutorial.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
 void main() {
@@ -34,7 +40,48 @@ void main() {
   // Os funis só falam com o AdMob aqui. O padrão dos providers paga o
   // jogador sem rede nenhuma, e é o que mantém a suíte de widget rodando sem
   // canal de plataforma — ver `admobOverrides`.
-  final container = ProviderContainer(overrides: admobOverrides());
+  //
+  // O tutorial segue o mesmo desenho: desligado por padrão (a suíte monta as
+  // fases 1-3 sem balão no caminho) e ligado aqui, com o disco de verdade.
+  final container = ProviderContainer(
+    overrides: [
+      ...admobOverrides(),
+      tutorialStorageProvider.overrideWithValue(const PrefsGameStorage()),
+      // Recompensa diária e missões: desligadas por padrão (a suíte de
+      // widget não as quer abrindo por cima), ligadas aqui.
+      dailyProgressStorageProvider.overrideWithValue(
+        const PrefsDailyProgressStorage(),
+      ),
+    ],
+  );
+
+  // Áudio: mesmo desenho dos anúncios — o padrão (`GameAudio.service`) é mudo
+  // e é o que a suíte usa; só aqui o plugin de verdade entra. Desktop e web
+  // ficam no mudo pelo mesmo motivo do SDK de anúncio.
+  if (defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS) {
+    GameAudio.service = AudioService(
+      port: AudioplayersPort(),
+      loadAssets: bundledAudioAssets,
+      extensions: platformAudioExtensions(),
+    );
+    // Música para quando o app sai da tela: tocar no bolso é a primeira
+    // coisa que faz o jogador desligar o som de vez. Não precisa ser guardado:
+    // o listener se registra no binding ao nascer e vive enquanto o app vive.
+    AppLifecycleListener(
+      onHide: () => unawaited(GameAudio.service.suspend()),
+      onShow: () => unawaited(GameAudio.service.resume()),
+    );
+  }
+
+  // As Configurações valem para o jogo inteiro, inclusive para quem não tem
+  // `ref` (os ganchos táteis estáticos dos boosters): espelhadas nos pontos
+  // globais na abertura e a cada mudança.
+  container.listen(
+    settingsProvider,
+    (_, next) => applyFeedbackSettings(next),
+    fireImmediately: true,
+  );
 
   // A inicialização do SDK é assíncrona e **não é esperada**: segurar o
   // `runApp` até lá trocaria a abertura do jogo por uma tela branca. Um
@@ -71,11 +118,18 @@ void main() {
   );
 }
 
-class NineFuseApp extends StatelessWidget {
+class NineFuseApp extends ConsumerWidget {
   const NineFuseApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Nulo = idioma do aparelho, resolvido pelo algoritmo padrão (ver
+    // `supportedLocales`). Observado só o idioma: mexer no volume não pode
+    // reconstruir o app inteiro.
+    final languageCode = ref.watch(
+      settingsProvider.select((settings) => settings.language.code),
+    );
+
     // Some no primeiro frame renderizado, não antes: remover no `build` em si
     // tiraria a splash antes de haver algo do app para mostrar no lugar dela.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -95,9 +149,18 @@ class NineFuseApp extends StatelessWidget {
       // desconhecido para o primeiro da lista. É o que dispensa um
       // `localeResolutionCallback` só para dizer o óbvio.
       supportedLocales: AppLocalizations.supportedLocales,
+      locale: languageCode == null ? null : Locale(languageCode),
       debugShowCheckedModeBanner: false,
       theme: base.copyWith(
-        scaffoldBackgroundColor: AppColors.darkBackground,
+        // O céu do observatório. As telas pintam `NfBackground` (gradiente +
+        // estrelas) por cima; esta cor é o que aparece por um quadro durante
+        // transições de rota, e tem de ser do mesmo azul para não piscar.
+        scaffoldBackgroundColor: NfColors.night1,
+        colorScheme: base.colorScheme.copyWith(
+          primary: NfColors.gold,
+          secondary: NfColors.gem,
+          surface: NfColors.night2,
+        ),
         // A fonte vale para o app inteiro: misturar Nunito nos números com a
         // fonte do sistema nos rótulos é o tipo de detalhe que faz a tela
         // parecer montada às pressas.
@@ -106,15 +169,23 @@ class NineFuseApp extends StatelessWidget {
           fontFamily: AppFonts.display,
         ),
         appBarTheme: AppBarTheme(
-          backgroundColor: AppColors.darkSurface,
+          // Transparente: a barra fica sobre o céu da tela, não numa faixa
+          // cinza que cortaria o fundo em dois.
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
+          scrolledUnderElevation: 0,
           centerTitle: true,
+          iconTheme: const IconThemeData(color: NfColors.goldPale),
           titleTextStyle: const TextStyle(
-            fontFamily: AppFonts.display,
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.4,
+            fontFamily: AppFonts.title,
+            fontSize: 24,
+            letterSpacing: 0.6,
             color: Colors.white,
+            shadows: [
+              Shadow(offset: Offset(0, 2), color: NfColors.gemTitleShadow),
+              Shadow(offset: Offset(0, 4), color: NfColors.gemDeep),
+            ],
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(

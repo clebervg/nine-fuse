@@ -1,12 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nine_fuse/core/ads/ad_ids.dart';
 import 'package:nine_fuse/core/ads/admob_consent_port.dart';
+import 'package:nine_fuse/core/ads/admob_interstitial_port.dart';
 import 'package:nine_fuse/core/ads/admob_rewarded_port.dart';
 import 'package:nine_fuse/core/ads/consent_service.dart';
+import 'package:nine_fuse/core/ads/interstitial_ad_service.dart';
 import 'package:nine_fuse/core/ads/rewarded_ad_service.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/bomb_offer_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/brush_offer_dialog.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/continue_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/hammer_offer_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/moves_offer_dialog.dart';
+import 'package:nine_fuse/features/game/providers/game_notifier.dart';
 
 /// De onde vêm os anúncios premiados de verdade.
 ///
@@ -32,6 +41,8 @@ final hammerAdServiceProvider = Provider<RewardedAdService>((ref) {
   final service = RewardedAdService(
     port: ref.watch(rewardedAdPortProvider),
     unitId: AdIds.hammerRewarded,
+    onShowStart: _pauseMusicForAd,
+    onShowEnd: _resumeMusicAfterAd,
   );
   // O anúncio em estoque é memória viva na rede: sem devolvê-lo quando o
   // provider morre, cada recriação do escopo deixaria um para trás.
@@ -44,6 +55,8 @@ final movesAdServiceProvider = Provider<RewardedAdService>((ref) {
   final service = RewardedAdService(
     port: ref.watch(rewardedAdPortProvider),
     unitId: AdIds.movesRewarded,
+    onShowStart: _pauseMusicForAd,
+    onShowEnd: _resumeMusicAfterAd,
   );
   ref.onDispose(service.dispose);
   return service;
@@ -54,6 +67,8 @@ final coinAdServiceProvider = Provider<RewardedAdService>((ref) {
   final service = RewardedAdService(
     port: ref.watch(rewardedAdPortProvider),
     unitId: AdIds.coinsRewarded,
+    onShowStart: _pauseMusicForAd,
+    onShowEnd: _resumeMusicAfterAd,
   );
   ref.onDispose(service.dispose);
   return service;
@@ -64,10 +79,106 @@ final spinAdServiceProvider = Provider<RewardedAdService>((ref) {
   final service = RewardedAdService(
     port: ref.watch(rewardedAdPortProvider),
     unitId: AdIds.spinRewarded,
+    onShowStart: _pauseMusicForAd,
+    onShowEnd: _resumeMusicAfterAd,
   );
   ref.onDispose(service.dispose);
   return service;
 });
+
+/// Serviço do anúncio que paga a Bomba.
+///
+/// Unidade própria, como as outras: até aqui a Bomba e o Pincel não tinham
+/// unidade nem serviço — os providers deles nunca eram ligados ao AdMob, e o
+/// padrão "paga sem rede" valia também no release.
+final bombAdServiceProvider = Provider<RewardedAdService>((ref) {
+  final service = RewardedAdService(
+    port: ref.watch(rewardedAdPortProvider),
+    unitId: AdIds.bombRewarded,
+    onShowStart: _pauseMusicForAd,
+    onShowEnd: _resumeMusicAfterAd,
+  );
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+/// Serviço do anúncio que paga o Pincel.
+final brushAdServiceProvider = Provider<RewardedAdService>((ref) {
+  final service = RewardedAdService(
+    port: ref.watch(rewardedAdPortProvider),
+    unitId: AdIds.brushRewarded,
+    onShowStart: _pauseMusicForAd,
+    onShowEnd: _resumeMusicAfterAd,
+  );
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+/// Serviço do anúncio que paga o resgate de derrota.
+///
+/// Mesmo defeito que a Bomba e o Pincel tinham: `continueAdProvider` nunca
+/// entrava em [admobOverrides], então no release o "+5 jogadas" por vídeo saía
+/// de graça, sem anúncio nenhum.
+final continueAdServiceProvider = Provider<RewardedAdService>((ref) {
+  final service = RewardedAdService(
+    port: ref.watch(rewardedAdPortProvider),
+    unitId: AdIds.continueRewarded,
+    onShowStart: _pauseMusicForAd,
+    onShowEnd: _resumeMusicAfterAd,
+  );
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+// A música do jogo cala enquanto um anúncio de tela cheia está no ar: o áudio
+// dos dois junto é ruído, e o do anúncio é o que o jogador escolheu ouvir.
+void _pauseMusicForAd() => unawaited(GameAudio.service.pauseForAd());
+void _resumeMusicAfterAd() => unawaited(GameAudio.service.resumeAfterAd());
+
+/// O "No-Ads Pass": com ele, nenhum intersticial.
+///
+/// Hoje é sempre falso — não há billing no projeto. É o ponto de extensão:
+/// quando a compra existir, este provider passa a ler o direito do jogador, e
+/// nenhuma regra do intersticial precisa mudar. Os premiados **não** passam
+/// por aqui: são opt-in, e o passe remove só o anúncio que o jogador não pediu.
+final adsRemovedProvider = Provider<bool>((ref) => false);
+
+/// De onde vêm os intersticiais.
+///
+/// O padrão é **nenhum anúncio** (e nenhum canal de plataforma), ao contrário
+/// dos premiados, que pagam sem rede: um intersticial não paga nada, então o
+/// equivalente "neutro" em teste é simplesmente não existir. Quem liga o AdMob
+/// é `admobOverrides()`.
+final interstitialAdPortProvider = Provider<InterstitialAdPort>(
+  (ref) => const NoInterstitialAdPort(),
+);
+
+/// O serviço do intersticial: um só para o app inteiro, porque é ele quem
+/// guarda o relógio de jogo desde o último anúncio.
+final interstitialAdServiceProvider = Provider<InterstitialAdService>((ref) {
+  final service = InterstitialAdService(
+    port: ref.watch(interstitialAdPortProvider),
+    unitId: AdIds.interstitial,
+    onShowStart: _pauseMusicForAd,
+    onShowEnd: _resumeMusicAfterAd,
+  );
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+/// Pergunta ao serviço se cabe um intersticial em [moment] e o exibe.
+///
+/// Junta aqui o que a regra precisa e a tela não deveria montar à mão: o
+/// progresso da campanha (onboarding) e o passe sem anúncios.
+Future<bool> maybeShowInterstitial(WidgetRef ref, InterstitialMoment moment) {
+  return ref
+      .read(interstitialAdServiceProvider)
+      .maybeShow(
+        moment: moment,
+        campaignProgress: ref.read(campaignProgressProvider),
+        adsRemoved: ref.read(adsRemovedProvider),
+      );
+}
 
 /// Deixa os anúncios premiados carregados para esta fase/corrida.
 ///
@@ -86,6 +197,9 @@ void preloadRewardedAds(WidgetRef ref) {
   // para evitar.
   ref.read(coinAdServiceProvider).preload();
   ref.read(spinAdServiceProvider).preload();
+  ref.read(bombAdServiceProvider).preload();
+  ref.read(brushAdServiceProvider).preload();
+  ref.read(continueAdServiceProvider).preload();
 }
 
 /// Liga os funis de anúncio ao AdMob.
@@ -102,4 +216,12 @@ List<Override> admobOverrides() => [
   movesAdProvider.overrideWith((ref) => ref.watch(movesAdServiceProvider).show),
   coinAdProvider.overrideWith((ref) => ref.watch(coinAdServiceProvider).show),
   spinAdProvider.overrideWith((ref) => ref.watch(spinAdServiceProvider).show),
+  bombAdProvider.overrideWith((ref) => ref.watch(bombAdServiceProvider).show),
+  brushAdProvider.overrideWith((ref) => ref.watch(brushAdServiceProvider).show),
+  continueAdProvider.overrideWith(
+    (ref) => ref.watch(continueAdServiceProvider).show,
+  ),
+  interstitialAdPortProvider.overrideWith(
+    (ref) => AdMobInterstitialPort(consent: ref.watch(consentServiceProvider)),
+  ),
 ];

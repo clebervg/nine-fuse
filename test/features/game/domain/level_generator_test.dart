@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nine_fuse/features/game/domain/board_shape.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
 import 'package:nine_fuse/features/game/domain/level_generator.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
@@ -301,14 +302,120 @@ void main() {
               greaterThanOrEqualTo(notHard.obstacles.total),
               reason: 'fase hard $hardLevel',
             );
+            // A corrente fica por cima do teto, com o seu próprio (ver
+            // `kChainsPerLevel`): o teto é das três coberturas que caem.
             expect(
-              hard.obstacles.total,
+              hard.obstacles.total - hard.obstacles.chain,
               lessThanOrEqualTo(kMaxObstacles),
               reason: 'fase hard $hardLevel excedeu o teto',
+            );
+            expect(
+              hard.obstacles.chain,
+              lessThanOrEqualTo(kChainsPerLevel),
+              reason: 'fase hard $hardLevel',
             );
           }
         });
       });
+    });
+  });
+
+  group('variedade da campanha longa', () {
+    String contract(GameLevel l) =>
+        '${l.objective.debugLabel}|${l.moveLimit}|${l.spawnMin}|'
+        '${l.obstacles}|${l.shape.name}';
+
+    test('da fase 200 à 1000 há pelo menos 110 contratos de fase distintos', () {
+      // Antes dos formatos e da coleta, eram 31 contratos em 801 fases: a fase
+      // 200, a 500 e a 1000 eram literalmente a mesma. Hoje são 118.
+      final contracts = {
+        for (int n = 200; n <= 1000; n++) contract(generateLevel(n)),
+      };
+      expect(contracts.length, greaterThanOrEqualTo(110));
+    });
+
+    test(
+      'nenhuma fase antes da 12 tem formato, e a 12 estreia o mais brando',
+      () {
+        for (int n = kHandcraftedLevels + 1; n < kFirstShapedLevel; n++) {
+          expect(generateLevel(n).shape, BoardShape.full, reason: 'fase $n');
+        }
+        expect(generateLevel(kFirstShapedLevel).shape, BoardShape.cornersCut);
+      },
+    );
+
+    test('todo capítulo tem formato recortado e todo fecho é recortado', () {
+      for (int block = 0; block < 100; block++) {
+        final first = kHandcraftedLevels + 1 + block * kBlockSize;
+        final levels = [
+          for (int i = 0; i < kBlockSize; i++) generateLevel(first + i),
+        ];
+        expect(
+          levels.where((l) => l.shape.isShaped).length,
+          greaterThanOrEqualTo(3),
+          reason: 'bloco $block',
+        );
+        expect(
+          levels.last.shape.isShaped,
+          isTrue,
+          reason: 'fecho do bloco $block',
+        );
+      }
+    });
+
+    test('os fechos de capítulo rodam entre quatro naturezas de meta', () {
+      final natures = <String>{};
+      for (int block = 0; block < 8; block++) {
+        final closing = generateLevel(
+          kHandcraftedLevels + (block + 1) * kBlockSize,
+        );
+        final o = closing.objective;
+        // As duas coletas têm o mesmo `type`; o que as separa é o dígito
+        // estar dentro ou acima da janela.
+        final where = switch (o.type) {
+          ObjectiveType.reachDigit => 'apex',
+          ObjectiveType.collectDigit =>
+            o.digit! > closing.spawnMax ? 'acima' : 'dentro',
+          _ => '',
+        };
+        natures.add('${o.type.name}:$where');
+      }
+      expect(natures, hasLength(4));
+    });
+
+    test('dois fechos seguidos nunca repetem natureza nem formato', () {
+      for (int block = 1; block < 100; block++) {
+        final a = generateLevel(kHandcraftedLevels + block * kBlockSize);
+        final b = generateLevel(kHandcraftedLevels + (block + 1) * kBlockSize);
+        expect(
+          a.objective.type == b.objective.type && a.shape == b.shape,
+          isFalse,
+          reason: 'blocos ${block - 1} e $block',
+        );
+      }
+    });
+
+    test('"funda N" nunca pede o 9, e todo bloco tem pelo menos uma', () {
+      for (int block = 0; block < 100; block++) {
+        final first = kHandcraftedLevels + 1 + block * kBlockSize;
+        var collects = 0;
+        for (int i = 0; i < kBlockSize; i++) {
+          final level = generateLevel(first + i);
+          if (level.objective.type != ObjectiveType.collectDigit) continue;
+          collects++;
+          expect(
+            level.objective.digit,
+            lessThan(kMaxDigit),
+            reason: 'fase ${first + i}',
+          );
+          expect(
+            level.objective.digit,
+            greaterThanOrEqualTo(level.spawnMin),
+            reason: 'fase ${first + i}: o dígito tem de existir no tabuleiro',
+          );
+        }
+        expect(collects, greaterThanOrEqualTo(1), reason: 'bloco $block');
+      }
     });
   });
 }

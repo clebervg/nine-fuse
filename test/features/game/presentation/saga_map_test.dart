@@ -6,10 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
 import 'package:nine_fuse/features/game/domain/campaign_chapter.dart';
 import 'package:nine_fuse/features/game/domain/game_level.dart';
+import 'package:nine_fuse/features/game/domain/level_generator.dart';
 import 'package:nine_fuse/features/game/domain/level_record.dart';
 import 'package:nine_fuse/core/notifications/notification_port.dart';
 import 'package:nine_fuse/features/game/presentation/screens/level_select_screen.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/campaign_header.dart';
+import 'package:nine_fuse/features/game/presentation/widgets/chapter_chest.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/daily_spin_dialog.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/endless_highlight.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/saga_map.dart';
@@ -158,8 +160,10 @@ void main() {
     testWidgets('só a fase da vez traz o convite para jogar', (tester) async {
       await pumpMap(tester);
 
-      // Um "JOGAR" só: se todo pin chamasse, nenhum chamaria.
-      expect(find.text('JOGAR'), findsOneWidget);
+      // Um "VOCÊ ESTÁ AQUI" e um marcador só: se todo pin chamasse, nenhum
+      // chamaria.
+      expect(find.text(l10nFor().mapYouAreHere), findsOneWidget);
+      expect(find.byKey(currentMarkerKey), findsOneWidget);
     });
 
     testWidgets('a fase vencida mostra as estrelas que rendeu', (tester) async {
@@ -253,7 +257,10 @@ void main() {
 
       final chapter = chapterOf(3);
       expect(find.byKey(totalStarsKey), findsOneWidget);
-      expect(find.text('5/${chapter.starTotal}'), findsOneWidget);
+      expect(
+        find.text(l10nFor().mapChapterStars(1, 5, chapter.starTotal)),
+        findsOneWidget,
+      );
     });
 
     // O denominador agora É o do capítulo — o oposto do que este teste
@@ -267,8 +274,12 @@ void main() {
       await pumpMap(tester);
 
       final chapter = chapterOf(kChapters.last.firstLevel + 1);
-      expect(find.text(l10nFor().starsCaption), findsOneWidget);
-      expect(find.text('0/${chapter.starTotal}'), findsOneWidget);
+      expect(
+        find.text(
+          l10nFor().mapChapterStars(chapter.number, 0, chapter.starTotal),
+        ),
+        findsOneWidget,
+      );
     });
 
     // "5/18" lido em voz alta não diz de que é a fração — a mesma ambiguidade
@@ -291,7 +302,10 @@ void main() {
       await pumpMap(tester);
 
       final chapter = chapterOf(1);
-      expect(find.text('0/${chapter.starTotal}'), findsOneWidget);
+      expect(
+        find.text(l10nFor().mapChapterStars(1, 0, chapter.starTotal)),
+        findsOneWidget,
+      );
     });
 
     // O NineFuse não tem trava de vidas nem energia. Um medidor desses no topo
@@ -305,8 +319,10 @@ void main() {
 
     testWidgets('anuncia o capítulo da fase da vez', (tester) async {
       await pumpMap(tester);
+      // A placa mostra o nome sozinho, em caixa alta; o número vai no rótulo
+      // de cima, junto das estrelas.
       expect(
-        find.text(l10nFor().chapterTitle(kChapters.first)),
+        find.text(l10nFor().chapterName(kChapters.first).toUpperCase()),
         findsOneWidget,
       );
 
@@ -317,7 +333,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(chapterLabelKey), findsOneWidget);
-      expect(find.text(l10nFor().chapterTitle(kChapters.last)), findsOneWidget);
+      expect(
+        find.text(l10nFor().chapterName(kChapters.last).toUpperCase()),
+        findsOneWidget,
+      );
     });
   });
 
@@ -395,9 +414,7 @@ void main() {
   // O mapa não pode terminar em corte seco na última fase existente: sem
   // continuidade visível, quem chega ao fim da campanha lê "acabou o jogo".
   group('continuidade da trilha', () {
-    testWidgets('a trilha segue além da última fase artesanal', (
-      tester,
-    ) async {
+    testWidgets('a trilha segue além da última fase artesanal', (tester) async {
       storage.campaignProgress = kCampaign.length;
       await pumpMap(tester);
 
@@ -442,7 +459,9 @@ void main() {
   // As estrelas ficam ancoradas ao círculo, e não a uma caixa: o caminho passa
   // pelo centro do pin, e um rótulo mal ancorado cavalga a curva.
   group('âncora do rótulo do pin', () {
-    testWidgets('as estrelas ficam logo abaixo do círculo', (tester) async {
+    testWidgets('as estrelas coroam o círculo, logo acima dele', (
+      tester,
+    ) async {
       // Só a fase 1 vencida: as únicas estrelas cheias do mapa são as dela,
       // então não há como confundir de qual pin elas são.
       storage.campaignProgress = 1;
@@ -461,10 +480,23 @@ void main() {
             .first,
       );
 
-      // `bottom` negativo empurra a **borda de baixo** do rótulo para fora do
-      // círculo: a fileira começa exatamente na base do pin e desce dali.
-      expect(stars.bottom, closeTo(pin.bottom - kPinBadgeOffset, 1.0));
-      expect(stars.top, greaterThanOrEqualTo(pin.bottom - 1));
+      // A fileira assenta no topo do disco, encostando só
+      // `kPinStarsOverlap` — e a estrela do meio, mais alta, sobe dali.
+      final row = tester.getRect(
+        find
+            .ancestor(
+              of: find
+                  .descendant(
+                    of: find.byType(SagaMapWidget),
+                    matching: find.byIcon(Icons.star_rounded),
+                  )
+                  .first,
+              matching: find.byType(Row),
+            )
+            .first,
+      );
+      expect(row.bottom, closeTo(pin.top + kPinStarsOverlap, 1.0));
+      expect(stars.bottom, lessThanOrEqualTo(pin.top + kPinStarsOverlap + 1));
       // A fileira inteira (primeira estrela à última) fica centrada no pin.
       final lastStar = tester.getRect(
         find
@@ -544,6 +576,101 @@ void main() {
         tester.getSemantics(find.byKey(levelCardKey(5))).label,
         contains('bloqueada'),
       );
+    });
+  });
+
+  group('janela deslizante', () {
+    test('a janela vai de kLookbehind atrás a kLookahead à frente', () {
+      final window = mapWindowFor(499);
+      expect(window.first, 500 - kLookbehind);
+      expect(window.last, 499 + kLookahead);
+      // Sem progresso a janela não começa antes da 1 nem termina antes das
+      // dez artesanais.
+      expect(mapWindowFor(0), (first: 1, last: kHandcraftedLevels));
+    });
+
+    // O prefixo antigo montava 508 pins na fase 500.
+    testWidgets('na fase 500 monta no máximo ~40 pins', (tester) async {
+      storage.campaignProgress = 499;
+      await pumpMap(tester, size: const Size(750, 1334), pixelRatio: 2.0);
+
+      final pins = find.byWidgetPredicate((widget) {
+        final key = widget.key;
+        return key is ValueKey<String> &&
+            RegExp(r'^level_\d+$').hasMatch(key.value);
+      });
+      expect(pins.evaluate().length, lessThanOrEqualTo(40));
+      expect(find.byKey(levelCardKey(1)), findsNothing);
+      expect(find.byKey(levelCardKey(500 - kLookbehind)), findsOneWidget);
+    });
+
+    testWidgets('a fase da vez continua visível e centralizada', (
+      tester,
+    ) async {
+      storage.campaignProgress = 499;
+      await pumpMap(tester, size: const Size(750, 1334), pixelRatio: 2.0);
+
+      final viewport = tester.getRect(
+        find.ancestor(
+          of: find.byType(SagaMapWidget),
+          matching: find.byType(SingleChildScrollView),
+        ),
+      );
+      final pin = tester.getRect(find.byKey(levelCardKey(500)));
+
+      expect(pin.top, greaterThanOrEqualTo(viewport.top));
+      expect(pin.bottom, lessThanOrEqualTo(viewport.bottom));
+      expect(
+        pin.center.dy,
+        closeTo(viewport.center.dy, SagaGeometry.step),
+        reason: 'a rolagem tem de contar a partir do início móvel da janela',
+      );
+    });
+
+    testWidgets('o pé da trilha fecha com "Fases 1–N concluídas"', (
+      tester,
+    ) async {
+      storage.campaignProgress = 499;
+      await pumpMap(tester);
+
+      expect(find.byKey(collapsedLevelsKey), findsOneWidget);
+      expect(
+        find.text(l10nFor().mapLevelsCleared(500 - kLookbehind - 1)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('trilha que começa na fase 1 não tem marcador', (tester) async {
+      storage.campaignProgress = 3;
+      await pumpMap(tester);
+
+      expect(find.byKey(collapsedLevelsKey), findsNothing);
+    });
+
+    testWidgets('o baú de um capítulo dentro da janela aparece', (
+      tester,
+    ) async {
+      // Janela 31–68: começa depois do capítulo 1, que é onde a busca antiga
+      // pelos baús começava (e parava).
+      storage.campaignProgress = 60;
+      await pumpMap(tester);
+
+      final window = mapWindowFor(60);
+      expect(window.first, greaterThan(1));
+      final expected = <int>{};
+      for (var n = window.first; n <= window.last; n++) {
+        final chapter = chapterOf(n);
+        if (chapter.lastLevel == n && chapterHasChest(chapter)) {
+          expected.add(chapter.number);
+        }
+      }
+      expect(expected, isNotEmpty);
+
+      final shown = tester
+          .widgetList<ChapterChestNode>(find.byType(ChapterChestNode))
+          .map((node) => node.chapter)
+          .toSet();
+      expect(shown, expected);
     });
   });
 }

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/core/theme/app_fonts.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
 
 /// Raio das caixas de mensagem do jogo.
 const double kGameDialogRadius = 24;
@@ -101,34 +105,32 @@ class GameDialog extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(kGameDialogRadius),
-              // Radial e não chapado: o centro mais claro dá a impressão de luz
-              // batendo na caixa, que é o que separa um objeto de um retângulo.
+              // A placa do observatório: azul-noite com luz no alto, aro de ouro
+              // e uma base bronze sólida que dá espessura. O [accent] fica no
+              // halo e no selo — a moldura é a mesma em toda caixa do jogo.
               gradient: RadialGradient(
-                center: const Alignment(0, -0.55),
-                radius: 1.25,
+                center: const Alignment(0, -0.6),
+                radius: 1.3,
                 colors: [
-                  Color.lerp(AppColors.darkSurface, accent, 0.14)!,
-                  AppColors.darkSurface,
-                  const Color(0xFF141418),
+                  Color.lerp(NfColors.night3, accent, 0.10)!,
+                  NfColors.night3,
+                  const Color(0xFF0B1236),
                 ],
-                stops: const [0, 0.55, 1],
+                stops: const [0, 0.5, 1],
               ),
-              border: Border.all(
-                color: accent.withValues(alpha: 0.85),
-                width: 2,
-              ),
+              border: Border.all(color: NfColors.goldDeep, width: 2.5),
               boxShadow: [
-                // Halo da cor da caixa: é o "reluzente" do brief, e some contra
-                // o fundo escuro sem ele.
+                // Blur zero: espessura da placa, não sombra.
+                const BoxShadow(color: NfColors.bronze, offset: Offset(0, 7)),
                 BoxShadow(
                   color: accent.withValues(alpha: 0.28),
-                  blurRadius: 34,
+                  blurRadius: 40,
                   spreadRadius: 2,
                 ),
                 const BoxShadow(
-                  color: Color(0xB3000000),
-                  blurRadius: 24,
-                  offset: Offset(0, 12),
+                  color: Color(0x99000000),
+                  blurRadius: 30,
+                  offset: Offset(0, 18),
                 ),
               ],
             ),
@@ -160,14 +162,25 @@ class _CloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.black.withValues(alpha: 0.35),
+    color: Colors.transparent,
     shape: const CircleBorder(),
-    child: InkWell(
-      onTap: onPressed,
-      customBorder: const CircleBorder(),
-      child: const Padding(
-        padding: EdgeInsets.all(6),
-        child: Icon(Icons.close_rounded, color: Colors.white70, size: 20),
+    child: Ink(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF3A4380), NfColors.night3],
+        ),
+        border: Border.all(color: const Color(0xFFC98A18), width: 2),
+      ),
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: const Padding(
+          padding: EdgeInsets.all(7),
+          child: Icon(Icons.close_rounded, color: NfColors.goldPale, size: 20),
+        ),
       ),
     ),
   );
@@ -228,11 +241,10 @@ class _TitleBanner extends StatelessWidget {
         textAlign: TextAlign.center,
         maxLines: 2,
         style: TextStyle(
-          fontFamily: AppFonts.display,
+          fontFamily: AppFonts.title,
           color: Colors.white,
-          fontSize: fontSize,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.6,
+          fontSize: fontSize + 2,
+          letterSpacing: 0.8,
           height: 1.1,
           shadows: kGameTextShadow,
         ),
@@ -255,15 +267,26 @@ class GameButton extends StatefulWidget {
     required this.color,
     required this.onPressed,
     this.icon,
+    this.leading,
     this.foreground,
     this.expand = true,
     this.fontSize = 17,
+    this.subtitle,
   });
 
   final String label;
+
+  /// Linha menor abaixo do rótulo — ex.: o objetivo da fase sob "JOGAR FASE
+  /// 8". Diz o que o toque vai custar sem o jogador ter de abrir a fase.
+  final String? subtitle;
   final Color color;
   final VoidCallback? onPressed;
   final IconData? icon;
+
+  /// Arte antes do rótulo, no lugar de [icon] — ex.: o sprite da moeda num
+  /// botão de compra. Ícone de fonte não tem o acabamento 3D da arte, e ao
+  /// lado de um preço é a moeda de verdade que o jogador precisa reconhecer.
+  final Widget? leading;
 
   /// Cor do texto. Por padrão sai do contraste com [color].
   final Color? foreground;
@@ -281,26 +304,25 @@ class _GameButtonState extends State<GameButton> {
   /// Sem callback o botão é decorativo: não afunda e não anuncia ação.
   bool get _enabled => widget.onPressed != null;
 
-  /// Altura da aresta inferior. É ela que dá o volume — e é ela que some
-  /// quando o botão é pressionado, o que o olho lê como afundar.
-  static const double _depth = 5;
+  /// Altura da aresta inferior em repouso e pressionado. É ela que dá o
+  /// volume — e é ela que encolhe sob o dedo, o que o olho lê como afundar.
+  static const double _depth = 8;
+  static const double _pressedDepth = 3;
 
   @override
   Widget build(BuildContext context) {
-    final base = widget.color;
-    // Texto legível sobre a cor do botão, pela mesma regra da paleta: as cores
-    // claras do jogo (amarelo, dourado) pedem texto escuro.
-    final fg =
-        widget.foreground ??
-        (base.computeLuminance() > 0.45
-            ? const Color(0xFF15150F)
-            : Colors.white);
+    final palette = _GameButtonPalette.of(widget.color, enabled: _enabled);
+    final fg = widget.foreground ?? palette.foreground;
+    final edge = _pressed ? _pressedDepth : _depth;
 
     final content = Row(
       mainAxisSize: widget.expand ? MainAxisSize.max : MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (widget.icon case final icon?) ...[
+        if (widget.leading case final leading?) ...[
+          leading,
+          const SizedBox(width: 10),
+        ] else if (widget.icon case final icon?) ...[
           Icon(icon, color: fg, size: widget.fontSize + 3),
           const SizedBox(width: 8),
         ],
@@ -310,18 +332,41 @@ class _GameButtonState extends State<GameButton> {
           // faz nada quando o texto já cabe, então botões curtos não mudam.
           child: FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(
-              widget.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: AppFonts.display,
-                color: fg,
-                fontSize: widget.fontSize,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.8,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    // Lilita One: a voz dos títulos e botões grandes. Tem um
+                    // peso só, então nada de `fontWeight` (o Flutter
+                    // sintetizaria um negrito borrado).
+                    fontFamily: AppFonts.title,
+                    color: fg,
+                    fontSize: widget.fontSize + 2,
+                    letterSpacing: 0.9,
+                    height: widget.subtitle == null ? null : 1.05,
+                  ),
+                ),
+                if (widget.subtitle case final subtitle?)
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: AppFonts.number,
+                      fontWeight: FontWeight.w800,
+                      // Mais apagado que o rótulo: é o detalhe, não a ação.
+                      color: fg.withValues(alpha: 0.72),
+                      fontSize: 12,
+                      letterSpacing: 1.4,
+                      height: 1.1,
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
@@ -340,50 +385,143 @@ class _GameButtonState extends State<GameButton> {
         },
         onTapCancel: () => setState(() => _pressed = false),
         onTapUp: (_) => setState(() => _pressed = false),
-        onTap: widget.onPressed,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 90),
+        onTap: _enabled
+            ? () {
+                // Batida leve: confirma o toque sem competir com o
+                // `heavyImpact` das destruições no tabuleiro.
+                Haptics.light();
+                GameAudio.play(SoundEvent.buttonTap);
+                widget.onPressed!();
+              }
+            : null,
+        child: AnimatedScale(
+          scale: _pressed ? 0.96 : 1,
+          duration: NfDurations.press,
           curve: Curves.easeOut,
-          // Desce a mesma altura da aresta que perde: o topo do botão fica
-          // exatamente onde a base estava, sem o conjunto mudar de tamanho.
-          transform: Matrix4.translationValues(0, _pressed ? _depth : 0, 0),
-          width: widget.expand ? double.infinity : null,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.lighten(base, 0.18),
-                base,
-                AppColors.darken(base, 0.06),
+          child: AnimatedContainer(
+            duration: NfDurations.press,
+            curve: Curves.easeOut,
+            // Desce o que a aresta perde: o topo do botão fica exatamente onde
+            // a base estava, sem o conjunto mudar de tamanho.
+            transform: Matrix4.translationValues(0, _depth - edge, 0),
+            width: widget.expand ? double.infinity : null,
+            // Área tocável ≥ 48dp mesmo com fonte pequena.
+            constraints: const BoxConstraints(minHeight: 52),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(NfRadii.md),
+              gradient: palette.fill,
+              border: palette.border,
+              boxShadow: [
+                // Blur zero de propósito: é uma aresta sólida, não uma sombra.
+                // É o que simula a espessura do botão.
+                BoxShadow(color: palette.edge, offset: Offset(0, edge)),
+                if (palette.glow case final glow?)
+                  BoxShadow(
+                    color: glow.withValues(alpha: _pressed ? 0.12 : 0.32),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
               ],
-              stops: const [0, 0.5, 1],
             ),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.30),
-              width: 1.5,
+            child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                // Reflexo no topo: o "inset 0 3px 0 rgba(255,255,255,.75)" do
+                // design. É o que separa um botão de vidro de uma pílula chapada.
+                if (palette.highlight)
+                  Positioned(
+                    top: -9,
+                    left: 6,
+                    right: 6,
+                    child: Container(
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                content,
+              ],
             ),
-            boxShadow: [
-              // Blur zero de propósito: é uma aresta sólida, não uma sombra.
-              // É o que simula a espessura da pílula.
-              BoxShadow(
-                color: AppColors.darken(base, 0.24),
-                offset: Offset(0, _pressed ? 0 : _depth),
-              ),
-              BoxShadow(
-                color: base.withValues(alpha: _pressed ? 0.15 : 0.35),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
-          child: content,
         ),
       ),
     );
   }
+}
+
+/// As cores de um [GameButton], derivadas da cor que o chamador pediu.
+///
+/// Os chamadores continuam passando `color` — o que mudou foi a **leitura**
+/// dela: o dourado da UI vira o botão de ouro do observatório, e o
+/// `darkSurface` vira o botão secundário azul-noite com contorno discreto. Os
+/// demais tons (botões de anúncio, em cor de peça) seguem a cor, com o mesmo
+/// volume.
+class _GameButtonPalette {
+  const _GameButtonPalette({
+    required this.fill,
+    required this.edge,
+    required this.foreground,
+    this.border,
+    this.glow,
+    this.highlight = true,
+  });
+
+  factory _GameButtonPalette.of(Color base, {required bool enabled}) {
+    if (base == AppColors.uiGold || base == NfColors.gold) {
+      return const _GameButtonPalette(
+        fill: NfDecorations.goldFill,
+        edge: NfColors.goldShadow,
+        foreground: NfColors.goldText,
+        glow: Color(0xFFFFAA00),
+      );
+    }
+    if (base == AppColors.darkSurface || !enabled) {
+      return _GameButtonPalette(
+        fill: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [NfColors.night3, NfColors.night2],
+        ),
+        edge: NfColors.night0,
+        foreground: enabled ? NfColors.textSoft : Colors.white38,
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.16),
+          width: 1.5,
+        ),
+        highlight: false,
+      );
+    }
+    return _GameButtonPalette(
+      fill: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          AppColors.lighten(base, 0.22),
+          base,
+          AppColors.darken(base, 0.08),
+        ],
+        stops: const [0, 0.45, 1],
+      ),
+      edge: AppColors.darken(base, 0.28),
+      // Texto legível sobre a cor do botão, pela mesma regra da paleta: as
+      // cores claras do jogo pedem texto escuro.
+      foreground: base.computeLuminance() > 0.45
+          ? const Color(0xFF15150F)
+          : Colors.white,
+      glow: base,
+    );
+  }
+
+  final Gradient fill;
+  final Color edge;
+  final Color foreground;
+  final BoxBorder? border;
+  final Color? glow;
+  final bool highlight;
 }
 
 /// Ação secundária: texto sem caixa, para não competir com o botão principal.

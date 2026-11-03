@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nine_fuse/core/constants/app_colors.dart';
+import 'package:nine_fuse/core/theme/app_fonts.dart';
+import 'package:nine_fuse/core/theme/nf_tokens.dart';
 import 'package:nine_fuse/features/game/presentation/widgets/game_dialog.dart';
 import 'package:nine_fuse/l10n/app_localizations.dart';
 
@@ -53,7 +55,12 @@ class EndlessSuggestionDialog extends StatelessWidget {
           Text(
             l10n.endlessSuggestionBody,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70, fontSize: 15),
+            style: const TextStyle(
+              fontFamily: AppFonts.display,
+              color: NfColors.textSoft,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 18),
           GameButton(
@@ -68,7 +75,6 @@ class EndlessSuggestionDialog extends StatelessWidget {
             key: endlessSuggestionDeclineKey,
             label: l10n.endlessSuggestionDecline,
             color: AppColors.darkSurface,
-            foreground: Colors.white70,
             onPressed: onDecline,
           ),
         ],

@@ -9,11 +9,15 @@
 
   "objectiveCreateMany": "{count, plural, =1{Crie uma peça {digit}} other{Crie {count} peças {digit}}}",
 
+  "objectiveCollect": "{count, plural, =1{Funda 1 peça {digit}} other{Funda {count} peças {digit}}}",
+
   "obstacleIceCount": "{count, plural, =1{gelo} other{gelos}}",
 
   "obstacleGlassCount": "{count, plural, =1{vidro} other{vidros}}",
 
   "obstacleStoneCount": "{count, plural, =1{pedra} other{pedras}}",
+
+  "obstacleChainCount": "{count, plural, =1{corrente} other{correntes}}",
 
   "objectiveClearObstacles": "Quebre {count} {obstacle}",
 
@@ -130,6 +134,7 @@
 
   "hammerOfferTitle": "Sem martelos",
   "hammerOfferBody": "Assista a um anúncio curto e quebre a célula que você escolheu.",
+  "hammerOfferAdCapReached": "Volte amanhã para mais vídeos",
   "hammerOfferWatch": "ASSISTIR AD",
   "hammerOfferDecline": "AGORA NÃO",
   "hammerOfferFailed": "Nenhum anúncio disponível agora.",
@@ -141,7 +146,7 @@
   "hammerOfferBalance": "Você tem {coins} 🪙",
   "hammerOfferEarnCoins": "Ganhar +{reward} 🪙 (Assistir Vídeo)",
   "hammerOfferEarnedCoins": "+{reward} 🪙 creditadas no seu saldo!",
-  "continueOfferTitle": "Sem movimentos",
+  "continueOfferTitle": "SEM JOGADAS",
   "continueOfferBody": "Assista a um anúncio curto ou gaste moedas para ganhar {bonus} movimentos extras e continuar.",
   "continueOfferWatch": "ASSISTIR (+{bonus})",
   "continueOfferBuy": "Comprar por {price} 🪙",
@@ -187,12 +192,15 @@
   "brushSemantics": "Pincel, {count} em estoque. Soma 1 ao valor de uma peça sem gastar movimento.",
 
   "dailySpinTitle": "Roleta Diária",
-  "dailySpinSubtitle": "Gire a roleta e ganhe um prêmio grátis hoje!",
+  "dailySpinSubtitle": "1 giro grátis por dia",
   "dailySpinSpinButton": "GIRAR",
   "dailySpinWatchAgainButton": "Girar de Novo (Assistir Vídeo)",
   "dailySpinCloseButton": "FECHAR",
-  "dailySpinPrizeWon": "Você ganhou {prize}!",
-  "dailySpinComeBackIn": "Volte em {hours}h para o próximo giro",
+  "dailySpinFreeButton": "GIRAR GRÁTIS",
+  "dailySpinNextFreeIn": "Próximo giro grátis em",
+  "dailySpinPrizeTitle": "VOCÊ GANHOU!",
+  "dailySpinCollectButton": "COLETAR",
+  "dailySpinStockFull": "Estoque cheio: +{coins} moedas",
 
   "movesOfferTitle": "Quase lá!",
   "movesOfferBody": "{count, plural, =1{Resta 1 movimento} other{Restam {count} movimentos}}. Assista a um anúncio curto e ganhe mais {reward}.",
@@ -214,5 +222,127 @@
   "privacyPolicyLink": "Política de Privacidade",
   "privacyAdOptions": "Opções de privacidade dos anúncios",
   "privacyClose": "FECHAR",
-  "privacyTooltip": "Privacidade"
+  "privacyTooltip": "Privacidade",
+  "outcomeWonHeadline": "CONCLUÍDA!",
+  "continueOfferResume": "CONTINUAR DE ONDE PAROU",
+  "continueOfferBonus": "{bonus, plural, =1{+1 JOGADA} other{+{bonus} JOGADAS}}",
+  "@continueOfferBonus": {
+    "placeholders": { "bonus": { "type": "int" } }
+  },
+  "objectiveMissingDigit": "{count, plural, =1{Faltou pouco: 1 peça {digit}.} other{Faltou pouco: {count} peças {digit}.}}",
+  "@objectiveMissingDigit": {
+    "placeholders": { "count": { "type": "int" }, "digit": { "type": "int" } }
+  },
+  "objectiveMissingObstacle": "Faltou pouco: {count} {obstacle}.",
+  "@objectiveMissingObstacle": {
+    "placeholders": { "count": { "type": "int" }, "obstacle": { "type": "String" } }
+  },
+  "mapChapterStars": "CAPÍTULO {number} · {earned}/{total}",
+  "@mapChapterStars": {
+    "placeholders": { "number": { "type": "int" }, "earned": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "mapYouAreHere": "VOCÊ ESTÁ AQUI",
+  "mapLevelsCleared": "Fases 1–{last} concluídas",
+  "mapPlayLevel": "JOGAR FASE {number}",
+  "@mapPlayLevel": {
+    "placeholders": { "number": { "type": "int" } }
+  },
+  "mapNewObstacle": "Novo obstáculo na fase {level}: {obstacle}",
+  "@mapNewObstacle": {
+    "placeholders": { "level": { "type": "int" }, "obstacle": { "type": "String" } }
+  },
+  "mapDailySpinTooltip": "Roleta diária",
+  "homeShop": "LOJA",
+  "homeSpin": "ROLETA",
+  "homeMap": "MAPA",
+  "homeChapterLevel": "CAPÍTULO {chapter} · FASE {level}",
+  "@homeChapterLevel": {
+    "placeholders": { "chapter": { "type": "int" }, "level": { "type": "int" } }
+  },
+  "homeStarsSemantics": "{count, plural, =1{1 estrela na campanha} other{{count} estrelas na campanha}}",
+  "@homeStarsSemantics": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "shopTitle": "LOJA",
+  "shopBoosters": "BOOSTERS",
+  "shopCoins": "MOEDAS",
+  "shopStock": "Você tem {count}",
+  "@shopStock": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "shopVideoTitle": "+{coins} moedas",
+  "@shopVideoTitle": {
+    "placeholders": { "coins": { "type": "int" } }
+  },
+  "shopVideoSubtitle": "Assista a um vídeo curto",
+  "shopWatch": "ASSISTIR",
+  "shopBuyFailed": "Não deu para concluir a compra. Suas moedas não foram gastas.",
+  "chestReadyTitle": "Baú do capítulo!",
+  "chestCollect": "COLETAR",
+  "chestLockedTitle": "Baú trancado",
+  "chestLockedHint": "Vença as fases do capítulo {chapter} para abrir.",
+  "chestOk": "OK",
+  "semanticsChestLocked": "Baú do capítulo {chapter}, trancado.",
+  "semanticsChestReady": "Baú do capítulo {chapter}, pronto para abrir.",
+  "semanticsChestOpened": "Baú do capítulo {chapter}, já aberto.",
+  "settingsTooltip": "Configurações",
+  "settingsTitle": "AJUSTES",
+  "settingsSectionAudio": "SOM E TOQUE",
+  "settingsSound": "Efeitos sonoros",
+  "settingsVolume": "Volume dos efeitos",
+  "settingsMusic": "Música",
+  "settingsVibration": "Vibração",
+  "settingsSectionLanguage": "IDIOMA",
+  "settingsLanguageSystem": "Do aparelho",
+  "settingsLanguagePt": "Português",
+  "settingsLanguageEn": "English",
+  "settingsSectionPrivacy": "PRIVACIDADE",
+  "settingsPrivacyPolicy": "Política de privacidade",
+  "settingsConsent": "Gerenciar consentimento de anúncios",
+  "settingsSectionAbout": "SOBRE",
+  "settingsCredits": "Créditos",
+  "settingsLicenses": "Licenças de código aberto",
+  "creditsTitle": "Créditos",
+  "creditsBody": "Fontes Nunito, Lilita One e Baloo 2 sob a SIL Open Font License (OFL).\nPeças, coberturas e ícones: pacote de arte \"candy pop\" do NineFuse.\nEfeitos sonoros: Kenney (kenney.nl), CC0.\nFeito com Flutter.",
+  "creditsClose": "FECHAR",
+
+  "tutorialFirstSwap": "Troque estas duas peças para alinhar três iguais.",
+  "tutorialFusion": "A peça do seu toque evolui: {amount} {from} viram um {to}!",
+  "tutorialAmount": "{size, select, three{três} four{quatro} five{cinco} other{várias}}",
+  "tutorialObjective": "{objective} para vencer.",
+  "tutorialMovesMedallion": "Estas são suas jogadas. Cada troca que forma trio gasta uma.",
+  "tutorialFreeMiss": "Troca sem trio não gasta jogada: as peças só voltam ao lugar.",
+  "tutorialBoosterDock": "Travou? O Martelo quebra a peça que você tocar, sem gastar jogada.",
+  "tutorialObstacleIce": "Gelo prende a peça. Uma fusão encostada nele o quebra.",
+  "tutorialObstacleGlass": "Vidro aguenta duas fusões encostadas antes de quebrar.",
+  "tutorialObstacleStone": "Pedra aguenta três fusões encostadas, ou cede de vez a um 9 nascido ao lado.",
+  "tutorialObstacleChain": "A corrente prende a peça no lugar: ela não troca nem cai, mas ainda combina. Alinhe com ela ou funda ao lado para soltá-la.",
+  "tutorialCollectGoal": "Aqui conta a peça que ENTRA na fusão: alinhe três dessas e já são três a menos.",
+  "tutorialBoardShape": "As casas escuras não fazem parte do tabuleiro. As peças caem por cima delas.",
+  "tutorialGotIt": "ENTENDI",
+  "tutorialSkip": "Pular tutorial",
+  "settingsReplayTutorial": "Rever tutorial",
+  "settingsReplayTutorialDone": "O tutorial vai aparecer de novo nas próximas fases.",
+
+  "homeDaily": "DIÁRIO",
+  "homeMissions": "MISSÕES",
+  "dailyRewardTitle": "Recompensa diária",
+  "dailyRewardSubtitle": "Volte todo dia: quanto maior a sequência, maior o prêmio.",
+  "dailyRewardDay": "DIA {day}",
+  "dailyRewardStreak": "{count, plural, =1{Sequência: 1 dia} other{Sequência: {count} dias}}",
+  "dailyRewardCollect": "COLETAR",
+  "dailyRewardComeBack": "Volte amanhã para o próximo prêmio.",
+  "dailyRewardMissedHint": "Pular um dia recomeça a sequência.",
+  "missionsTitle": "Missões diárias",
+  "missionsSubtitle": "Três missões novas todo dia.",
+  "missionsCollect": "COLETAR",
+  "missionsBonus": "Complete as três: +{coins} moedas",
+  "missionsAllDone": "Tudo feito! Novas missões amanhã.",
+  "missionWinLevels": "{count, plural, =1{Vença 1 fase} other{Vença {count} fases}}",
+  "missionFusions": "Faça {count} fusões",
+  "missionCreateNines": "{count, plural, =1{Crie 1 peça 9} other{Crie {count} peças 9}}",
+  "missionBreakObstacles": "Quebre {count} coberturas",
+  "missionUseBoosters": "{count, plural, =1{Use 1 booster} other{Use {count} boosters}}",
+  "missionEarnStars": "Ganhe {count} estrelas",
+  "missionTriggerNova": "{count, plural, =1{Dispare uma Nova (três 9 alinhados)} other{Dispare {count} Novas}}"
 }

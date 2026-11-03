@@ -61,3 +61,7 @@ tool/dbg_scratch/
 # Pacotes de arte baixados da ferramenta de design (dezenas de MB): ficam no disco
 # de quem os extraiu, mas o conteúdo útil já está nos assets versionados.
 assets/*.zip
+
+# IDs de produção do build (tool/build_release.sh). Não são segredo, mas
+# variam por conta e não pertencem ao histórico.
+/release.env.json

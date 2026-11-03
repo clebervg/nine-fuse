@@ -33,6 +33,17 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String objectiveCollect(int count, int digit) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Funda $count peças $digit',
+      one: 'Funda 1 peça $digit',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String obstacleIceCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -61,6 +72,17 @@ class AppLocalizationsPt extends AppLocalizations {
       locale: localeName,
       other: 'pedras',
       one: 'pedra',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String obstacleChainCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'correntes',
+      one: 'corrente',
     );
     return '$_temp0';
   }
@@ -375,6 +397,9 @@ class AppLocalizationsPt extends AppLocalizations {
       'Assista a um anúncio curto e quebre a célula que você escolheu.';
 
   @override
+  String get hammerOfferAdCapReached => 'Volte amanhã para mais vídeos';
+
+  @override
   String get hammerOfferWatch => 'ASSISTIR AD';
 
   @override
@@ -407,7 +432,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get continueOfferTitle => 'Sem movimentos';
+  String get continueOfferTitle => 'SEM JOGADAS';
 
   @override
   String continueOfferBody(int bonus) {
@@ -546,8 +571,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get dailySpinTitle => 'Roleta Diária';
 
   @override
-  String get dailySpinSubtitle =>
-      'Gire a roleta e ganhe um prêmio grátis hoje!';
+  String get dailySpinSubtitle => '1 giro grátis por dia';
 
   @override
   String get dailySpinSpinButton => 'GIRAR';
@@ -559,13 +583,20 @@ class AppLocalizationsPt extends AppLocalizations {
   String get dailySpinCloseButton => 'FECHAR';
 
   @override
-  String dailySpinPrizeWon(String prize) {
-    return 'Você ganhou $prize!';
-  }
+  String get dailySpinFreeButton => 'GIRAR GRÁTIS';
 
   @override
-  String dailySpinComeBackIn(int hours) {
-    return 'Volte em ${hours}h para o próximo giro';
+  String get dailySpinNextFreeIn => 'Próximo giro grátis em';
+
+  @override
+  String get dailySpinPrizeTitle => 'VOCÊ GANHOU!';
+
+  @override
+  String get dailySpinCollectButton => 'COLETAR';
+
+  @override
+  String dailySpinStockFull(int coins) {
+    return 'Estoque cheio: +$coins moedas';
   }
 
   @override
@@ -639,4 +670,398 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get privacyTooltip => 'Privacidade';
+
+  @override
+  String get outcomeWonHeadline => 'CONCLUÍDA!';
+
+  @override
+  String get continueOfferResume => 'CONTINUAR DE ONDE PAROU';
+
+  @override
+  String continueOfferBonus(int bonus) {
+    String _temp0 = intl.Intl.pluralLogic(
+      bonus,
+      locale: localeName,
+      other: '+$bonus JOGADAS',
+      one: '+1 JOGADA',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String objectiveMissingDigit(int count, int digit) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Faltou pouco: $count peças $digit.',
+      one: 'Faltou pouco: 1 peça $digit.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String objectiveMissingObstacle(int count, String obstacle) {
+    return 'Faltou pouco: $count $obstacle.';
+  }
+
+  @override
+  String mapChapterStars(int number, int earned, int total) {
+    return 'CAPÍTULO $number · $earned/$total';
+  }
+
+  @override
+  String get mapYouAreHere => 'VOCÊ ESTÁ AQUI';
+
+  @override
+  String mapLevelsCleared(int last) {
+    return 'Fases 1–$last concluídas';
+  }
+
+  @override
+  String mapPlayLevel(int number) {
+    return 'JOGAR FASE $number';
+  }
+
+  @override
+  String mapNewObstacle(int level, String obstacle) {
+    return 'Novo obstáculo na fase $level: $obstacle';
+  }
+
+  @override
+  String get mapDailySpinTooltip => 'Roleta diária';
+
+  @override
+  String get homeShop => 'LOJA';
+
+  @override
+  String get homeSpin => 'ROLETA';
+
+  @override
+  String get homeMap => 'MAPA';
+
+  @override
+  String homeChapterLevel(int chapter, int level) {
+    return 'CAPÍTULO $chapter · FASE $level';
+  }
+
+  @override
+  String homeStarsSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count estrelas na campanha',
+      one: '1 estrela na campanha',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shopTitle => 'LOJA';
+
+  @override
+  String get shopBoosters => 'BOOSTERS';
+
+  @override
+  String get shopCoins => 'MOEDAS';
+
+  @override
+  String shopStock(int count) {
+    return 'Você tem $count';
+  }
+
+  @override
+  String shopVideoTitle(int coins) {
+    return '+$coins moedas';
+  }
+
+  @override
+  String get shopVideoSubtitle => 'Assista a um vídeo curto';
+
+  @override
+  String get shopWatch => 'ASSISTIR';
+
+  @override
+  String get shopBuyFailed =>
+      'Não deu para concluir a compra. Suas moedas não foram gastas.';
+
+  @override
+  String get chestReadyTitle => 'Baú do capítulo!';
+
+  @override
+  String get chestCollect => 'COLETAR';
+
+  @override
+  String get chestLockedTitle => 'Baú trancado';
+
+  @override
+  String chestLockedHint(int chapter) {
+    return 'Vença as fases do capítulo $chapter para abrir.';
+  }
+
+  @override
+  String get chestOk => 'OK';
+
+  @override
+  String semanticsChestLocked(int chapter) {
+    return 'Baú do capítulo $chapter, trancado.';
+  }
+
+  @override
+  String semanticsChestReady(int chapter) {
+    return 'Baú do capítulo $chapter, pronto para abrir.';
+  }
+
+  @override
+  String semanticsChestOpened(int chapter) {
+    return 'Baú do capítulo $chapter, já aberto.';
+  }
+
+  @override
+  String get settingsTooltip => 'Configurações';
+
+  @override
+  String get settingsTitle => 'AJUSTES';
+
+  @override
+  String get settingsSectionAudio => 'SOM E TOQUE';
+
+  @override
+  String get settingsSound => 'Efeitos sonoros';
+
+  @override
+  String get settingsVolume => 'Volume dos efeitos';
+
+  @override
+  String get settingsMusic => 'Música';
+
+  @override
+  String get settingsVibration => 'Vibração';
+
+  @override
+  String get settingsSectionLanguage => 'IDIOMA';
+
+  @override
+  String get settingsLanguageSystem => 'Do aparelho';
+
+  @override
+  String get settingsLanguagePt => 'Português';
+
+  @override
+  String get settingsLanguageEn => 'English';
+
+  @override
+  String get settingsSectionPrivacy => 'PRIVACIDADE';
+
+  @override
+  String get settingsPrivacyPolicy => 'Política de privacidade';
+
+  @override
+  String get settingsConsent => 'Gerenciar consentimento de anúncios';
+
+  @override
+  String get settingsSectionAbout => 'SOBRE';
+
+  @override
+  String get settingsCredits => 'Créditos';
+
+  @override
+  String get settingsLicenses => 'Licenças de código aberto';
+
+  @override
+  String get creditsTitle => 'Créditos';
+
+  @override
+  String get creditsBody =>
+      'Fontes Nunito, Lilita One e Baloo 2 sob a SIL Open Font License (OFL).\nPeças, coberturas e ícones: pacote de arte \"candy pop\" do NineFuse.\nEfeitos sonoros: Kenney (kenney.nl), CC0.\nFeito com Flutter.';
+
+  @override
+  String get creditsClose => 'FECHAR';
+
+  @override
+  String get tutorialFirstSwap =>
+      'Troque estas duas peças para alinhar três iguais.';
+
+  @override
+  String tutorialFusion(String amount, int from, int to) {
+    return 'A peça do seu toque evolui: $amount $from viram um $to!';
+  }
+
+  @override
+  String tutorialAmount(String size) {
+    String _temp0 = intl.Intl.selectLogic(size, {
+      'three': 'três',
+      'four': 'quatro',
+      'five': 'cinco',
+      'other': 'várias',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String tutorialObjective(String objective) {
+    return '$objective para vencer.';
+  }
+
+  @override
+  String get tutorialMovesMedallion =>
+      'Estas são suas jogadas. Cada troca que forma trio gasta uma.';
+
+  @override
+  String get tutorialFreeMiss =>
+      'Troca sem trio não gasta jogada: as peças só voltam ao lugar.';
+
+  @override
+  String get tutorialBoosterDock =>
+      'Travou? O Martelo quebra a peça que você tocar, sem gastar jogada.';
+
+  @override
+  String get tutorialObstacleIce =>
+      'Gelo prende a peça. Uma fusão encostada nele o quebra.';
+
+  @override
+  String get tutorialObstacleGlass =>
+      'Vidro aguenta duas fusões encostadas antes de quebrar.';
+
+  @override
+  String get tutorialObstacleStone =>
+      'Pedra aguenta três fusões encostadas, ou cede de vez a um 9 nascido ao lado.';
+
+  @override
+  String get tutorialObstacleChain =>
+      'A corrente prende a peça no lugar: ela não troca nem cai, mas ainda combina. Alinhe com ela ou funda ao lado para soltá-la.';
+
+  @override
+  String get tutorialCollectGoal =>
+      'Aqui conta a peça que ENTRA na fusão: alinhe três dessas e já são três a menos.';
+
+  @override
+  String get tutorialBoardShape =>
+      'As casas escuras não fazem parte do tabuleiro. As peças caem por cima delas.';
+
+  @override
+  String get tutorialGotIt => 'ENTENDI';
+
+  @override
+  String get tutorialSkip => 'Pular tutorial';
+
+  @override
+  String get settingsReplayTutorial => 'Rever tutorial';
+
+  @override
+  String get settingsReplayTutorialDone =>
+      'O tutorial vai aparecer de novo nas próximas fases.';
+
+  @override
+  String get homeDaily => 'DIÁRIO';
+
+  @override
+  String get homeMissions => 'MISSÕES';
+
+  @override
+  String get dailyRewardTitle => 'Recompensa diária';
+
+  @override
+  String get dailyRewardSubtitle =>
+      'Volte todo dia: quanto maior a sequência, maior o prêmio.';
+
+  @override
+  String dailyRewardDay(int day) {
+    return 'DIA $day';
+  }
+
+  @override
+  String dailyRewardStreak(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sequência: $count dias',
+      one: 'Sequência: 1 dia',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dailyRewardCollect => 'COLETAR';
+
+  @override
+  String get dailyRewardComeBack => 'Volte amanhã para o próximo prêmio.';
+
+  @override
+  String get dailyRewardMissedHint => 'Pular um dia recomeça a sequência.';
+
+  @override
+  String get missionsTitle => 'Missões diárias';
+
+  @override
+  String get missionsSubtitle => 'Três missões novas todo dia.';
+
+  @override
+  String get missionsCollect => 'COLETAR';
+
+  @override
+  String missionsBonus(int coins) {
+    return 'Complete as três: +$coins moedas';
+  }
+
+  @override
+  String get missionsAllDone => 'Tudo feito! Novas missões amanhã.';
+
+  @override
+  String missionWinLevels(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Vença $count fases',
+      one: 'Vença 1 fase',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String missionFusions(int count) {
+    return 'Faça $count fusões';
+  }
+
+  @override
+  String missionCreateNines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Crie $count peças 9',
+      one: 'Crie 1 peça 9',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String missionBreakObstacles(int count) {
+    return 'Quebre $count coberturas';
+  }
+
+  @override
+  String missionUseBoosters(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Use $count boosters',
+      one: 'Use 1 booster',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String missionEarnStars(int count) {
+    return 'Ganhe $count estrelas';
+  }
+
+  @override
+  String missionTriggerNova(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Dispare $count Novas',
+      one: 'Dispare uma Nova (três 9 alinhados)',
+    );
+    return '$_temp0';
+  }
 }

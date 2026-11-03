@@ -157,6 +157,42 @@ void main() {
   });
 
   group('objetivo', () {
+    test('"funda N peças X" conta as peças consumidas, não a nascida', () {
+      // Linha 3 com dois 5 e um terceiro 5 logo abaixo da coluna 2: a troca
+      // (4,2)↔(3,2) fecha o trio. A janela 0-3 nunca repõe 5, então a conta
+      // tem de dar exatamente as três peças da combinação — e o 6 que nasce
+      // dela não soma nada.
+      const level = GameLevel(
+        number: 96,
+        objective: Objective.collect(digit: 5, count: 99),
+        moveLimit: 500,
+      );
+      notifier.startLevel(level);
+
+      var board = Board.empty();
+      for (int row = 0; row < Board.boardSize; row++) {
+        for (int col = 0; col < Board.boardSize; col++) {
+          final position = Position(row: row, col: col);
+          final value = switch ((row, col)) {
+            (3, 0) || (3, 1) || (4, 2) => 5,
+            _ => (row + col) % 3,
+          };
+          board = board.updateTile(
+            position,
+            Tile(id: 'c$row$col', value: value, position: position),
+          );
+        }
+      }
+      notifier.debugSetBoard(board);
+
+      notifier.swapTiles(
+        const Position(row: 4, col: 2),
+        const Position(row: 3, col: 2),
+      );
+
+      expect(notifier.state.objectiveProgress, 3);
+    });
+
     test('conta apenas peças criadas do dígito pedido', () {
       // Alvo 4 na janela 0-3: só entra no contador o que for fundido.
       const level = GameLevel(

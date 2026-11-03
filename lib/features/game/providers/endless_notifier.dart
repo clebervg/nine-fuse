@@ -1,10 +1,13 @@
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nine_fuse/core/audio/audio_service.dart';
+import 'package:nine_fuse/core/audio/sound_event.dart';
+import 'package:nine_fuse/core/feedback/haptics.dart';
 import 'package:nine_fuse/core/juice_timings.dart';
 import 'package:nine_fuse/features/game/domain/board.dart';
+import 'package:nine_fuse/features/game/domain/economy.dart';
 import 'package:nine_fuse/features/game/domain/endless_progression.dart';
 import 'package:nine_fuse/features/game/domain/match_engine.dart';
 import 'package:nine_fuse/features/game/domain/nova_event.dart';
@@ -12,8 +15,10 @@ import 'package:nine_fuse/features/game/domain/position.dart';
 import 'package:nine_fuse/features/game/providers/bomb_booster.dart';
 import 'package:nine_fuse/features/game/providers/brush_booster.dart';
 import 'package:nine_fuse/features/game/providers/endless_state.dart';
+import 'package:nine_fuse/features/game/providers/daily_progress.dart';
 import 'package:nine_fuse/features/game/providers/game_storage.dart';
 import 'package:nine_fuse/features/game/providers/hammer_booster.dart';
+import 'package:nine_fuse/features/game/providers/step_sounds.dart';
 
 /// Modo Endless: sem objetivo e sem limite de movimentos. A corrida dura até o
 /// tabuleiro não ter mais nenhuma troca que forme combinação.
@@ -33,6 +38,7 @@ class EndlessNotifier extends StateNotifier<EndlessState>
     GameStorage? storage,
     Future<void> Function(Duration)? delay,
     this.progression = const EndlessProgression(),
+    this._missions,
   }) : _random = random ?? Random(),
        _delay = delay ?? ((d) => Future<void>.delayed(d)),
        _storage = storage ?? const PrefsGameStorage(),
@@ -40,6 +46,9 @@ class EndlessNotifier extends StateNotifier<EndlessState>
 
   final Random _random;
   final GameStorage _storage;
+
+  /// Para onde vão os acontecimentos das missões diárias (ver `GameNotifier`).
+  final MissionSink? _missions;
 
   /// Espera entre os quadros da encenação, injetável para os testes.
   final Future<void> Function(Duration) _delay;
@@ -261,6 +270,7 @@ class EndlessNotifier extends StateNotifier<EndlessState>
       selectedTile: tile.copyWith(isSelected: true),
       clearRejectedSwap: true,
     );
+    GameAudio.play(SoundEvent.select);
   }
 
   void deselectTile() {
@@ -281,8 +291,10 @@ class EndlessNotifier extends StateNotifier<EndlessState>
           clearSelectedTile: true,
           rejectedSwap: (from, to),
         );
+        GameAudio.play(SoundEvent.invalidSwap);
 
       case MoveSuperNineActivated(:final board, :final convertedFrom):
+        GameAudio.play(SoundEvent.superNine);
         _applySuperNineActivation(engine, board, convertedFrom);
 
       case MoveResolved(:final resolution):
@@ -351,6 +363,10 @@ class EndlessNotifier extends StateNotifier<EndlessState>
       // `_finishMove` porque a batida tem de coincidir com o clarão. O Bloco 9
       // aprimorado (o que cria o dígito máximo) ainda merece a mesma ênfase.
       if (step.fusions.any((f) => f.value == kMaxDigit)) explosionFeedback();
+      // Mesmo critério de som da campanha (ver `stepSound`).
+      final sound = stepSound(step);
+      if (sound != null) GameAudio.play(sound);
+      if (stepBreaksObstacle(step)) GameAudio.play(SoundEvent.obstacleBreak);
 
       state = state.copyWith(
         board: step.boardAfterFusion,
@@ -370,6 +386,7 @@ class EndlessNotifier extends StateNotifier<EndlessState>
         await _delay(JuiceTimings.novaHitstop);
         if (!mounted) return;
         explosionFeedback();
+        GameAudio.play(SoundEvent.nova);
 
         final coinsGained = step.novaEvents
             .map((nova) => novaCoinsForTier(nova.tier))
@@ -378,11 +395,7 @@ class EndlessNotifier extends StateNotifier<EndlessState>
           novaStrikes: state.novaStrikes + 1,
           novaCoinsGranted: state.novaCoinsGranted + coinsGained,
         );
-        if (_random.nextBool()) {
-          grantBomb();
-        } else {
-          grantBrush();
-        }
+        _grantNovaBooster();
       }
 
       await _delay(JuiceTimings.fusion);
@@ -396,12 +409,29 @@ class EndlessNotifier extends StateNotifier<EndlessState>
     _finishMove(engine, resolution, extraScore: 0, countsAsMove: countsAsMove);
   }
 
+  /// O booster grátis da Nova, com o mesmo teto da campanha (ver
+  /// `GameNotifier._grantNovaBooster`): estoque cheio vira
+  /// [kCoinsPerOverflowBooster] moedas em `novaCoinsGranted`.
+  void _grantNovaBooster() {
+    final isBomb = _random.nextBool();
+    final current = isBomb ? state.bombCount : state.brushCount;
+    final credit = capBoosterReward(current: current, amount: 1);
+    if (credit.count > current) {
+      isBomb ? grantBomb() : grantBrush();
+    }
+    if (credit.overflowCoins > 0) {
+      state = state.copyWith(
+        novaCoinsGranted: state.novaCoinsGranted + credit.overflowCoins,
+      );
+    }
+  }
+
   /// Batida forte da explosão do dígito máximo.
   ///
   /// Injetável porque é a única coisa aqui que fala com a plataforma: nos
   /// testes vira um contador, e a suíte não depende de canal nativo.
   @visibleForTesting
-  static void Function() explosionFeedback = HapticFeedback.heavyImpact;
+  static void Function() explosionFeedback = Haptics.heavy;
 
   void _finishMove(
     MatchEngine engine,
@@ -466,6 +496,8 @@ class EndlessNotifier extends StateNotifier<EndlessState>
           state.apexCelebrated || resolution.producedDigits.contains(kMaxDigit),
     );
 
+    reportMissionResolution(_missions, resolution, boosterUsed: !countsAsMove);
+
     if (stuck) _saveIfRecord(score);
   }
 
@@ -487,7 +519,7 @@ class EndlessNotifier extends StateNotifier<EndlessState>
 final endlessProvider = StateNotifierProvider<EndlessNotifier, EndlessState>((
   ref,
 ) {
-  return EndlessNotifier();
+  return EndlessNotifier(missions: ref.read(missionsProvider.notifier).record);
 });
 
 /// O Endless abre depois da fase 5, como recomendaram os especialistas: até ali
