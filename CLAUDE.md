@@ -2201,8 +2201,14 @@ sobrevivente acorrentada nasce livre. Há teste para os dois.
   gelo de fases já calibradas.
 - Blocos ímpares pedem "quebre 2 correntes" na posição 8
   (`kChainMovesPerUnit = 7`, 65-73% com o bot).
-- Desenho em código (`ChainObstaclePainter`): não há sprite de corrente. O
-  cadeado fica no canto, não no cruzamento, para não tapar o dígito.
+- Sprite `obstacle_chain_1.png`, vetorial: `tool/gen_chain_sprite.py` gera
+  `docs/brand/obstacle_chain.svg` e o `rsvg-convert` o rasteriza. A corrente
+  **contorna a borda** da face em vez de cruzar em X — o X passaria pelo
+  centro, onde mora o número, e a peça acorrentada combina: o jogador precisa
+  ler o valor. O cadeado fica no canto pelo mesmo motivo. A fonte não fica em
+  `assets/sprites/obstacles/` porque tudo naquela pasta vai para o bundle.
+  `ChainObstaclePainter` segue como reserva, e um teste em
+  `tile_sprite_manager_test` exige sprite no disco para todo (tipo, hp).
 
 **Três balões novos de estreia** (`TutorialStep.collectGoal`, `boardShape`,
 `obstacleChain`), pela primeira vez que a coisa aparece e não pelo número da
@@ -2216,7 +2222,7 @@ conhecidos de pedra (44-58%, bot que não mira cobertura) e a dívida do alvo
 nada aqui tocou.
 
 **Ainda não feito:** formatos no Modo Recorde (ele continua na matriz
-inteira); arte de sprite da corrente; e a dívida do `+2`.
+inteira) e a dívida do `+2`.
 
 **Armadilha desta rodada: `dart format` reformata o arquivo inteiro.** Sete
 arquivos tocados (simulador, motor, gerador, dois testes, dois widgets) não

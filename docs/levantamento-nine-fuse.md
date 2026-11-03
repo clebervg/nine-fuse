@@ -480,7 +480,7 @@ Endless.
 10. **Recompensa diária de login** além da roleta (se desejado).
 
 ### P3: conteúdo, balanceamento e dívida técnica
-11. ~~Obstáculo ancorado~~: feito como a Corrente (2026-11-03). Falta sprite.
+11. ~~Obstáculo ancorado~~: feito como a Corrente (2026-11-03), com sprite próprio.
 12. **Peça Curinga** (`wildcard`): reservada, sem efeito.
 13. **Fases de pedra em janela alta** (ex.: fases 108 e 1000) ficaram com
     35-40% de vitória para o bot depois da troca para o Bloco 9. Avaliar

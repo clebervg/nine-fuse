@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -175,5 +177,17 @@ void main() {
 
       expect(TileSpriteManager.hasObstacleSprite(ObstacleType.stone, 1), isFalse);
     });
+  });
+
+  test('toda cobertura, em todo estado de vida, tem sprite no disco', () {
+    // Sem sprite o jogo cai no CustomPainter, que funciona — e é por isso
+    // que uma cobertura nova sem arte passaria despercebida até alguém abrir
+    // a fase no aparelho.
+    for (final type in ObstacleType.values) {
+      for (int hp = 1; hp <= type.hitPoints; hp++) {
+        final path = TileSpriteManager.assetKeyForObstacle(type, hp);
+        expect(File(path).existsSync(), isTrue, reason: path);
+      }
+    }
   });
 }
