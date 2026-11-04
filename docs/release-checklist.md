@@ -46,7 +46,9 @@ IDs de produção já criados no AdMob (Android), para passar no build:
   `ninefusegames@gmail.com`), responsável Duonexo. A fonte continua sendo
   `docs/privacy_policy*.md` e `docs/privacy/*.html`: ao mudar o texto, mudar
   aqui e republicar lá. A URL está em `PRIVACY_POLICY_URL` no
-  `release.env.json`. A versão em inglês ainda não foi publicada.
+  `release.env.json`. A versão em inglês está num site separado:
+  `https://sites.google.com/view/ninefuse-en` (fonte: `docs/privacy/en.html`
+  e `docs/privacy_policy.en.md`). Use esse link na ficha em inglês da loja.
 - [ ] **Play Console:** declarar o uso do ID de publicidade (por causa de
   `AD_ID`); ativar o Play App Signing.
 - [x] **Identificadores** (não mudam depois de publicar): Android e iOS agora
