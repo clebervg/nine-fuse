@@ -27,19 +27,13 @@ IDs de produção já criados no AdMob (Android), para passar no build:
 - [x] **Keystore de release** criada (`~/upload-keystore.jks`) e
   `android/key.properties` apontando para ela; conferido em 2026-11-02 que o
   `app-release.aab` sai assinado com ela. Fazer backup fora do repositório.
-- [ ] **Unidades de produção que faltam (Android):** *movimentos extras* e
-  *moedas*. Criar em AdMob > NineFuse (Android) > Unidades de anúncio >
-  Premiado e passar em `ADMOB_MOVES_REWARDED` / `ADMOB_COINS_REWARDED`.
-  Sem elas, o release fica **sem anúncio** nesses dois funis.
-- [ ] **Unidades da Bomba e do Pincel (Android):** criar duas unidades
-  *Premiado* e passar em `ADMOB_BOMB_REWARDED` / `ADMOB_BRUSH_REWARDED`. Sem
-  elas, esses dois funis ficam **sem anúncio** no release.
-- [ ] **Unidade do resgate de derrota (Android):** criar uma unidade
-  *Premiado* e passar em `ADMOB_CONTINUE_REWARDED`. Sem ela, o "+5 jogadas"
-  por vídeo fica **sem anúncio** no release.
-- [ ] **Unidade do intersticial (Android):** criar em AdMob > Unidades de
-  anúncio > **Intersticial** e passar em `ADMOB_INTERSTITIAL`. Sem ela o
-  release não mostra intersticial (o jogo segue normal).
+- [x] **Todas as unidades de produção do Android criadas** (2026-11-04):
+  movimentos extras, moedas, Bomba, Pincel, resgate de derrota e
+  intersticial, somadas às de Martelo e Roleta que já existiam. As oito estão
+  no `release.env.json` local (fora do git), conferidas contra as chaves que
+  `lib/core/ads/ad_ids.dart` lê: nenhuma vazia, nenhuma repetida, nenhuma de
+  teste. As unidades premiadas foram criadas sem "Lances de parceiros"; o
+  prêmio configurado no AdMob é ignorado pelo jogo, que paga pelo código.
 - [ ] **iOS:** cadastrar o app iOS no AdMob (outro App ID + unidades) e trocar
   `GADApplicationIdentifier` em `ios/Runner/Info.plist:72-73` e as unidades
   iOS. Hoje tudo é ID de teste.
