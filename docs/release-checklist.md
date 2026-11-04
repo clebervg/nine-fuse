@@ -41,9 +41,12 @@ IDs de produção já criados no AdMob (Android), para passar no build:
 - [ ] **Publicar a mensagem do GDPR no AdMob** (Privacidade e mensagens) com os
   textos de `docs/consent-messages.md`; sem isso o formulário nunca abre.
 - [ ] **Testar o formulário em aparelho** com `ConsentDebugSettings` (região UE).
-- [ ] **Política de privacidade:** textos prontos (`docs/privacy_policy*.md` e
-  `docs/privacy/*.html`). Falta preencher os campos entre colchetes, hospedar
-  em URL público e passar `--dart-define=PRIVACY_POLICY_URL=...` no build.
+- [x] **Política de privacidade** publicada em 2026-11-04 em
+  `https://sites.google.com/view/ninefuse` (Google Sites da conta
+  `ninefusegames@gmail.com`), responsável Duonexo. A fonte continua sendo
+  `docs/privacy_policy*.md` e `docs/privacy/*.html`: ao mudar o texto, mudar
+  aqui e republicar lá. A URL está em `PRIVACY_POLICY_URL` no
+  `release.env.json`. A versão em inglês ainda não foi publicada.
 - [ ] **Play Console:** declarar o uso do ID de publicidade (por causa de
   `AD_ID`); ativar o Play App Signing.
 - [x] **Identificadores** (não mudam depois de publicar): Android e iOS agora

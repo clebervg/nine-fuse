@@ -1,7 +1,7 @@
 # Política de Privacidade do NineFuse
-_Última atualização: [DATA] · [English](privacy_policy.en.md)_
+_Última atualização: 4 de novembro de 2026 · [English](privacy_policy.en.md)_
 
-Esta política explica quais dados o aplicativo **NineFuse** (Android e iOS) usa, para quê, e com quem são compartilhados. O responsável é **[SEU NOME OU EMPRESA]** (“nós”), contato: **[E-MAIL DE CONTATO]**.
+Esta política explica quais dados o aplicativo **NineFuse** (Android e iOS) usa, para quê, e com quem são compartilhados. O responsável é **Duonexo** (“nós”), contato: **ninefusegames@gmail.com**.
 
 ## 1. Resumo
 
@@ -12,10 +12,16 @@ Esta política explica quais dados o aplicativo **NineFuse** (Android e iOS) usa
 - O jogo exibe **anúncios do Google AdMob**, que podem coletar identificadores do aparelho (veja a seção 3).
 
 ## 2. Dados guardados no seu aparelho
-Para o jogo funcionar, guardamos localmente: fase atual, estrelas, recordes, moedas, quantidade de itens (martelo, bomba, pincel), baús já abertos e a data do último giro da roleta diária. Esses dados **não são enviados a nós nem a terceiros** e são apagados ao desinstalar o app ou limpar seus dados.
+Para o jogo funcionar, guardamos localmente: fase atual, estrelas, recordes, moedas, quantidade de itens (martelo, bomba, pincel), baús já abertos, a data do último giro da roleta diária, a sequência da recompensa diária, as missões do dia e o seu progresso, quantos vídeos premiados de martelo foram vistos no dia, os passos do tutorial já vistos e as suas configurações (som, música, vibração e idioma). Esses dados **não são enviados a nós nem a terceiros** e são apagados ao desinstalar o app ou limpar seus dados.
 
 ## 3. Anúncios (Google AdMob)
-O app exibe anúncios premiados (vídeos que você escolhe assistir em troca de moedas, itens ou movimentos extras) por meio do **Google AdMob**. Para entregar e medir anúncios, o Google pode coletar e usar, conforme a [Política de Privacidade do Google](https://policies.google.com/privacy):
+O app exibe dois tipos de anúncio por meio do **Google AdMob**:
+
+- **anúncios premiados**: vídeos que você escolhe assistir em troca de moedas, itens ou movimentos extras;
+
+- **anúncios intersticiais**: anúncios de tela cheia exibidos em pausas naturais do jogo, depois de uma vitória ou ao voltar ao mapa (nunca no meio de uma partida nem depois de uma derrota).
+
+Para entregar e medir anúncios, o Google pode coletar e usar, conforme a [Política de Privacidade do Google](https://policies.google.com/privacy):
 
 - identificador de publicidade do aparelho (Advertising ID);
 
@@ -35,10 +41,10 @@ Não vendemos dados pessoais. O único compartilhamento é o descrito na seção
 O NineFuse não é direcionado a crianças menores de 13 anos e não coleta intencionalmente dados delas. Se você acredita que uma criança forneceu dados, fale conosco.
 
 ## 7. Seus direitos
-Como não mantemos dados pessoais seus, não há dados nossos para acessar ou excluir; os dados do jogo são apagados desinstalando o app. Quanto aos dados tratados pelo Google, você pode exercer seus direitos (acesso, correção, exclusão, oposição, portabilidade, conforme LGPD e GDPR) pelas ferramentas do Google em [myaccount.google.com](https://myaccount.google.com/data-and-privacy). Para qualquer dúvida, escreva para **[E-MAIL DE CONTATO]**.
+Como não mantemos dados pessoais seus, não há dados nossos para acessar ou excluir; os dados do jogo são apagados desinstalando o app. Quanto aos dados tratados pelo Google, você pode exercer seus direitos (acesso, correção, exclusão, oposição, portabilidade, conforme LGPD e GDPR) pelas ferramentas do Google em [myaccount.google.com](https://myaccount.google.com/data-and-privacy). Para qualquer dúvida, escreva para **ninefusegames@gmail.com**.
 
 ## 8. Alterações
 Podemos atualizar esta política (por exemplo, ao adicionar novos recursos). A versão vigente fica sempre nesta página, com a data no topo.
 
 ## 9. Contato
-[SEU NOME OU EMPRESA] · **[E-MAIL DE CONTATO]**
+Duonexo · **ninefusegames@gmail.com**

@@ -1,7 +1,7 @@
 # NineFuse Privacy Policy
-_Last updated: [DATE] · [Português](privacy_policy.md)_
+_Last updated: November 4, 2026 · [Português](privacy_policy.md)_
 
-This policy explains what data the **NineFuse** app (Android and iOS) uses, why, and who it is shared with. The responsible party is **[YOUR NAME OR COMPANY]** (“we”), contact: **[CONTACT EMAIL]**.
+This policy explains what data the **NineFuse** app (Android and iOS) uses, why, and who it is shared with. The responsible party is **Duonexo** (“we”), contact: **ninefusegames@gmail.com**.
 
 ## 1. Summary
 
@@ -12,10 +12,16 @@ This policy explains what data the **NineFuse** app (Android and iOS) uses, why,
 - The game shows **Google AdMob ads**, which may collect device identifiers (see section 3).
 
 ## 2. Data stored on your device
-To make the game work we store locally: current level, stars, high scores, coins, item counts (hammer, bomb, brush), chests already opened and the time of the last daily spin. This data is **not sent to us or to third parties** and is deleted when you uninstall the app or clear its data.
+To make the game work we store locally: current level, stars, high scores, coins, item counts (hammer, bomb, brush), chests already opened, the time of the last daily spin, the daily reward streak, the day's missions and your progress on them, how many rewarded hammer videos were watched that day, the tutorial steps already seen and your settings (sound, music, vibration and language). This data is **not sent to us or to third parties** and is deleted when you uninstall the app or clear its data.
 
 ## 3. Ads (Google AdMob)
-The app shows rewarded ads (videos you choose to watch in exchange for coins, items or extra moves) through **Google AdMob**. To serve and measure ads, Google may collect and use, under the [Google Privacy Policy](https://policies.google.com/privacy):
+The app shows two kinds of ads through **Google AdMob**:
+
+- **rewarded ads**: videos you choose to watch in exchange for coins, items or extra moves;
+
+- **interstitial ads**: full-screen ads shown at natural breaks in the game, after a win or when returning to the map (never in the middle of a level and never after a loss).
+
+To serve and measure ads, Google may collect and use, under the [Google Privacy Policy](https://policies.google.com/privacy):
 
 - the device advertising identifier (Advertising ID);
 
@@ -35,10 +41,10 @@ We do not sell personal data. The only sharing is the one described in section 3
 NineFuse is not directed to children under 13 and does not knowingly collect data from them. If you believe a child provided data, contact us.
 
 ## 7. Your rights
-Since we do not keep personal data about you, there is no data of ours to access or delete; game data is removed by uninstalling the app. For data processed by Google, you can exercise your rights (access, correction, deletion, objection, portability, under GDPR and LGPD) through Google’s tools at [myaccount.google.com](https://myaccount.google.com/data-and-privacy). For any question, write to **[CONTACT EMAIL]**.
+Since we do not keep personal data about you, there is no data of ours to access or delete; game data is removed by uninstalling the app. For data processed by Google, you can exercise your rights (access, correction, deletion, objection, portability, under GDPR and LGPD) through Google’s tools at [myaccount.google.com](https://myaccount.google.com/data-and-privacy). For any question, write to **ninefusegames@gmail.com**.
 
 ## 8. Changes
 We may update this policy (for example when adding new features). The current version is always on this page, with the date at the top.
 
 ## 9. Contact
-[YOUR NAME OR COMPANY] · **[CONTACT EMAIL]**
+Duonexo · **ninefusegames@gmail.com**
