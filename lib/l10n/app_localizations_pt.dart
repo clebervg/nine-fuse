@@ -642,11 +642,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get storeShortDescription =>
-      'Match-3 de números: três iguais viram o próximo. Chegue ao 9 e libere o Super 9.';
+      'Match-3 de números: três iguais viram o próximo. Evolua até o 9!';
 
   @override
   String get storeFullDescription =>
-      'NineFuse é um quebra-cabeça de números em que combinar não é só eliminar.\n\nAlinhe três dígitos iguais e o do meio EVOLUI para o próximo: três 4 viram um 5. Repita a fusão, planeje a cadeia e suba a escala até o clímax do jogo — o dígito 9, que limpa os bloqueios ao redor, e o raro Super 9 (fusão de 5+), que converte todo um valor do tabuleiro numa única troca.\n\n• FUSÃO, NÃO SÓ ELIMINAÇÃO — a mecânica do Match-3 com a progressão do merge.\n• O RITUAL DO 9 — o dígito máximo limpa bloqueios ao redor, e o Super 9 promove o tabuleiro inteiro.\n• GELO, VIDRO E PEDRA — coberturas que cedem a 1, 2 ou 3 fusões encostadas.\n• CAMPANHA COM OBJETIVOS — alcance um dígito, quebre coberturas, limpe o tabuleiro.\n• MODO RECORDE — corrida sem limite de movimentos, com o seu recorde guardado.\n• MARTELO DE FUSÃO — quebre uma célula travada sem gastar jogada.\n• SEM TRAVA DE VIDAS — jogue quantas vezes quiser, na hora que quiser.\n\nVisual escuro, cores vibrantes por dígito e animações de fusão fluídas.';
+      'NineFuse é um quebra-cabeça de números em que combinar não é só eliminar.\n\nAlinhe três dígitos iguais e o do meio EVOLUI para o próximo: três 4 viram um 5. Planeje a cadeia de fusões e suba a escala até o clímax do jogo: o 9, que limpa os bloqueios ao redor, o raro Super 9, que converte um valor inteiro do tabuleiro numa troca só, e a Nova, a explosão de três 9 juntos.\n\n• FUSÃO, NÃO SÓ ELIMINAÇÃO: a mecânica do Match-3 com a progressão do merge.\n• CAMPANHA SEM FIM: centenas de fases com objetivos variados (crie, funda, quebre, limpe) e tabuleiros de formatos diferentes.\n• OBSTÁCULOS: gelo, vidro, pedra e corrente, cada um pedindo uma estratégia.\n• BOOSTERS: Martelo, Bomba e Pincel para as jogadas difíceis.\n• RECOMPENSA DIÁRIA, MISSÕES E ROLETA: um motivo novo para voltar todo dia.\n• MODO RECORDE: corrida sem limite de movimentos, com o seu recorde guardado.\n• SEM TRAVA DE VIDAS: jogue quantas vezes quiser, na hora que quiser.\n• JOGUE OFFLINE: não precisa de internet para jogar.\n\nVisual de céu noturno, peças coloridas por dígito e animações de fusão fluidas.';
 
   @override
   String get storeKeywords =>

@@ -1006,13 +1006,13 @@ abstract class AppLocalizations {
   /// No description provided for @storeShortDescription.
   ///
   /// In en, this message translates to:
-  /// **'Number match-3: three of a kind become the next digit. Reach 9 and unleash the Super 9.'**
+  /// **'Number match-3: three of a kind become the next digit. Evolve up to 9!'**
   String get storeShortDescription;
 
   /// No description provided for @storeFullDescription.
   ///
   /// In en, this message translates to:
-  /// **'NineFuse is a number puzzle where matching isn\'t just clearing.\n\nLine up three identical digits and the middle one EVOLVES into the next: three 4s become a 5. Repeat the fusion, plan the chain, and climb the scale to the game\'s climax — the digit 9, which clears blockers around it, and the rare Super 9 (a 5+ match), which converts a whole value across the board in a single swap.\n\n• FUSION, NOT JUST CLEARING — match-3 mechanics with merge progression.\n• THE RITUAL OF 9 — the top digit clears blockers around it, and the Super 9 promotes the whole board.\n• ICE, GLASS AND STONE — covers that yield to 1, 2 or 3 adjacent fusions.\n• OBJECTIVE-BASED CAMPAIGN — reach a digit, break covers, clear the board.\n• ENDLESS MODE — a run with no move limit, and your high score kept.\n• FUSION HAMMER — smash one stuck cell without spending a move.\n• NO LIVES TIMER — play as much as you want, whenever you want.\n\nDark visuals, vivid per-digit colours and fluid fusion animations.'**
+  /// **'NineFuse is a number puzzle where matching isn\'t just clearing.\n\nLine up three identical digits and the middle one EVOLVES into the next: three 4s become a 5. Plan your fusion chain and climb the scale to the game\'s climax: the 9, which clears blockers around it, the rare Super 9, which converts a whole value across the board in a single swap, and the Nova, the blast of three 9s together.\n\n• FUSION, NOT JUST CLEARING: match-3 mechanics with merge progression.\n• ENDLESS CAMPAIGN: hundreds of levels with varied goals (create, fuse, break, clear) and differently shaped boards.\n• OBSTACLES: ice, glass, stone and chains, each asking for its own strategy.\n• BOOSTERS: Hammer, Bomb and Brush for the tough spots.\n• DAILY REWARD, MISSIONS AND PRIZE WHEEL: a fresh reason to come back every day.\n• ENDLESS MODE: a run with no move limit, and your high score kept.\n• NO LIVES TIMER: play as much as you want, whenever you want.\n• PLAY OFFLINE: no internet needed to play.\n\nNight-sky visuals, colourful digit tiles and fluid fusion animations.'**
   String get storeFullDescription;
 
   /// No description provided for @storeKeywords.
